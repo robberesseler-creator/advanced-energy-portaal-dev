@@ -3419,6 +3419,17 @@ function setCloudStatus(status,msg){
 function buildSavePayload(){
   const cleanData={};
   for(const [sk,d] of Object.entries(itemData)){
+    // Bouw annotations metadata (zonder base64 originalData)
+    const cleanMeta={};
+    if(d.photoMeta){
+      for(const [idx,meta] of Object.entries(d.photoMeta)){
+        cleanMeta[idx]={
+          annotations:meta.annotations||[],
+          // originalData wordt apart naar Storage geüpload, sla URL op
+          originalUrl:meta.originalUrl||null
+        };
+      }
+    }
     cleanData[sk]={
       notes:d.notes||'',
       strings:d.strings||'',
@@ -3450,7 +3461,8 @@ function buildSavePayload(){
       batInjectie:d.batInjectie||'',
       batCalcSkipped:d.batCalcSkipped||false,
       photoCount:(d.photos||[]).length,
-      storageUrls:(d.storageUrls||[]).filter(u=>u&&u.startsWith('http'))
+      storageUrls:(d.storageUrls||[]).filter(u=>u&&u.startsWith('http')),
+      photoMeta:cleanMeta
     };
   }
   return {
@@ -3524,21 +3536,38 @@ function loadFromLocalStorage(){
 
 async function syncPhotosToCloud(){
   if(!currentDocId)return;
-  let uploadCount=0,errorCount=0,totalPhotos=0;
+  let uploadCount=0,errorCount=0,totalUploads=0;
   const syncPanel=document.getElementById('sync-status-panel');
 
-  // Tel totaal foto's
+  // Tel totaal uploads: bewerkte foto's + originele foto's
   for(const [sk,d] of Object.entries(itemData)){
     if(!d||!d.photos)continue;
     for(let i=0;i<d.photos.length;i++){
-      if(typeof d.photos[i]==='string'&&d.photos[i].startsWith('data:'))totalPhotos++;
+      if(typeof d.photos[i]==='string'&&d.photos[i].startsWith('data:'))totalUploads++;
+    }
+    // Tel originele foto's die nog niet geüpload zijn
+    if(d.photoMeta){
+      for(const [idx,meta] of Object.entries(d.photoMeta)){
+        if(meta.originalData&&typeof meta.originalData==='string'&&meta.originalData.startsWith('data:')&&!meta.originalUrl)totalUploads++;
+      }
     }
   }
-  if(totalPhotos===0){
+  if(totalUploads===0){
     if(syncPanel){syncPanel.innerHTML='✅ <strong>Opgeslagen!</strong>';syncPanel.style.color='#38d9a9';}
     return;
   }
-  if(syncPanel)syncPanel.innerHTML=`📷 <strong>Foto's uploaden: 0/${totalPhotos}</strong><br><small>Niet sluiten!</small>`;
+  if(syncPanel)syncPanel.innerHTML=`📷 <strong>Uploaden: 0/${totalUploads}</strong><br><small>Niet sluiten!</small>`;
+
+  // Helper: base64 naar blob
+  function b64toBlob(b64){
+    const parts=b64.split(',');
+    const mime=parts[0].match(/:(.*?);/)?.[1]||'image/jpeg';
+    const byteString=atob(parts[1]);
+    const ab=new ArrayBuffer(byteString.length);
+    const ia=new Uint8Array(ab);
+    for(let j=0;j<byteString.length;j++)ia[j]=byteString.charCodeAt(j);
+    return new Blob([ab],{type:mime});
+  }
 
   for(const [sk,d] of Object.entries(itemData)){
     if(!d||!d.photos||d.photos.length===0)continue;
@@ -3553,33 +3582,45 @@ async function syncPhotosToCloud(){
       try{
         const ts=Date.now()+'_'+Math.random().toString(36).substr(2,5)+'_'+i;
         const safeSk=sk.replace(/[^a-zA-Z0-9_-]/g,'_');
+        // Upload bewerkte (platte) foto
         const path=`bezoekrapport/${currentDocId}/${safeSk}/${ts}.jpg`;
-        const ref=storage.ref(path);
-
-        // Base64 naar blob
-        const parts=photo.split(',');
-        const mime=parts[0].match(/:(.*?);/)?.[1]||'image/jpeg';
-        const byteString=atob(parts[1]);
-        const ab=new ArrayBuffer(byteString.length);
-        const ia=new Uint8Array(ab);
-        for(let j=0;j<byteString.length;j++)ia[j]=byteString.charCodeAt(j);
-        const blob=new Blob([ab],{type:mime});
-
-        const snapshot=await ref.put(blob,{contentType:mime});
+        const blob=b64toBlob(photo);
+        const snapshot=await storage.ref(path).put(blob,{contentType:'image/jpeg'});
         const url=await snapshot.ref.getDownloadURL();
         d.storageUrls[i]=url;
         uploadCount++;
-
-        setCloudStatus('syncing',`${uploadCount}/${totalPhotos} foto's...`);
-        if(syncPanel)syncPanel.innerHTML=`📷 <strong>Foto's uploaden: ${uploadCount}/${totalPhotos}</strong><br><small>Niet sluiten!</small>`;
+        setCloudStatus('syncing',`${uploadCount}/${totalUploads}...`);
+        if(syncPanel)syncPanel.innerHTML=`📷 <strong>Uploaden: ${uploadCount}/${totalUploads}</strong><br><small>Niet sluiten!</small>`;
       }catch(err){
         console.error(`FOTO UPLOAD FOUT [${sk}][${i}]:`,err.code,err.message);
         errorCount++;
       }
     }
+
+    // Upload originele foto's (zonder annotations) apart
+    if(d.photoMeta){
+      for(const [idx,meta] of Object.entries(d.photoMeta)){
+        if(!meta.originalData||typeof meta.originalData!=='string'||!meta.originalData.startsWith('data:'))continue;
+        if(meta.originalUrl)continue; // Al geüpload
+        try{
+          const ts=Date.now()+'_'+Math.random().toString(36).substr(2,5)+'_orig'+idx;
+          const safeSk=sk.replace(/[^a-zA-Z0-9_-]/g,'_');
+          const path=`bezoekrapport/${currentDocId}/${safeSk}/originals/${ts}.jpg`;
+          const blob=b64toBlob(meta.originalData);
+          const snapshot=await storage.ref(path).put(blob,{contentType:'image/jpeg'});
+          meta.originalUrl=await snapshot.ref.getDownloadURL();
+          uploadCount++;
+          setCloudStatus('syncing',`${uploadCount}/${totalUploads}...`);
+          if(syncPanel)syncPanel.innerHTML=`📷 <strong>Uploaden: ${uploadCount}/${totalUploads}</strong><br><small>Niet sluiten!</small>`;
+        }catch(err){
+          console.error(`ORIGINELE FOTO UPLOAD FOUT [${sk}][${idx}]:`,err.code,err.message);
+          errorCount++;
+        }
+      }
+    }
   }
 
-  // Update Firestore met storageUrls
+  // Update Firestore met storageUrls + annotations
   if(uploadCount>0){
     try{
       const payload=buildSavePayload();
@@ -3595,8 +3636,8 @@ async function syncPhotosToCloud(){
     setCloudStatus('error',`${uploadCount} OK, ${errorCount} mislukt`);
     if(syncPanel){syncPanel.innerHTML=`⚠️ <strong>${uploadCount} geüpload, ${errorCount} mislukt</strong>`;syncPanel.style.color='#ff5c5c';}
   }else{
-    setCloudStatus('done',`${uploadCount} foto's geüpload`);
-    if(syncPanel){syncPanel.innerHTML=`✅ <strong>Alles gesynchroniseerd! (${uploadCount} foto's)</strong>`;syncPanel.style.color='#38d9a9';}
+    setCloudStatus('done',`${uploadCount} bestanden geüpload`);
+    if(syncPanel){syncPanel.innerHTML=`✅ <strong>Alles gesynchroniseerd! (${uploadCount} bestanden)</strong>`;syncPanel.style.color='#38d9a9';}
   }
 }
 
