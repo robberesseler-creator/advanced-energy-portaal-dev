@@ -150,7 +150,7 @@ tbody tr:hover{background:rgba(79,142,247,.02);}
       <span>📦</span><span style="flex:1">Magazijn</span><span class="ni-badge" id="mag-badge">0</span>
     </div>
     <div class="ni" data-tab="bezoeksrapport" onclick="go(this)">
-      <span>📋</span><span style="flex:1">Bezoeksrapport</span>
+      <span>📋</span><span style="flex:1">Bezoeksrapport</span><span class="ni-badge" id="br-badge" style="display:none">0</span>
     </div>
     <div class="ni" data-tab="daikin" onclick="go(this)">
       <span>✅</span><span style="flex:1">Daikin Checklist</span>
@@ -239,10 +239,29 @@ tbody tr:hover{background:rgba(79,142,247,.02);}
 
     <!-- ═══ BEZOEKSRAPPORT ═══ -->
     <div class="pnl" id="p-bezoeksrapport">
-      <div class="coming">
-        <div class="coming-icon">📋</div>
-        <div class="coming-title">Bezoeksrapport</div>
-        <div class="coming-sub">Hier komen de ingezonden bezoeksrapporten van de techniekers. De data wordt automatisch opgehaald zodra het bezoeksrapport-formulier gekoppeld is aan Firebase.</div>
+      <div class="fl">
+        <div class="sr">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input id="br-search" placeholder="Zoeken op klant, adres, type..." oninput="renderBRTable()">
+        </div>
+        <select id="br-filter" onchange="renderBRTable()">
+          <option value="">Alle types</option>
+          <option value="solar">Zon / Thuisbatterij</option>
+          <option value="airmo">Lucht/Lucht Mono</option>
+          <option value="airmu">Lucht/Lucht Multi</option>
+          <option value="airwater">Lucht/Water</option>
+          <option value="geo">Geothermie</option>
+          <option value="charge">Laadpaal</option>
+        </select>
+        <button class="btn" onclick="loadBezoeksrapporten()">↻ Vernieuwen</button>
+        <div style="flex:1"></div>
+        <span style="font-size:.75rem;color:var(--text3)" id="br-rc">0 rapporten</span>
+      </div>
+      <div class="tw">
+        <div class="ts"><table><thead><tr>
+          <th>Klant</th><th>Adres</th><th>Types</th><th>Items</th><th>Foto's</th><th>Datum</th><th></th>
+        </tr></thead><tbody id="br-tb"></tbody></table></div>
+        <div class="tf"><div id="br-tc">Toont 0 van 0 rapporten</div></div>
       </div>
     </div>
 
@@ -267,7 +286,7 @@ tbody tr:hover{background:rgba(79,142,247,.02);}
   </div>
 </div>
 
-<!-- DETAIL MODAL -->
+<!-- DETAIL MODAL (Magazijn) -->
 <div class="mbg" id="modal" onclick="closeModal()">
   <div class="mdl" onclick="event.stopPropagation()">
     <div class="mdl-h">
@@ -277,6 +296,19 @@ tbody tr:hover{background:rgba(79,142,247,.02);}
     <div class="mdl-g" id="m-fields"></div>
     <div id="m-photos"></div>
     <div id="m-audit"></div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL (Bezoeksrapport) -->
+<div class="mbg" id="br-modal" onclick="closeBRModal()">
+  <div class="mdl" style="max-width:760px" onclick="event.stopPropagation()">
+    <div class="mdl-h">
+      <div><h3 style="font-size:1.1rem;font-weight:700;margin-bottom:6px" id="br-m-title"></h3><div id="br-m-sub" style="font-size:.8rem;color:var(--text2)"></div></div>
+      <button class="mdl-x" onclick="closeBRModal()">✕</button>
+    </div>
+    <div class="mdl-g" id="br-m-fields"></div>
+    <div id="br-m-types"></div>
+    <div id="br-m-items"></div>
   </div>
 </div>
 
@@ -319,6 +351,7 @@ function go(el){
   if(p)p.classList.add('a');
   document.getElementById('hd-t').innerHTML=titles[tab]||tab;
   if(tab==='magazijn')loadMagazijn();
+  if(tab==='bezoeksrapport')loadBezoeksrapporten();
   if(tab==='dashboard')renderDashboard();
 }
 
@@ -453,6 +486,199 @@ function openModal(id){
   document.getElementById('modal').classList.add('show');
 }
 function closeModal(){document.getElementById('modal').classList.remove('show');}
+
+// ══ BEZOEKSRAPPORT DATA ══
+let brItems=[];
+
+const BR_TYPE_LABELS={
+  solar:'☀️🔋 Zon / Thuisbatterij',
+  airmo:'🌡️ Lucht/Lucht Mono',
+  airmu:'🌡️ Lucht/Lucht Multi',
+  airwater:'💧 Lucht/Water',
+  geo:'🌍 Geothermie',
+  charge:'⚡ Laadpaal'
+};
+const BR_TYPE_COLORS={
+  solar:'#f7c948',airmo:'#ff8c42',airmu:'#ff8c42',airwater:'#38b6ff',geo:'#4caf50',charge:'#a78bfa'
+};
+
+async function loadBezoeksrapporten(){
+  document.getElementById('br-tb').innerHTML='<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text2)">⏳ Rapporten laden uit Firebase...</td></tr>';
+  try{
+    const snap=await db.collection('bezoekrapport').get();
+    brItems=[];
+    snap.forEach(doc=>{
+      const d=doc.data();
+      brItems.push({id:doc.id,...d,_itemData:d.itemData?JSON.parse(d.itemData):{}});
+    });
+    // Sorteer op datum (nieuwste eerst)
+    brItems.sort((a,b)=>(b.updatedAt||b.createdAt||'').localeCompare(a.updatedAt||a.createdAt||''));
+  }catch(e){
+    document.getElementById('br-tb').innerHTML='<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--danger)">⚠️ Fout: '+e.message+'</td></tr>';
+    return;
+  }
+  const badge=document.getElementById('br-badge');
+  if(brItems.length>0){badge.style.display='';badge.textContent=brItems.length;}
+  else{badge.style.display='none';}
+  renderBRTable();
+}
+
+function renderBRTable(){
+  const search=(document.getElementById('br-search').value||'').toLowerCase();
+  const filter=document.getElementById('br-filter').value;
+  const filtered=brItems.filter(item=>{
+    if(filter){
+      const types=item.completedTypes||[];
+      // Zoek ook in types die beginnen met de filter key (airmo-1, airmu-2 etc)
+      if(!types.some(t=>t===filter||t.startsWith(filter+'-'))) return false;
+    }
+    if(search){
+      const naam=(item.klantNaam||'').toLowerCase();
+      const adres=(item.klantAdres||'').toLowerCase();
+      const types=(item.completedTypes||[]).map(t=>BR_TYPE_LABELS[t]||t).join(' ').toLowerCase();
+      if(!naam.includes(search)&&!adres.includes(search)&&!types.includes(search)) return false;
+    }
+    return true;
+  });
+  const tb=document.getElementById('br-tb');
+  if(!filtered.length){
+    tb.innerHTML='<tr><td colspan="7" class="empty"><div class="empty-icon">📋</div><div class="empty-title">Geen rapporten gevonden</div><div class="empty-sub">Rapporten verschijnen hier zodra ze worden ingezonden via de mobiele app</div></td></tr>';
+  }else{
+    tb.innerHTML=filtered.map(item=>{
+      const types=(item.completedTypes||[]);
+      const typeTags=types.map(t=>{
+        const baseType=t.split('-')[0];
+        const color=BR_TYPE_COLORS[baseType]||'#555e7d';
+        const label=BR_TYPE_LABELS[baseType]||t;
+        return `<span class="tag" style="background:${color}1a;color:${color}">${label}</span>`;
+      }).join('');
+      // Tel items en foto's
+      const data=item._itemData||{};
+      const totalItems=Object.keys(data).length;
+      let totalPhotos=0;
+      let hasCloud=false;
+      Object.values(data).forEach(d=>{
+        const urls=d.storageUrls||[];
+        const photos=d.photos||[];
+        totalPhotos+=photos.length;
+        if(urls.some(u=>u&&u.startsWith('http'))) hasCloud=true;
+      });
+      const datum=item.updatedAt?new Date(item.updatedAt).toLocaleDateString('nl-BE',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+      return `<tr>
+        <td style="font-weight:600">${item.klantNaam||'—'}</td>
+        <td style="font-size:.8rem;color:var(--text2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item.klantAdres||'—'}</td>
+        <td style="max-width:280px">${typeTags||'—'}</td>
+        <td class="mono" style="font-size:.76rem;color:var(--text2)">${totalItems}</td>
+        <td>${totalPhotos>0?`<span class="pb" style="background:${hasCloud?'rgba(56,217,169,.12)':'rgba(139,146,176,.1)'};color:${hasCloud?'var(--success)':'var(--text2)'}">📷 ${totalPhotos}${hasCloud?' ☁️':''}</span>`:'—'}</td>
+        <td class="mono" style="font-size:.7rem;color:var(--text3);white-space:nowrap">${datum}</td>
+        <td><button class="vb" onclick="openBRModal('${item.id}')" title="Bekijken"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></td>
+      </tr>`;
+    }).join('');
+  }
+  document.getElementById('br-rc').textContent=filtered.length+' rapporten';
+  document.getElementById('br-tc').innerHTML=`Toont <strong style="color:var(--text2)">${filtered.length}</strong> van <strong style="color:var(--text2)">${brItems.length}</strong> rapporten`;
+}
+
+function openBRModal(docId){
+  const item=brItems.find(i=>i.id===docId);
+  if(!item) return;
+  document.getElementById('br-m-title').textContent=item.klantNaam||'Onbekende klant';
+  document.getElementById('br-m-sub').textContent=item.klantAdres||'';
+
+  // Basis velden
+  const datum=item.updatedAt?new Date(item.updatedAt).toLocaleDateString('nl-BE',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+  const created=item.createdAt?new Date(item.createdAt).toLocaleDateString('nl-BE',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+  document.getElementById('br-m-fields').innerHTML=[
+    ['Klant',item.klantNaam],['Adres',item.klantAdres],['Aangemaakt',created],['Laatst bijgewerkt',datum]
+  ].map(([k,v])=>`<div><div class="mdl-lb">${k}</div><div class="mdl-v">${v||'—'}</div></div>`).join('');
+
+  // Types overzicht
+  const types=item.completedTypes||[];
+  document.getElementById('br-m-types').innerHTML=`<div class="ps"><div class="ps-t">Ingevulde checklists</div><div style="display:flex;gap:6px;flex-wrap:wrap">${types.map(t=>{
+    const baseType=t.split('-')[0];
+    const color=BR_TYPE_COLORS[baseType]||'#555e7d';
+    const label=BR_TYPE_LABELS[baseType]||t;
+    return `<span class="tag" style="background:${color}1a;color:${color};padding:4px 10px;font-size:.75rem">${label}</span>`;
+  }).join('')}</div></div>`;
+
+  // Items per type
+  const data=item._itemData||{};
+  let itemsHtml='';
+  Object.entries(data).forEach(([sk,d])=>{
+    if(!d) return;
+    const hasPhotos=(d.storageUrls||[]).some(u=>u&&u.startsWith('http'));
+    const hasNotes=d.notes&&d.notes.trim();
+    const hasAnyData=hasPhotos||hasNotes||(d.photos&&d.photos.length>0);
+    if(!hasAnyData) return;
+
+    itemsHtml+=`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:14px;margin-bottom:10px">`;
+    itemsHtml+=`<div style="font-weight:600;font-size:.85rem;margin-bottom:8px">${sk}</div>`;
+
+    // Foto's (alleen storageUrls tonen)
+    const urls=d.storageUrls||[];
+    const validUrls=urls.filter(u=>u&&u.startsWith('http'));
+    if(validUrls.length>0){
+      itemsHtml+=`<div class="pg" style="margin-bottom:8px">`;
+      validUrls.forEach(url=>{
+        itemsHtml+=`<img src="${url}" class="pt" onclick="window.open('${url}','_blank')" style="width:90px;height:90px"/>`;
+      });
+      itemsHtml+=`</div>`;
+    } else if(d.photos&&d.photos.length>0){
+      const pendingCount=d.photos.filter(p=>p==='__pending_upload__').length;
+      if(pendingCount>0){
+        itemsHtml+=`<div style="font-size:.72rem;color:var(--warn);margin-bottom:6px">⏳ ${pendingCount} foto('s) nog niet gesynchroniseerd</div>`;
+      }
+    }
+
+    // Notities
+    if(hasNotes){
+      itemsHtml+=`<div style="font-size:.82rem;color:var(--text2);white-space:pre-wrap;line-height:1.5">${d.notes}</div>`;
+    }
+
+    // Extra velden tonen
+    const extraFields=[];
+    if(d.fixType) extraFields.push(['Bevestiging',d.fixType]);
+    if(d.unitType) extraFields.push(['Binnenunit',d.unitType]);
+    if(d.connType) extraFields.push(['Aansluiting',d.connType]);
+    if(d.phaseType) extraFields.push(['Fase',d.phaseType]);
+    if(d.location) extraFields.push(['Locatie',d.location]);
+    if(d.strings) extraFields.push(['Strings',d.strings]);
+    if(d.mppTrackers) extraFields.push(['MPP Trackers',d.mppTrackers]);
+    if(d.mountType) extraFields.push(['Montage',d.mountType]);
+    if(d.fuelType) extraFields.push(['Brandstof',d.fuelType+(d.fuelAmount?' — '+d.fuelAmount+(d.fuelType==='gas'?' m³':' liter'):'')]);
+    if(d.buildYear) extraFields.push(['Bouwjaar',d.buildYear]);
+    if(d.insulation) extraFields.push(['Isolatie',d.insulation]);
+    if(d.woningType) extraFields.push(['Woning',d.woningType]);
+    if(d.boilerTemp) extraFields.push(['Keteltemp',d.boilerTemp+'°C']);
+    if(d.totalSqm) extraFields.push(['Opp.',d.totalSqm+' m²']);
+    if(d.boardType){
+      const bt=d.boardType;
+      const parts=[];
+      if(bt.moeilijk) parts.push('Moeilijk bord');
+      if(bt.extra) parts.push('Extra bord');
+      if(parts.length) extraFields.push(['Bord',parts.join(', ')]);
+    }
+    if(d.sqmRows&&d.sqmRows.length>0){
+      const rows=d.sqmRows.filter(r=>r.floor&&r.sqm);
+      if(rows.length) extraFields.push(['Vloerverw.',rows.map(r=>`${r.floor}: ${r.sqm} m²`).join(', ')]);
+    }
+    if(d.radRows&&d.radRows.length>0){
+      const rows=d.radRows.filter(r=>r.floor&&r.count);
+      if(rows.length) extraFields.push(['Radiatoren',rows.map(r=>`${r.floor}: ${r.count}×`).join(', ')]);
+    }
+
+    if(extraFields.length>0){
+      itemsHtml+=`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${extraFields.map(([k,v])=>`<span style="font-size:.68rem;background:rgba(79,142,247,.1);color:var(--accent);padding:3px 8px;border-radius:5px;font-weight:600">${k}: ${v}</span>`).join('')}</div>`;
+    }
+
+    itemsHtml+=`</div>`;
+  });
+  document.getElementById('br-m-items').innerHTML=itemsHtml||'<div style="color:var(--text3);font-size:.82rem">Geen items gevonden in dit rapport</div>';
+
+  document.getElementById('br-modal').classList.add('show');
+}
+
+function closeBRModal(){document.getElementById('br-modal').classList.remove('show');}
 
 // ══ INIT ══
 loadMagazijn();
