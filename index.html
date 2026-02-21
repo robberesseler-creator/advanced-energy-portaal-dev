@@ -349,6 +349,7 @@ tbody tr:hover{background:rgba(79,142,247,.02);}
 <!-- FIREBASE -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" async></script>
 <script>
 firebase.initializeApp({
@@ -360,6 +361,7 @@ firebase.initializeApp({
   appId:"1:309856938024:web:2108715f92c5dea2da2d1d"
 });
 const db=firebase.firestore();
+const storage=firebase.storage();
 
 const SEC={
   paars:{label:'Spare part — Stock',color:'#a78bfa',icon:'🟣'},
@@ -881,36 +883,9 @@ async function generateBRPdf(docId){
           checkSpace(imgH+gap);
         }
         try{
-          // Methode 1: probeer via fetch (werkt als CORS OK is)
-          let b64;
-          try{
-            const resp=await fetch(photoUrls[i]);
-            const blob=await resp.blob();
-            b64=await new Promise((res,rej)=>{
-              const reader=new FileReader();
-              reader.onload=()=>res(reader.result);
-              reader.onerror=rej;
-              reader.readAsDataURL(blob);
-            });
-          }catch(fetchErr){
-            // Methode 2: probeer via Image element
-            b64=await new Promise((resolve,reject)=>{
-              const img=new Image();
-              img.crossOrigin='anonymous';
-              img.onload=()=>{
-                try{
-                  const canvas=document.createElement('canvas');
-                  canvas.width=img.naturalWidth;
-                  canvas.height=img.naturalHeight;
-                  canvas.getContext('2d').drawImage(img,0,0);
-                  resolve(canvas.toDataURL('image/jpeg',0.8));
-                }catch(e){reject(e);}
-              };
-              img.onerror=()=>reject(new Error('img load failed'));
-              img.src=photoUrls[i];
-            });
-          }
-          doc.addImage(b64,'JPEG',px,y,imgW,imgH);
+          const b64=await loadPhotoAsBase64(photoUrls[i]);
+          if(b64){doc.addImage(b64,'JPEG',px,y,imgW,imgH);}
+          else{throw new Error('no data');}
         }catch(e){
           doc.setFillColor(230,230,230);
           doc.roundedRect(px,y,imgW,imgH,1,1,'F');
@@ -946,6 +921,40 @@ async function generateBRPdf(docId){
   }
 }
 
+// ══ FOTO HELPER: laad foto als base64 via Firebase Storage SDK (omzeilt CORS) ══
+async function loadPhotoAsBase64(url){
+  try{
+    // Methode 1: Extract storage path uit URL en gebruik SDK
+    const match=url.match(/\/o\/(.+?)\?/);
+    if(match){
+      const path=decodeURIComponent(match[1]);
+      const dlUrl=await storage.ref(path).getDownloadURL();
+      const resp=await fetch(dlUrl);
+      const blob=await resp.blob();
+      return await new Promise((res,rej)=>{
+        const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(blob);
+      });
+    }
+  }catch(e){console.warn('Storage SDK load failed:',e);}
+  try{
+    // Methode 2: directe fetch
+    const resp=await fetch(url);
+    const blob=await resp.blob();
+    return await new Promise((res,rej)=>{
+      const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(blob);
+    });
+  }catch(e){console.warn('Direct fetch failed:',e);}
+  try{
+    // Methode 3: Image element
+    return await new Promise((res,rej)=>{
+      const img=new Image();img.crossOrigin='anonymous';
+      img.onload=()=>{const c=document.createElement('canvas');c.width=img.naturalWidth;c.height=img.naturalHeight;c.getContext('2d').drawImage(img,0,0);res(c.toDataURL('image/jpeg',0.85));};
+      img.onerror=rej;img.src=url;
+    });
+  }catch(e){console.warn('Image element failed:',e);}
+  return null;
+}
+
 // ══ FOTO EDITOR (Dashboard) ══
 const peCanvas=document.getElementById('pe-canvas');
 const peCtx=peCanvas.getContext('2d');
@@ -966,19 +975,21 @@ function peTool(t){
   peRedraw();
 }
 
-function peOpen(docId,sk,photoIdx,origUrl,flatUrl){
+async function peOpen(docId,sk,photoIdx,origUrl,flatUrl){
   peDocId=docId;peSK=sk;pePhotoIdx=photoIdx;peOrigUrl=origUrl;peFlatUrl=flatUrl;
   peSelectedIdx=-1;peTransformMode=null;peHistory=[];
-  // Laad annotations uit brItems
   const item=brItems.find(i=>i.id===docId);
   if(!item)return;
   const data=item._itemData[sk]||{};
   const meta=(data.photoMeta&&data.photoMeta[photoIdx])?data.photoMeta[photoIdx]:{};
   peAnnotations=meta.annotations?JSON.parse(JSON.stringify(meta.annotations)):[];
-  // Laad de originele foto (zonder annotations)
+  
+  // Laad foto als base64 via Storage SDK
   const imgSrc=origUrl||flatUrl;
+  const b64=await loadPhotoAsBase64(imgSrc);
+  if(!b64){alert('Foto kon niet geladen worden');return;}
+  
   const img=new Image();
-  img.crossOrigin='anonymous';
   img.onload=()=>{
     const maxW=window.innerWidth-32;
     const maxH=window.innerHeight-120;
@@ -991,17 +1002,7 @@ function peOpen(docId,sk,photoIdx,origUrl,flatUrl){
     peRedraw();
     document.getElementById('photo-editor').style.display='flex';
   };
-  img.onerror=()=>{
-    // Fallback: probeer via fetch
-    fetch(imgSrc).then(r=>r.blob()).then(blob=>{
-      const url=URL.createObjectURL(blob);
-      img.crossOrigin='';
-      img.onload=img.onload;
-      img.onerror=()=>alert('Foto kon niet geladen worden');
-      img.src=url;
-    }).catch(()=>alert('Foto kon niet geladen worden'));
-  };
-  img.src=imgSrc;
+  img.src=b64;
 }
 
 function peClose(){
