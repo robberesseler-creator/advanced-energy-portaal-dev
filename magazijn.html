@@ -13,6 +13,7 @@
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script>
   firebase.initializeApp({
     apiKey: "AIzaSyBKU-wCjV4Au4ngRG52Zmmxbzc3N3D8VBU",
@@ -23,6 +24,51 @@
     appId: "1:309856938024:web:2108715f92c5dea2da2d1d"
   });
   const db = firebase.firestore();
+  const storage = firebase.storage();
+
+  // Upload foto naar Firebase Storage, retourneert download URL
+  async function uploadToStorage(dataUrl, path) {
+    try {
+      const response = await fetch(dataUrl);
+      const blob = await response.blob();
+      const ref = storage.ref().child(path);
+      await ref.put(blob);
+      const url = await ref.getDownloadURL();
+      console.log('✅ Foto geüpload:', path);
+      return url;
+    } catch(e) {
+      console.warn('⚠️ Foto upload error:', e);
+      return null;
+    }
+  }
+
+  // Sync alle foto's zonder storageUrl naar Firebase Storage
+  async function syncPhotosToCloud() {
+    const photoFields = ['photos','artikelPhotos','stickerPhotos','bonPhotos','schadePhotos','seriePhotos'];
+    let uploaded = 0;
+    for (const it of items) {
+      if (it.deleted) continue;
+      for (const field of photoFields) {
+        if (!it[field]) continue;
+        for (const photo of it[field]) {
+          if (photo.storageUrl || !photo.data) continue;
+          // Foto heeft nog geen cloud URL — uploaden
+          const path = 'magazijn/' + (it.uuid||it.id) + '/' + field + '/' + Date.now() + '_' + Math.random().toString(36).substr(2,4) + '.jpg';
+          const url = await uploadToStorage(photo.data, path);
+          if (url) {
+            photo.storageUrl = url;
+            photo.storagePath = path;
+            uploaded++;
+          }
+        }
+      }
+    }
+    if (uploaded > 0) {
+      localStorage.setItem('mag-items', JSON.stringify(items));
+      console.log('✅ ' + uploaded + ' foto(s) naar cloud geüpload');
+      showToast(uploaded + ' foto(\'s) geüpload naar cloud ☁️');
+    }
+  }
 </script>
 
 <style>
@@ -1012,6 +1058,7 @@ function wizFinishAddToExisting(){
   wizMatchedItem.stickerPhotos.push({data:wizStickerPhoto,timestamp:ts()+' — '+magazijnier});
   wizMatchedItem.lastModified=ts();wizMatchedItem.modifiedBy=magazijnier;
   saveData();
+  syncPhotosToCloud().then(()=>saveData());
   closeWizard();
   openSection(wizMatchedItem.section);
   setTimeout(()=>{toggleItem(wizMatchedItem.id);},200);
@@ -1030,6 +1077,7 @@ function wizFinishWithCategoryChange(){
   wizMatchedItem.categoryHistory.push({from:oldSection,to:wizDetectedColor,at:ts(),by:magazijnier});
   wizMatchedItem.lastModified=ts();wizMatchedItem.modifiedBy=magazijnier;
   saveData();
+  syncPhotosToCloud().then(()=>saveData());
   closeWizard();
   openSection(wizDetectedColor);
   setTimeout(()=>{toggleItem(wizMatchedItem.id);},200);
@@ -1044,6 +1092,7 @@ function wizFinishKeepCategory(){
   wizMatchedItem.stickerPhotos.push({data:wizStickerPhoto,timestamp:ts()+' — '+magazijnier});
   wizMatchedItem.lastModified=ts();wizMatchedItem.modifiedBy=magazijnier;
   saveData();
+  syncPhotosToCloud().then(()=>saveData());
   closeWizard();
   openSection(wizMatchedItem.section);
   setTimeout(()=>{toggleItem(wizMatchedItem.id);},200);
@@ -1061,6 +1110,7 @@ function wizFinishCreateNew(){
     emailSent:false,open:true,deleted:false,timestamp:ts(),createdBy:magazijnier
   };
   items.push(item);saveData();
+  syncPhotosToCloud().then(()=>saveData());
   closeWizard();
   openSection(wizDetectedColor);
   setTimeout(()=>{toggleItem(item.id);},200);
@@ -2165,6 +2215,8 @@ function addPhotos(id,files,field){
       processPhoto(e.target.result).then(dataUrl=>{
         it[field].push({data:dataUrl,timestamp:ts()+' — '+magazijnier});
         renderItems();saveData();
+        // Upload foto's naar cloud op achtergrond
+        syncPhotosToCloud().then(()=>saveData());
       });
     };reader.readAsDataURL(file);
   });
@@ -2390,12 +2442,16 @@ function cleanEmptyItems(){
 function saveData(){cleanEmptyItems();localStorage.setItem('mag-items',JSON.stringify(items));localStorage.setItem('mag-nextId',nextId);
   // === FIREBASE SYNC ===
   try{
-    // Items opslaan zonder foto's (foto's zijn te groot voor Firestore)
+    // Items opslaan zonder foto data (base64 te groot), maar WEL met storageUrls
     const itemsForCloud=items.map(i=>{
       const copy=Object.assign({},i);
-      // Verwijder foto data (base64 te groot), bewaar alleen metadata
-      ['photos','artikelPhotos','stickerPhotos','bonPhotos'].forEach(f=>{
-        if(copy[f]){copy[f]=copy[f].map(p=>({name:p.name||'',timestamp:p.timestamp||'',editedAt:p.editedAt||''}));}
+      ['photos','artikelPhotos','stickerPhotos','bonPhotos','schadePhotos','seriePhotos'].forEach(f=>{
+        if(copy[f]){copy[f]=copy[f].map(p=>({
+          storageUrl:p.storageUrl||'',
+          storagePath:p.storagePath||'',
+          timestamp:p.timestamp||'',
+          editedAt:p.editedAt||''
+        }));}
       });
       return copy;
     });
@@ -2431,6 +2487,9 @@ function exportData(){
   a.href=URL.createObjectURL(blob);a.download='magazijn-'+new Date().toISOString().slice(0,10)+'.json';a.click();showToast('Geëxporteerd (incl. archief)');}
 
 loadData();updateHub();initUser();
+
+// === FIREBASE: Sync bestaande foto's naar cloud (achtergrond) ===
+setTimeout(()=>{syncPhotosToCloud().then(()=>saveData());}, 3000);
 
 // === FIREBASE: Laad data van cloud als localStorage leeg is ===
 (function loadFromFirebase(){
