@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced Energy — Dashboard</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+:root{
+  --bg:#0f1117;--surface:#181c27;--surface2:#1e2336;
+  --accent:#4f8ef7;--accent2:#38d9a9;
+  --success:#38d9a9;--danger:#ff5c5c;--warn:#f7c948;
+  --text:#e8ecf5;--text2:#8b92b0;--text3:#555e7d;
+  --border:#2a2f45;--border-hover:#3d4460;
+  --radius:12px;--radius-sm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+/* SIDEBAR */
+.sidebar{width:256px;background:var(--surface);border-right:1px solid var(--border);position:fixed;top:0;bottom:0;left:0;z-index:100;display:flex;flex-direction:column;}
+.sidebar-logo{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:11px;}
+.logo-icon{width:34px;height:34px;border-radius:6px;background:linear-gradient(135deg,#4f8ef7,#38d9a9);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.72rem;flex-shrink:0;}
+.logo-title{font-weight:700;font-size:.88rem;letter-spacing:.3px;}
+.logo-sub{font-family:'DM Mono',monospace;font-size:.55rem;text-transform:uppercase;letter-spacing:2px;color:var(--text3);}
+.sidebar-nav{flex:1;padding:14px 10px;overflow-y:auto;}
+.nav-section{font-family:'DM Mono',monospace;font-size:.5rem;text-transform:uppercase;letter-spacing:3px;color:var(--text3);padding:10px 12px 6px;}
+.nav-item{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:var(--radius-sm);color:var(--text2);cursor:pointer;font-size:.86rem;font-weight:500;margin-bottom:2px;position:relative;transition:all .15s;}
+.nav-item:hover{background:rgba(79,142,247,.06);}
+.nav-item.active{background:rgba(79,142,247,.1);color:var(--accent);font-weight:600;}
+.nav-item.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:18px;background:var(--accent);border-radius:0 2px 2px 0;}
+.nav-badge{background:var(--accent);color:#fff;font-size:.62rem;font-weight:700;padding:1px 7px;border-radius:10px;min-width:20px;text-align:center;}
+.sidebar-user{padding:14px 18px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.user-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,rgba(79,142,247,.2),rgba(56,217,169,.2));color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.68rem;}
+
+/* MAIN */
+.main{margin-left:256px;flex:1;position:relative;}
+.header{height:56px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:14px;background:#000;position:sticky;top:0;z-index:50;}
+.header-title{flex:1;font-size:1rem;font-weight:700;}
+.header-sub{color:var(--text3);font-weight:400;font-size:.8rem;margin-left:8px;}
+.live-dot{width:8px;height:8px;background:var(--success);border-radius:50%;box-shadow:0 0 8px rgba(56,217,169,.5);display:inline-block;animation:pulse 2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.content{padding:24px 28px;}
+
+/* CARDS */
+.stat-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:24px;}
+.stat-card{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:16px 12px;text-align:center;cursor:pointer;transition:all .2s;}
+.stat-card:hover{border-color:var(--border-hover);transform:translateY(-2px);}
+.stat-card.active{border-color:currentColor;}
+.stat-bar{width:100%;height:4px;border-radius:2px;margin-bottom:10px;}
+.stat-num{font-size:1.6rem;font-weight:700;font-family:'DM Mono',monospace;line-height:1;}
+.stat-label{font-size:.6rem;color:var(--text2);margin-top:6px;line-height:1.3;}
+
+/* FILTERS */
+.filters{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
+.search-wrap{position:relative;flex:0 0 280px;}
+.search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);}
+.search-wrap input{width:100%;padding:10px 12px 10px 34px;}
+input,select{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.83rem;padding:10px 12px;outline:none;}
+input:focus{border-color:var(--accent);}
+select{color:var(--text2);font-size:.8rem;cursor:pointer;appearance:none;padding-right:30px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23555e7d' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;}
+
+/* TABLE */
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.table-scroll{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;min-width:1000px;}
+th{padding:12px 14px;font-family:'DM Mono',monospace;font-size:.55rem;text-transform:uppercase;letter-spacing:2px;color:var(--text3);text-align:left;border-bottom:1px solid var(--border);background:rgba(0,0,0,.15);white-space:nowrap;}
+td{padding:12px 14px;}
+tr{border-bottom:1px solid var(--border);transition:background .1s;}
+tbody tr:hover{background:rgba(79,142,247,.02);}
+.table-footer{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-top:1px solid var(--border);font-size:.76rem;color:var(--text3);}
+
+/* BADGES */
+.cat-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:6px;font-size:.68rem;font-weight:600;}
+.cat-dot{width:7px;height:7px;border-radius:50%;display:inline-block;}
+.status-dot{display:inline-flex;align-items:center;gap:5px;font-size:.76rem;}
+.photo-badge{display:inline-block;padding:2px 7px;border-radius:5px;font-size:.68rem;font-weight:600;}
+.mono{font-family:'DM Mono',monospace;}
+
+/* VIEW BTN */
+.view-btn{width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text3);transition:all .15s;}
+.view-btn:hover{border-color:var(--border-hover);color:var(--text);background:rgba(255,255,255,.05);}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);}
+.modal-bg.show{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;max-width:640px;width:92%;max-height:85vh;overflow:auto;}
+.modal-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;}
+.modal-close{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);font-size:16px;}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;font-size:.85rem;margin-bottom:20px;}
+.modal-label{font-family:'DM Mono',monospace;font-size:.55rem;text-transform:uppercase;letter-spacing:2px;color:var(--text3);margin-bottom:4px;}
+.modal-value{color:var(--text);font-weight:500;}
+.photo-section{margin-bottom:16px;}
+.photo-section-title{font-family:'DM Mono',monospace;font-size:.55rem;text-transform:uppercase;letter-spacing:2px;color:var(--text3);margin-bottom:8px;}
+.photo-grid{display:flex;gap:8px;flex-wrap:wrap;}
+.photo-thumb{width:110px;height:110px;object-fit:cover;border-radius:var(--radius-sm);border:1px solid var(--border);cursor:pointer;}
+.photo-placeholder{width:110px;height:110px;border-radius:var(--radius-sm);border:2px dashed var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:.65rem;color:var(--text3);text-align:center;padding:8px;}
+.photo-ts{font-size:.58rem;color:var(--text3);margin-top:3px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.audit-log{max-height:140px;overflow:auto;background:rgba(0,0,0,.2);border-radius:var(--radius-sm);padding:10px;}
+.audit-entry{font-size:.7rem;color:var(--text2);margin-bottom:4px;display:flex;gap:8px;}
+.audit-time{color:var(--text3);font-family:'DM Mono',monospace;font-size:.62rem;flex-shrink:0;}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:60px 20px;color:var(--text3);}
+.empty-icon{font-size:48px;margin-bottom:12px;}
+.loading{text-align:center;padding:40px;color:var(--text2);}
+
+/* Hide panels */
+.panel{display:none;}.panel.active{display:block;}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">AE</div>
+    <div>
+      <div class="logo-title">Advanced Energy</div>
+      <div class="logo-sub">Plenion</div>
+    </div>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-section">Overzicht</div>
+    <div class="nav-item active" onclick="switchTab('magazijn')">
+      <span>📦</span><span style="flex:1">Magazijn</span><span class="nav-badge" id="mag-badge">0</span>
+    </div>
+    <div class="nav-section" style="margin-top:12px">Beheer</div>
+    <div class="nav-item" onclick="switchTab('instellingen')">
+      <span>⚙️</span><span>Instellingen</span>
+    </div>
+  </div>
+  <div class="sidebar-user">
+    <div class="user-avatar">AD</div>
+    <div>
+      <div style="font-size:.8rem;font-weight:600">Admin</div>
+      <div class="mono" style="font-size:.58rem;color:var(--success);text-transform:uppercase;letter-spacing:1px">Online</div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <header class="header">
+    <div class="header-title" id="header-title">📦 Magazijn <span class="header-sub">— Alle registraties</span></div>
+    <div style="display:flex;align-items:center;gap:7px;margin-right:14px">
+      <span class="live-dot"></span>
+      <span class="mono" style="font-size:.58rem;text-transform:uppercase;letter-spacing:2px;color:var(--success)">Live</span>
+    </div>
+    <button onclick="loadMagazijn()" style="padding:8px 14px;border-radius:var(--radius-sm);background:var(--surface2);border:1px solid var(--border);color:var(--text2);cursor:pointer;font-size:.8rem;font-weight:600;font-family:'DM Sans',sans-serif">↻ Vernieuwen</button>
+  </header>
+
+  <div class="content">
+    <!-- MAGAZIJN TAB -->
+    <div class="panel active" id="panel-magazijn">
+
+      <!-- CATEGORY CARDS -->
+      <div class="stat-grid" id="cat-cards"></div>
+
+      <!-- FILTERS -->
+      <div class="filters">
+        <div class="search-wrap">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input id="mag-search" placeholder="Zoeken op omschrijving, project, ref..." oninput="renderTable()">
+        </div>
+        <select id="mag-filter" onchange="renderTable()">
+          <option value="">Alle Categorieën</option>
+          <option value="paars">Spare part — Stock</option>
+          <option value="oranje">Spare part — Interventie</option>
+          <option value="geel">Niet volledig</option>
+          <option value="rood">Beschadigd / Retour lev.</option>
+          <option value="blauw">Retour van werf</option>
+          <option value="roze">Verbruikte spare parts</option>
+        </select>
+        <div style="flex:1"></div>
+        <span style="font-size:.75rem;color:var(--text3)" id="result-count">0 items</span>
+      </div>
+
+      <!-- TABLE -->
+      <div class="table-wrap">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th><th>Categorie</th><th>Omschrijving</th><th>Project</th><th>Ref.</th><th>Serial</th><th>Status</th><th>Datum</th><th>Foto's</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="mag-tbody"></tbody>
+          </table>
+        </div>
+        <div class="table-footer">
+          <div id="table-count">Toont 0 van 0 items</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS TAB -->
+    <div class="panel" id="panel-instellingen">
+      <div class="empty">
+        <div class="empty-icon">⚙️</div>
+        <div>Instellingen komen hier</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-bg" id="modal-detail" onclick="closeDetail()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div>
+        <h3 style="font-size:1.1rem;font-weight:700;margin-bottom:6px" id="detail-title"></h3>
+        <div id="detail-cat-badge"></div>
+      </div>
+      <button class="modal-close" onclick="closeDetail()">✕</button>
+    </div>
+    <div class="modal-grid" id="detail-fields"></div>
+    <div id="detail-photos"></div>
+    <div id="detail-audit"></div>
+  </div>
+</div>
+
+<!-- FIREBASE SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyBKU-wCjV4Au4ngRG52Zmmxbzc3N3D8VBU",
+  authDomain:"advanced-intranet.firebaseapp.com",
+  projectId:"advanced-intranet",
+  storageBucket:"advanced-intranet.firebasestorage.app",
+  messagingSenderId:"309856938024",
+  appId:"1:309856938024:web:2108715f92c5dea2da2d1d"
+});
+const db=firebase.firestore();
+
+const SEC={
+  paars:{label:'Spare part — Stock',color:'#a78bfa'},
+  oranje:{label:'Spare part — Interventie',color:'#f97316'},
+  geel:{label:'Niet volledig',color:'#f7c948'},
+  rood:{label:'Beschadigd / Retour lev.',color:'#ff5c5c'},
+  blauw:{label:'Retour van werf',color:'#38b6ff'},
+  roze:{label:'Verbruikte spare parts',color:'#f472b6'}
+};
+const PHOTO_LABELS={photos:'📦 Product',artikelPhotos:'🔍 Artikelnr',stickerPhotos:'🏷️ Sticker',bonPhotos:'📋 Leverbon',schadePhotos:'⚠️ Schade',seriePhotos:'🔢 Serienr'};
+const PHOTO_FIELDS=['photos','artikelPhotos','stickerPhotos','bonPhotos','schadePhotos','seriePhotos'];
+
+let magItems=[];
+let activeFilter='';
+
+// ══ LOAD DATA ══
+async function loadMagazijn(){
+  document.getElementById('mag-tbody').innerHTML='<tr><td colspan="10" class="loading">⏳ Data laden uit Firebase...</td></tr>';
+  try{
+    const snap=await db.collection('magazijn').doc('items').get();
+    if(snap.exists&&snap.data().items){
+      magItems=JSON.parse(snap.data().items).filter(i=>!i.deleted);
+    }else{magItems=[];}
+  }catch(e){
+    document.getElementById('mag-tbody').innerHTML='<tr><td colspan="10" class="loading" style="color:var(--danger)">⚠️ Fout: '+e.message+'</td></tr>';
+    return;
+  }
+  document.getElementById('mag-badge').textContent=magItems.length;
+  renderCards();
+  renderTable();
+}
+
+// ══ CATEGORY CARDS ══
+function renderCards(){
+  const el=document.getElementById('cat-cards');
+  el.innerHTML='';
+  Object.entries(SEC).forEach(([key,cfg])=>{
+    const count=magItems.filter(i=>i.section===key).length;
+    const active=activeFilter===key;
+    const card=document.createElement('div');
+    card.className='stat-card'+(active?' active':'');
+    card.style.borderColor=active?cfg.color+'88':'';
+    card.onclick=()=>{activeFilter=activeFilter===key?'':key;document.getElementById('mag-filter').value=activeFilter;renderCards();renderTable();};
+    card.innerHTML=`<div class="stat-bar" style="background:${cfg.color}"></div><div class="stat-num" style="color:${cfg.color}">${count}</div><div class="stat-label">${cfg.label}</div>`;
+    el.appendChild(card);
+  });
+}
+
+// ══ TABLE ══
+function renderTable(){
+  const search=document.getElementById('mag-search').value.toLowerCase();
+  const filter=document.getElementById('mag-filter').value||activeFilter;
+  const filtered=magItems.filter(i=>{
+    if(filter&&i.section!==filter)return false;
+    if(search){
+      const d=(i.description||'').toLowerCase(),p=(i.projectNumber||'').toLowerCase(),r=(i.reference||'').toLowerCase(),s=(i.serial||'').toLowerCase();
+      if(!d.includes(search)&&!p.includes(search)&&!r.includes(search)&&!s.includes(search))return false;
+    }
+    return true;
+  });
+  const tbody=document.getElementById('mag-tbody');
+  if(filtered.length===0){
+    tbody.innerHTML='<tr><td colspan="10" class="empty"><div class="empty-icon">📦</div>Geen items gevonden</td></tr>';
+  }else{
+    tbody.innerHTML=filtered.map(item=>{
+      const sec=SEC[item.section]||{label:item.section,color:'#555e7d'};
+      const tp=PHOTO_FIELDS.reduce((s,f)=>s+(item[f]?.length||0),0);
+      const hasCloud=PHOTO_FIELDS.some(f=>item[f]?.some(p=>p.storageUrl));
+      const statusColor=item.status==='afgehandeld'?'var(--success)':item.emailSent?'var(--warn)':'var(--accent)';
+      const statusText=item.status==='afgehandeld'?'Afgehandeld':item.emailSent?'Mail':'Open';
+      return `<tr>
+        <td class="mono" style="font-size:.76rem;color:var(--text3)">${item.id}</td>
+        <td><span class="cat-badge" style="background:${sec.color}1a;color:${sec.color}"><span class="cat-dot" style="background:${sec.color}"></span>${sec.label}</span></td>
+        <td style="font-weight:600;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item.description||'—'}</td>
+        <td class="mono" style="font-size:.76rem;color:var(--text2)">${item.projectNumber||'—'}</td>
+        <td style="font-size:.8rem;color:var(--text2)">${item.reference||'—'}</td>
+        <td class="mono" style="font-size:.72rem;color:var(--text2)">${item.serial||'—'}</td>
+        <td><span class="status-dot"><span class="cat-dot" style="background:${statusColor}"></span>${statusText}</span></td>
+        <td class="mono" style="font-size:.7rem;color:var(--text3);white-space:nowrap">${item.timestamp||'—'}</td>
+        <td>${tp>0?`<span class="photo-badge" style="background:${hasCloud?'rgba(56,217,169,.12)':'rgba(139,146,176,.1)'};color:${hasCloud?'var(--success)':'var(--text2)'}">📷 ${tp}${hasCloud?' ☁️':''}</span>`:'<span style="color:var(--text3);font-size:.75rem">—</span>'}</td>
+        <td><button class="view-btn" onclick="openDetail(${item.id})" title="Bekijken"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></td>
+      </tr>`;
+    }).join('');
+  }
+  document.getElementById('result-count').textContent=filtered.length+' items';
+  document.getElementById('table-count').innerHTML=`Toont <strong style="color:var(--text2)">${filtered.length}</strong> van <strong style="color:var(--text2)">${magItems.length}</strong> items`;
+}
+
+// ══ DETAIL MODAL ══
+function openDetail(id){
+  const item=magItems.find(i=>i.id===id);if(!item)return;
+  const sec=SEC[item.section]||{label:item.section,color:'#555e7d'};
+
+  document.getElementById('detail-title').textContent='Item #'+item.id;
+  document.getElementById('detail-cat-badge').innerHTML=`<span class="cat-badge" style="background:${sec.color}1a;color:${sec.color}"><span class="cat-dot" style="background:${sec.color}"></span>${sec.label}</span>`;
+
+  const fields=[['Omschrijving',item.description],['Projectnummer',item.projectNumber],['Referentie',item.reference],['Serienummer',item.serial],['Leverancier',item.supplierId],['Geregistreerd',item.timestamp],['Door',item.createdBy]];
+  const statusColor=item.status==='afgehandeld'?'var(--success)':item.emailSent?'var(--warn)':'var(--accent)';
+  const statusText=item.status==='afgehandeld'?'✅ Afgehandeld':item.emailSent?'📧 Mail verstuurd':'Open';
+
+  document.getElementById('detail-fields').innerHTML=fields.map(([k,v])=>`<div><div class="modal-label">${k}</div><div class="modal-value">${v||'—'}</div></div>`).join('')+
+    `<div><div class="modal-label">Status</div><div><span class="cat-badge" style="background:${statusColor};color:#fff;opacity:.85">${statusText}</span></div></div>`;
+
+  // Photos
+  let photosHtml='';
+  PHOTO_FIELDS.forEach(field=>{
+    const photos=item[field];
+    if(!photos||photos.length===0)return;
+    photosHtml+=`<div class="photo-section"><div class="photo-section-title">${PHOTO_LABELS[field]||field}</div><div class="photo-grid">`;
+    photos.forEach(p=>{
+      if(p.storageUrl){
+        photosHtml+=`<div><img src="${p.storageUrl}" class="photo-thumb" onclick="window.open('${p.storageUrl}','_blank')"/><div class="photo-ts">${p.timestamp||''}</div></div>`;
+      }else{
+        photosHtml+=`<div><div class="photo-placeholder">Alleen lokaal</div><div class="photo-ts">${p.timestamp||''}</div></div>`;
+      }
+    });
+    photosHtml+=`</div></div>`;
+  });
+  document.getElementById('detail-photos').innerHTML=photosHtml;
+
+  // Audit
+  if(item.audit&&item.audit.length>0){
+    document.getElementById('detail-audit').innerHTML=`<div class="photo-section-title" style="margin-top:12px">Activiteit</div><div class="audit-log">${item.audit.map(a=>`<div class="audit-entry"><span class="audit-time">${a.ts||''}</span><span>👤 ${a.user}: ${a.action}${a.details?' — '+a.details:''}</span></div>`).join('')}</div>`;
+  }else{
+    document.getElementById('detail-audit').innerHTML='';
+  }
+
+  document.getElementById('modal-detail').classList.add('show');
+}
+function closeDetail(){document.getElementById('modal-detail').classList.remove('show');}
+
+// ══ TAB SWITCHING ══
+function switchTab(tab){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const panel=document.getElementById('panel-'+tab);
+  if(panel)panel.classList.add('active');
+  event.currentTarget.classList.add('active');
+  const titles={magazijn:'📦 Magazijn <span class="header-sub">— Alle registraties</span>',instellingen:'⚙️ Instellingen <span class="header-sub">— Configuratie</span>'};
+  document.getElementById('header-title').innerHTML=titles[tab]||tab;
+}
+
+// ══ INIT ══
+loadMagazijn();
+</script>
+</body>
+</html>
