@@ -11,6 +11,22 @@
 <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiQmV6b2VrcmFwcG9ydCIsInNob3J0X25hbWUiOiJCZXpvZWsiLCJzdGFydF91cmwiOiIuIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiIzBmMTExNyIsInRoZW1lX2NvbG9yIjoiIzAwMDAwMCJ9">
 <title>Bezoekrapport</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<script>
+  firebase.initializeApp({
+    apiKey: "AIzaSyBKU-wCjV4Au4ngRG52Zmmxbzc3N3D8VBU",
+    authDomain: "advanced-intranet.firebaseapp.com",
+    projectId: "advanced-intranet",
+    storageBucket: "advanced-intranet.firebasestorage.app",
+    messagingSenderId: "309856938024",
+    appId: "1:309856938024:web:2108715f92c5dea2da2d1d"
+  });
+  const db = firebase.firestore();
+  const storage = firebase.storage();
+</script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
   :root {
@@ -289,6 +305,7 @@
     </div>
   </div>
   <div class="hstep" id="hstep"></div>
+  <div id="cloud-status" style="display:none;font-size:11px;padding:4px 10px;border-radius:20px;font-weight:600;letter-spacing:.3px;margin-left:6px"></div>
 </header>
 
 <!-- ══ EDITOR ══ -->
@@ -462,6 +479,9 @@
       <div class="suc-t">Rapport opgeslagen!</div>
       <div class="suc-s" id="suc-msg"></div>
       <button class="btn btn-p" onclick="generatePDF()" style="margin-bottom:10px">📄 Download PDF</button>
+      <div id="sync-status-panel" style="margin-bottom:12px;font-size:13px;color:var(--text2)">
+        ☁️ Bezig met synchroniseren naar cloud...
+      </div>
       <button class="btn btn-s" onclick="backToHub()" style="margin-bottom:10px">← Terug</button>
       <button class="btn btn-s" onclick="reset()">+ Nieuw rapport</button>
     </div>
@@ -832,6 +852,7 @@ function saveChecklistAndReturn(){
     }
   }
   completedTypes.add(activeTab);
+  saveToLocalStorage(); // Tussentijds lokaal opslaan
   goBackToHub();
 }
 
@@ -3319,6 +3340,10 @@ function finalizeAllReports(){
   document.getElementById('suc-msg').textContent=`Alle rapporten (${types}) zijn opgeslagen.`;
   showPanel('panel-4');
   window.scrollTo({top:0,behavior:'smooth'});
+  // Firebase sync
+  saveDataToFirebase().then(()=>{
+    syncPhotosToCloud();
+  });
 }
 
 function reset(){
@@ -3354,6 +3379,10 @@ function reset(){
   const multiName=document.querySelector('#hub-airmu .tname');
   if(multiName) multiName.textContent='Lucht/Lucht Multi';
   selected=[];activeTab='';itemData={};completedTypes=new Set();deletedItems=new Set();
+  // Reset Firebase/localStorage state
+  currentDocId = null;
+  localStorage.removeItem(LS_KEY);
+  document.getElementById('cloud-status').style.display='none';
   ['solar','airmo','airmu','airwater','geo','charge'].forEach(t=>{
     const card=document.getElementById('hub-'+t);
     if(card) card.classList.remove('completed');
@@ -3363,6 +3392,256 @@ function reset(){
   document.getElementById('hub-save-row').style.display='none';
   showPanel('panel-1');
 }
+
+// ══════════════════════════
+// FIREBASE SYNC
+// ══════════════════════════
+const LS_KEY = 'bezoekrapport_data';
+let currentDocId = null;
+
+function generateDocId(){
+  return 'br_' + Date.now() + '_' + Math.random().toString(36).substr(2,9);
+}
+
+function setCloudStatus(status, msg){
+  const el = document.getElementById('cloud-status');
+  if(!el) return;
+  el.style.display = 'inline-block';
+  if(status === 'syncing'){
+    el.style.background = 'rgba(247,201,72,.2)';
+    el.style.color = '#f7c948';
+    el.style.border = '1px solid rgba(247,201,72,.3)';
+    el.textContent = '☁️ ' + (msg || 'Synchroniseren...');
+  } else if(status === 'done'){
+    el.style.background = 'rgba(56,217,169,.15)';
+    el.style.color = '#38d9a9';
+    el.style.border = '1px solid rgba(56,217,169,.3)';
+    el.textContent = '☁️ ' + (msg || 'Opgeslagen');
+    setTimeout(()=>{ el.style.display = 'none'; }, 4000);
+  } else if(status === 'error'){
+    el.style.background = 'rgba(255,92,92,.15)';
+    el.style.color = '#ff5c5c';
+    el.style.border = '1px solid rgba(255,92,92,.3)';
+    el.textContent = '⚠️ ' + (msg || 'Sync fout');
+  }
+}
+
+function buildSavePayload(){
+  // Strip base64 foto's uit itemData voor Firestore (te groot)
+  // Bewaar alleen storageUrl's
+  const cleanData = {};
+  for(const [sk, d] of Object.entries(itemData)){
+    cleanData[sk] = {
+      ...d,
+      photos: (d.photos || []).map((p, idx) => {
+        // Als het al een storageUrl is (http), bewaar die. Anders placeholder.
+        if(typeof p === 'string' && p.startsWith('http')) return p;
+        // Bewaar referentie dat er een foto is, maar niet de base64
+        const urls = d.storageUrls || [];
+        return urls[idx] || '__pending_upload__';
+      }),
+      // Bewaar storageUrls apart
+      storageUrls: d.storageUrls || []
+    };
+  }
+  return {
+    klantNaam: document.getElementById('klant-naam')?.value || '',
+    klantAdres: document.getElementById('klant-adres')?.value || '',
+    completedTypes: [...completedTypes],
+    deletedItems: [...deletedItems],
+    selected: selected,
+    itemData: JSON.stringify(cleanData),
+    extraSplitCount: extraSplitCount,
+    extraMultiSplitCount: extraMultiSplitCount,
+    updatedAt: new Date().toISOString(),
+    createdAt: currentDocId ? undefined : new Date().toISOString()
+  };
+}
+
+async function saveDataToFirebase(){
+  try {
+    setCloudStatus('syncing', 'Opslaan naar cloud...');
+    if(!currentDocId) currentDocId = generateDocId();
+    const payload = buildSavePayload();
+    // Verwijder undefined velden
+    Object.keys(payload).forEach(k => payload[k] === undefined && delete payload[k]);
+    await db.collection('bezoekrapport').doc(currentDocId).set(payload, {merge: true});
+    // Sla ook op in localStorage
+    saveToLocalStorage();
+    setCloudStatus('done', 'Opgeslagen in cloud');
+    return true;
+  } catch(err) {
+    console.error('Firebase save error:', err);
+    setCloudStatus('error', 'Cloud opslaan mislukt');
+    // Fallback: sla lokaal op
+    saveToLocalStorage();
+    return false;
+  }
+}
+
+function saveToLocalStorage(){
+  try {
+    const data = {
+      docId: currentDocId,
+      klantNaam: document.getElementById('klant-naam')?.value || '',
+      klantAdres: document.getElementById('klant-adres')?.value || '',
+      completedTypes: [...completedTypes],
+      deletedItems: [...deletedItems],
+      selected: selected,
+      itemData: itemData,
+      extraSplitCount: extraSplitCount,
+      extraMultiSplitCount: extraMultiSplitCount,
+      savedAt: new Date().toISOString()
+    };
+    localStorage.setItem(LS_KEY, JSON.stringify(data));
+  } catch(e) {
+    console.warn('localStorage save error:', e);
+  }
+}
+
+function loadFromLocalStorage(){
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw) return false;
+    const data = JSON.parse(raw);
+    if(!data || !data.itemData) return false;
+    // Herstel state
+    if(data.docId) currentDocId = data.docId;
+    if(data.klantNaam) document.getElementById('klant-naam').value = data.klantNaam;
+    if(data.klantAdres) document.getElementById('klant-adres').value = data.klantAdres;
+    if(data.completedTypes) completedTypes = new Set(data.completedTypes);
+    if(data.deletedItems) deletedItems = new Set(data.deletedItems);
+    if(data.selected) selected = data.selected;
+    if(data.extraSplitCount) {
+      // Recreëer extra split types
+      for(let i=1; i<=data.extraSplitCount; i++){
+        extraSplitCount = i;
+        const key = 'airmo-'+i;
+        if(!TYPES[key]){
+          TYPES[key] = {label:`Lucht/Lucht Mono ${i+1}/${data.extraSplitCount+1}`, icon:'🌡️', cls:'airmo', items:[
+            {key:'woning', label:'Woning', shared:true, optional:true},
+            {key:'buitenunit-e'+i, label:'Buitenunit', shared:false, hasFixType:true},
+            {key:'binnenunit-e'+i, label:'Binnenunit', shared:false, hasUnitType:true},
+            {key:'elek-aansl-e'+i, label:'Elektrische aansluiting', shared:false, hasConnType:true},
+            {key:'beschrijving-e'+i, label:'Beschrijving project', shared:false, noPhoto:true},
+          ]};
+        }
+      }
+      if(extraSplitCount > 0) updateMonoLabels();
+    }
+    if(data.extraMultiSplitCount) {
+      for(let i=1; i<=data.extraMultiSplitCount; i++){
+        extraMultiSplitCount = i;
+        const key = 'airmu-'+i;
+        if(!TYPES[key]){
+          TYPES[key] = {label:`Lucht/Lucht Multi ${i+1}/${data.extraMultiSplitCount+1}`, icon:'🌡️', cls:'airmu', items:[
+            {key:'woning', label:'Woning', shared:true, optional:true},
+            {key:'buitenunit-mu'+i, label:'Buitenunit', shared:false, hasFixType:true},
+            {key:'binnenunit-mu'+i+'-1', label:'Binnenunit 1/2', shared:false, hasUnitType:true},
+            {key:'binnenunit-mu'+i+'-2', label:'Binnenunit 2/2', shared:false, hasUnitType:true},
+            {key:'elek-aansl-mu'+i, label:'Elektrische aansluiting', shared:false, hasConnType:true},
+            {key:'beschrijving-mu'+i, label:'Beschrijving project', shared:false, noPhoto:true},
+          ]};
+        }
+      }
+      if(extraMultiSplitCount > 0) updateMultiLabels();
+    }
+    itemData = data.itemData;
+    updateHubCards();
+    return true;
+  } catch(e) {
+    console.warn('localStorage load error:', e);
+    return false;
+  }
+}
+
+// ── FOTO UPLOAD NAAR FIREBASE STORAGE ──
+async function syncPhotosToCloud(){
+  if(!currentDocId) return;
+  let uploadCount = 0;
+  let errorCount = 0;
+  setCloudStatus('syncing', 'Foto\'s uploaden...');
+
+  for(const [sk, d] of Object.entries(itemData)){
+    if(!d || !d.photos || d.photos.length === 0) continue;
+    if(!d.storageUrls) d.storageUrls = [];
+
+    for(let i = 0; i < d.photos.length; i++){
+      const photo = d.photos[i];
+      // Skip als het al een URL is (al geüpload)
+      if(typeof photo === 'string' && photo.startsWith('http')) continue;
+      // Skip als we al een storageUrl hebben voor deze index
+      if(d.storageUrls[i] && d.storageUrls[i].startsWith('http')) continue;
+      // Skip als het geen base64 is
+      if(typeof photo !== 'string' || !photo.startsWith('data:')) continue;
+
+      try {
+        setCloudStatus('syncing', `Foto ${uploadCount+1} uploaden...`);
+        const ts = Date.now() + '_' + i;
+        const path = `bezoekrapport/${currentDocId}/${sk}/${ts}.jpg`;
+        const ref = storage.ref(path);
+
+        // Converteer base64 naar blob
+        const response = await fetch(photo);
+        const blob = await response.blob();
+
+        // Upload
+        await ref.put(blob, { contentType: 'image/jpeg' });
+        const url = await ref.getDownloadURL();
+
+        // Sla URL op
+        d.storageUrls[i] = url;
+        uploadCount++;
+      } catch(err) {
+        console.error(`Foto upload fout voor ${sk}[${i}]:`, err);
+        errorCount++;
+      }
+    }
+  }
+
+  // Update Firestore met de nieuwe storageUrls
+  if(uploadCount > 0){
+    try {
+      const cleanData = {};
+      for(const [sk, d] of Object.entries(itemData)){
+        cleanData[sk] = {
+          ...d,
+          photos: (d.photos || []).map((p, idx) => {
+            if(typeof p === 'string' && p.startsWith('http')) return p;
+            const urls = d.storageUrls || [];
+            return urls[idx] || '__pending_upload__';
+          }),
+          storageUrls: d.storageUrls || []
+        };
+      }
+      await db.collection('bezoekrapport').doc(currentDocId).update({
+        itemData: JSON.stringify(cleanData),
+        updatedAt: new Date().toISOString()
+      });
+    } catch(err) {
+      console.error('Firestore update na foto upload fout:', err);
+    }
+  }
+
+  // Update localStorage ook
+  saveToLocalStorage();
+
+  if(errorCount > 0){
+    setCloudStatus('error', `${uploadCount} foto's geüpload, ${errorCount} mislukt`);
+  } else if(uploadCount > 0){
+    setCloudStatus('done', `${uploadCount} foto's geüpload`);
+  } else {
+    setCloudStatus('done', 'Alles gesynchroniseerd');
+  }
+}
+
+// ── INIT: LAAD DATA BIJ OPSTART ──
+(function initLoadData(){
+  const loaded = loadFromLocalStorage();
+  if(loaded){
+    console.log('Data geladen uit localStorage');
+  }
+})();
 
 // Init
 updateHubCards();
