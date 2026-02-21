@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Energy Portaal — DEVELOPMENT</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #f0f4ff;
+            color: #2d2d2d;
+        }
+
+        .env-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #3b82f6;
+            color: #fff;
+            text-align: center;
+            padding: 8px 16px;
+            font-weight: 700;
+            font-size: 13px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            z-index: 1000;
+        }
+
+        .container {
+            text-align: center;
+            padding: 2rem;
+            max-width: 520px;
+        }
+
+        .icon {
+            font-size: 48px;
+            margin-bottom: 1rem;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .env-label {
+            display: inline-block;
+            background: #3b82f6;
+            color: #fff;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 1.5rem;
+        }
+
+        p {
+            color: #6b6b6b;
+            line-height: 1.7;
+            font-size: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .links {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 1rem;
+        }
+
+        .links a {
+            display: block;
+            padding: 12px 24px;
+            background: #fff;
+            border: 2px solid #e5e5e5;
+            border-radius: 10px;
+            text-decoration: none;
+            color: #2d2d2d;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .links a:hover {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+
+        .footer {
+            margin-top: 3rem;
+            font-size: 0.8rem;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <div class="env-banner">🔧 Development — Ontwikkelomgeving</div>
+
+    <div class="container">
+        <div class="icon">🛠️</div>
+        <h1>Advanced Energy Portaal</h1>
+        <span class="env-label">Development</span>
+        <p>Dit is de ontwikkelomgeving. Hier worden nieuwe features gebouwd en getest door ontwikkelaars.</p>
+
+        <div class="links">
+            <a href="portaal.html">Portaal</a>
+            <a href="werkbon.html">Werkbon</a>
+            <a href="daikin_checklist.html">Daikin Checklist</a>
+        </div>
+
+        <div class="footer">Advanced Energy — Development omgeving</div>
+    </div>
+</body>
+</html>
