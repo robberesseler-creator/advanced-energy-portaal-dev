@@ -559,10 +559,12 @@ function renderBRTable(){
       let totalPhotos=0;
       let hasCloud=false;
       Object.values(data).forEach(d=>{
-        const urls=d.storageUrls||[];
-        const photos=d.photos||[];
-        totalPhotos+=photos.length;
-        if(urls.some(u=>u&&u.startsWith('http'))) hasCloud=true;
+        const urls=(d.storageUrls||[]).filter(u=>u&&u.startsWith('http'));
+        const photos=(d.photos||[]).filter(p=>typeof p==='string'&&p.startsWith('http'));
+        const pc=d.photoCount||0;
+        // Tel het maximum van alle bronnen
+        totalPhotos+=Math.max(urls.length, photos.length, pc);
+        if(urls.length>0||photos.length>0) hasCloud=true;
       });
       const datum=item.updatedAt?new Date(item.updatedAt).toLocaleDateString('nl-BE',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
       return `<tr>
@@ -609,26 +611,29 @@ function openBRModal(docId){
     if(!d) return;
     const hasPhotos=(d.storageUrls||[]).some(u=>u&&u.startsWith('http'));
     const hasNotes=d.notes&&d.notes.trim();
-    const hasAnyData=hasPhotos||hasNotes||(d.photos&&d.photos.length>0);
+    const hasPhotoCount=(d.photoCount||0)>0;
+    // Check of er extra velden zijn ingevuld
+    const hasFields=d.fixType||d.unitType||d.connType||d.phaseType||d.location||d.strings||d.mppTrackers||d.mountType||d.fuelType||d.buildYear||d.insulation||d.woningType||d.boilerTemp||d.totalSqm;
+    const hasAnyData=hasPhotos||hasNotes||hasPhotoCount||hasFields;
     if(!hasAnyData) return;
 
     itemsHtml+=`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:14px;margin-bottom:10px">`;
     itemsHtml+=`<div style="font-weight:600;font-size:.85rem;margin-bottom:8px">${sk}</div>`;
 
-    // Foto's (alleen storageUrls tonen)
-    const urls=d.storageUrls||[];
-    const validUrls=urls.filter(u=>u&&u.startsWith('http'));
+    // Foto's tonen (uit storageUrls of photos array)
+    let validUrls=(d.storageUrls||[]).filter(u=>u&&u.startsWith('http'));
+    // Fallback: sommige oude rapporten hebben URLs in photos array
+    if(validUrls.length===0){
+      validUrls=(d.photos||[]).filter(p=>typeof p==='string'&&p.startsWith('http'));
+    }
     if(validUrls.length>0){
       itemsHtml+=`<div class="pg" style="margin-bottom:8px">`;
       validUrls.forEach(url=>{
         itemsHtml+=`<img src="${url}" class="pt" onclick="window.open('${url}','_blank')" style="width:90px;height:90px"/>`;
       });
       itemsHtml+=`</div>`;
-    } else if(d.photos&&d.photos.length>0){
-      const pendingCount=d.photos.filter(p=>p==='__pending_upload__').length;
-      if(pendingCount>0){
-        itemsHtml+=`<div style="font-size:.72rem;color:var(--warn);margin-bottom:6px">⏳ ${pendingCount} foto('s) nog niet gesynchroniseerd</div>`;
-      }
+    } else if((d.photoCount||0)>0){
+      itemsHtml+=`<div style="font-size:.72rem;color:var(--warn);margin-bottom:6px">⏳ ${d.photoCount} foto('s) nog niet gesynchroniseerd</div>`;
     }
 
     // Notities
@@ -745,8 +750,9 @@ async function generateBRPdf(docId){
     if(!d) return false;
     const hasPhotos=(d.storageUrls||[]).some(u=>u&&u.startsWith('http'));
     const hasNotes=d.notes&&d.notes.trim();
-    const hasData=hasPhotos||hasNotes||(d.photos&&d.photos.length>0);
-    return hasData;
+    const hasPhotoCount=(d.photoCount||0)>0;
+    const hasFields=d.fixType||d.unitType||d.connType||d.phaseType||d.location||d.strings||d.mppTrackers||d.mountType||d.fuelType||d.buildYear||d.insulation||d.woningType||d.boilerTemp||d.totalSqm;
+    return hasPhotos||hasNotes||hasPhotoCount||hasFields;
   });
 
   for(const [sk,d] of entries){
@@ -812,18 +818,13 @@ async function generateBRPdf(docId){
       y+=noteH+3;
     }
 
-    // Foto's laden
+    // Foto's laden vanuit storageUrls of photos array
     let photoUrls=(d.storageUrls||[]).filter(u=>u&&u.startsWith('http'));
-    // Fallback: kijk of photos[] zelf URLs bevat
-    if(photoUrls.length===0 && d.photos && d.photos.length>0){
-      photoUrls=d.photos.filter(p=>typeof p==='string'&&p.startsWith('http'));
+    if(photoUrls.length===0){
+      photoUrls=(d.photos||[]).filter(p=>typeof p==='string'&&p.startsWith('http'));
     }
-    // Foto's die nog als base64 in photos staan (lokaal, niet geüpload)
-    const base64Photos=(d.photos||[]).filter(p=>typeof p==='string'&&p.startsWith('data:'));
 
-    const allPhotos=[...photoUrls.map(u=>({type:'url',src:u})),...base64Photos.map(b=>({type:'b64',src:b}))];
-
-    if(allPhotos.length>0){
+    if(photoUrls.length>0){
       checkSpace(40);
       const maxPerRow=3;
       const gap=3;
@@ -831,30 +832,26 @@ async function generateBRPdf(docId){
       const imgH=38;
       let px=ml+4;
 
-      for(let i=0;i<allPhotos.length;i++){
+      for(let i=0;i<photoUrls.length;i++){
         if(i>0&&i%maxPerRow===0){
           y+=imgH+gap;px=ml+4;
           checkSpace(imgH+gap);
         }
         try{
-          let b64=allPhotos[i].src;
-          if(allPhotos[i].type==='url'){
-            // Laad afbeelding via Image element (CORS-friendly)
-            b64=await new Promise((resolve,reject)=>{
-              const img=new Image();
-              img.crossOrigin='anonymous';
-              img.onload=()=>{
-                const canvas=document.createElement('canvas');
-                canvas.width=img.naturalWidth;
-                canvas.height=img.naturalHeight;
-                const ctx=canvas.getContext('2d');
-                ctx.drawImage(img,0,0);
-                resolve(canvas.toDataURL('image/jpeg',0.8));
-              };
-              img.onerror=()=>reject(new Error('Foto laden mislukt'));
-              img.src=allPhotos[i].src;
-            });
-          }
+          const b64=await new Promise((resolve,reject)=>{
+            const img=new Image();
+            img.crossOrigin='anonymous';
+            img.onload=()=>{
+              const canvas=document.createElement('canvas');
+              canvas.width=img.naturalWidth;
+              canvas.height=img.naturalHeight;
+              const ctx=canvas.getContext('2d');
+              ctx.drawImage(img,0,0);
+              resolve(canvas.toDataURL('image/jpeg',0.8));
+            };
+            img.onerror=()=>reject(new Error('Foto laden mislukt'));
+            img.src=photoUrls[i];
+          });
           doc.addImage(b64,'JPEG',px,y,imgW,imgH);
         }catch(e){
           doc.setFillColor(230,230,230);
