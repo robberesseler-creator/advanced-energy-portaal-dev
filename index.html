@@ -1,125 +1,461 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced Energy Portaal — DEVELOPMENT</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap');
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced Energy — Plenion Dashboard</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='url(%23g)'/><defs><linearGradient id='g' x1='0' y1='0' x2='32' y2='32'><stop stop-color='%234f8ef7'/><stop offset='1' stop-color='%2338d9a9'/></linearGradient></defs><text x='16' y='22' text-anchor='middle' fill='white' font-size='14' font-weight='bold' font-family='sans-serif'>AE</text></svg>">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+:root{
+  --bg:#0f1117;--surface:#181c27;--surface2:#1e2336;--header:#000;
+  --accent:#4f8ef7;--accent2:#38d9a9;
+  --success:#38d9a9;--danger:#ff5c5c;--warn:#f7c948;
+  --text:#e8ecf5;--text2:#8b92b0;--text3:#555e7d;
+  --border:#2a2f45;--border-h:#3d4460;
+  --r:12px;--rs:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+/* SIDEBAR */
+.sb{width:256px;background:var(--surface);border-right:1px solid var(--border);position:fixed;top:0;bottom:0;left:0;z-index:100;display:flex;flex-direction:column;}
+.sb-logo{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:11px;}
+.sb-logo-icon{width:34px;height:34px;border-radius:6px;background:linear-gradient(135deg,#4f8ef7,#38d9a9);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.72rem;}
+.sb-nav{flex:1;padding:14px 10px;overflow-y:auto;}
+.sb-sec{font-family:'DM Mono',monospace;font-size:.5rem;text-transform:uppercase;letter-spacing:3px;color:var(--text3);padding:12px 12px 6px;}
+.ni{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:var(--rs);color:var(--text2);cursor:pointer;font-size:.86rem;font-weight:500;margin-bottom:2px;position:relative;transition:all .15s;user-select:none;}
+.ni:hover{background:rgba(79,142,247,.06);}
+.ni.a{background:rgba(79,142,247,.1);color:var(--accent);font-weight:600;}
+.ni.a::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:18px;background:var(--accent);border-radius:0 2px 2px 0;}
+.ni-badge{background:var(--accent);color:#fff;font-size:.62rem;font-weight:700;padding:1px 7px;border-radius:10px;min-width:20px;text-align:center;}
+.sb-user{padding:14px 18px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.sb-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,rgba(79,142,247,.2),rgba(56,217,169,.2));color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.68rem;}
 
-        body {
-            font-family: 'DM Sans', sans-serif;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: #f0f4ff;
-            color: #2d2d2d;
-        }
+/* MAIN */
+.mn{margin-left:256px;flex:1;position:relative;}
+.hd{height:56px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:14px;background:var(--header);position:sticky;top:0;z-index:50;}
+.hd-title{flex:1;font-size:1rem;font-weight:700;}
+.hd-sub{color:var(--text3);font-weight:400;font-size:.8rem;margin-left:8px;}
+.live{display:flex;align-items:center;gap:7px;margin-right:14px;}
+.live-dot{width:8px;height:8px;background:var(--success);border-radius:50%;box-shadow:0 0 8px rgba(56,217,169,.5);animation:pulse 2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.cnt{padding:24px 28px;}
+.mono{font-family:'DM Mono',monospace;}
 
-        .env-banner {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: #3b82f6;
-            color: #fff;
-            text-align: center;
-            padding: 8px 16px;
-            font-weight: 700;
-            font-size: 13px;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            z-index: 1000;
-        }
+/* STAT CARDS (dashboard) */
+.ds-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+.ds-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;position:relative;overflow:hidden;}
+.ds-card .bar{position:absolute;top:0;left:0;width:3px;height:100%;border-radius:0 2px 2px 0;opacity:.7;}
+.ds-label{font-family:'DM Mono',monospace;font-size:.52rem;text-transform:uppercase;letter-spacing:2px;color:var(--text3);margin-bottom:6px;}
+.ds-val{font-size:1.85rem;font-weight:700;letter-spacing:-1px;line-height:1;margin-bottom:4px;}
+.ds-sub{font-size:.7rem;color:var(--text3);}
 
-        .container {
-            text-align: center;
-            padding: 2rem;
-            max-width: 520px;
-        }
+/* CATEGORY CARDS */
+.cat-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:24px;}
+.cc{background:var(--surface);border:2px solid var(--border);border-radius:var(--r);padding:16px 12px;text-align:center;cursor:pointer;transition:all .2s;}
+.cc:hover{border-color:var(--border-h);transform:translateY(-2px);}
+.cc.a{border-width:2px;}
+.cc-bar{width:100%;height:4px;border-radius:2px;margin-bottom:10px;}
+.cc-num{font-size:1.6rem;font-weight:700;font-family:'DM Mono',monospace;line-height:1;}
+.cc-label{font-size:.6rem;color:var(--text2);margin-top:6px;line-height:1.3;}
 
-        .icon {
-            font-size: 48px;
-            margin-bottom: 1rem;
-        }
+/* FILTERS */
+.fl{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
+.sr{position:relative;flex:0 0 280px;}
+.sr svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);}
+.sr input{width:100%;padding-left:34px;}
+input,select{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.83rem;padding:10px 12px;outline:none;}
+input:focus{border-color:var(--accent);}
+select{color:var(--text2);font-size:.8rem;cursor:pointer;appearance:none;padding-right:30px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23555e7d' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;}
+.btn{padding:8px 14px;border-radius:var(--rs);border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;font-size:.8rem;font-weight:600;font-family:'DM Sans',sans-serif;transition:all .15s;}
+.btn:hover{border-color:var(--border-h);color:var(--text);}
+.btn-p{background:linear-gradient(135deg,#4f8ef7,#3a7de8);border:none;color:#fff;}
+.btn-p:hover{opacity:.9;}
 
-        h1 {
-            font-size: 1.8rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
+/* TABLE */
+.tw{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.ts{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;min-width:1000px;}
+th{padding:12px 14px;font-family:'DM Mono',monospace;font-size:.55rem;text-transform:uppercase;letter-spacing:2px;color:var(--text3);text-align:left;border-bottom:1px solid var(--border);background:rgba(0,0,0,.15);white-space:nowrap;}
+td{padding:12px 14px;}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s;}
+tbody tr:hover{background:rgba(79,142,247,.02);}
+.tf{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-top:1px solid var(--border);font-size:.76rem;color:var(--text3);}
 
-        .env-label {
-            display: inline-block;
-            background: #3b82f6;
-            color: #fff;
-            padding: 4px 14px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            margin-bottom: 1.5rem;
-        }
+/* BADGES */
+.cb{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:6px;font-size:.68rem;font-weight:600;}
+.cd{width:7px;height:7px;border-radius:50%;display:inline-block;}
+.sd{display:inline-flex;align-items:center;gap:5px;font-size:.76rem;}
+.pb{display:inline-block;padding:2px 7px;border-radius:5px;font-size:.68rem;font-weight:600;}
+.tag{display:inline-block;padding:2px 7px;border-radius:5px;font-size:.68rem;font-weight:600;margin-right:3px;}
 
-        p {
-            color: #6b6b6b;
-            line-height: 1.7;
-            font-size: 1rem;
-            margin-bottom: 1.5rem;
-        }
+/* VIEW BTN */
+.vb{width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text3);transition:all .15s;}
+.vb:hover{border-color:var(--border-h);color:var(--text);background:rgba(255,255,255,.05);}
 
-        .links {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 1rem;
-        }
+/* MODAL */
+.mbg{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);}
+.mbg.show{display:flex;}
+.mdl{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;max-width:640px;width:92%;max-height:85vh;overflow:auto;}
+.mdl-h{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;}
+.mdl-x{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);font-size:16px;}
+.mdl-g{display:grid;grid-template-columns:1fr 1fr;gap:14px;font-size:.85rem;margin-bottom:20px;}
+.mdl-lb{font-family:'DM Mono',monospace;font-size:.55rem;text-transform:uppercase;letter-spacing:2px;color:var(--text3);margin-bottom:4px;}
+.mdl-v{color:var(--text);font-weight:500;}
+.ps{margin-bottom:16px;}
+.ps-t{font-family:'DM Mono',monospace;font-size:.55rem;text-transform:uppercase;letter-spacing:2px;color:var(--text3);margin-bottom:8px;}
+.pg{display:flex;gap:8px;flex-wrap:wrap;}
+.pt{width:110px;height:110px;object-fit:cover;border-radius:var(--rs);border:1px solid var(--border);cursor:pointer;}
+.pp{width:110px;height:110px;border-radius:var(--rs);border:2px dashed var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:.65rem;color:var(--text3);text-align:center;padding:8px;}
+.pt-ts{font-size:.58rem;color:var(--text3);margin-top:3px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.al{max-height:140px;overflow:auto;background:rgba(0,0,0,.2);border-radius:var(--rs);padding:10px;}
+.ae{font-size:.7rem;color:var(--text2);margin-bottom:4px;display:flex;gap:8px;}
+.at{color:var(--text3);font-family:'DM Mono',monospace;font-size:.62rem;flex-shrink:0;}
 
-        .links a {
-            display: block;
-            padding: 12px 24px;
-            background: #fff;
-            border: 2px solid #e5e5e5;
-            border-radius: 10px;
-            text-decoration: none;
-            color: #2d2d2d;
-            font-weight: 500;
-            transition: all 0.2s ease;
-        }
-
-        .links a:hover {
-            border-color: #3b82f6;
-            background: #eff6ff;
-        }
-
-        .footer {
-            margin-top: 3rem;
-            font-size: 0.8rem;
-            color: #aaa;
-        }
-    </style>
+/* PANELS */
+.pnl{display:none;}.pnl.a{display:block;}
+.empty{text-align:center;padding:60px 20px;color:var(--text3);}
+.empty-icon{font-size:48px;margin-bottom:12px;opacity:.5;}
+.empty-title{font-size:1rem;font-weight:600;color:var(--text2);margin-bottom:6px;}
+.empty-sub{font-size:.82rem;}
+.coming{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:40px;text-align:center;}
+.coming-icon{font-size:56px;margin-bottom:16px;}
+.coming-title{font-size:1.1rem;font-weight:700;margin-bottom:8px;}
+.coming-sub{color:var(--text2);font-size:.85rem;max-width:400px;margin:0 auto;}
+</style>
 </head>
 <body>
-    <div class="env-banner">🔧 Development — Ontwikkelomgeving</div>
 
-    <div class="container">
-        <div class="icon">🛠️</div>
-        <h1>Advanced Energy Portaal</h1>
-        <span class="env-label">Development</span>
-        <p>Dit is de ontwikkelomgeving. Hier worden nieuwe features gebouwd en getest door ontwikkelaars.</p>
-
-        <div class="links">
-            <a href="portaal.html">Portaal</a>
-            <a href="werkbon.html">Werkbon</a>
-            <a href="daikin_checklist.html">Daikin Checklist</a>
-        </div>
-
-        <div class="footer">Advanced Energy — Development omgeving</div>
+<!-- SIDEBAR -->
+<aside class="sb">
+  <div class="sb-logo">
+    <div class="sb-logo-icon">AE</div>
+    <div>
+      <div style="font-weight:700;font-size:.88rem;letter-spacing:.3px">Advanced Energy</div>
+      <div class="mono" style="font-size:.55rem;text-transform:uppercase;letter-spacing:2px;color:var(--text3)">Plenion</div>
     </div>
+  </div>
+  <div class="sb-nav">
+    <div class="sb-sec">Overzicht</div>
+    <div class="ni a" data-tab="dashboard" onclick="go(this)">
+      <span>📊</span><span style="flex:1">Dashboard</span>
+    </div>
+
+    <div class="sb-sec">Applicaties</div>
+    <div class="ni" data-tab="magazijn" onclick="go(this)">
+      <span>📦</span><span style="flex:1">Magazijn</span><span class="ni-badge" id="mag-badge">0</span>
+    </div>
+    <div class="ni" data-tab="bezoeksrapport" onclick="go(this)">
+      <span>📋</span><span style="flex:1">Bezoeksrapport</span>
+    </div>
+    <div class="ni" data-tab="daikin" onclick="go(this)">
+      <span>✅</span><span style="flex:1">Daikin Checklist</span>
+    </div>
+
+    <div class="sb-sec">Beheer</div>
+    <div class="ni" data-tab="instellingen" onclick="go(this)">
+      <span>⚙️</span><span style="flex:1">Instellingen</span>
+    </div>
+  </div>
+  <div class="sb-user">
+    <div class="sb-avatar">AD</div>
+    <div>
+      <div style="font-size:.8rem;font-weight:600">Admin</div>
+      <div class="mono" style="font-size:.58rem;color:var(--success);text-transform:uppercase;letter-spacing:1px">Online</div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="mn">
+  <header class="hd">
+    <div class="hd-title" id="hd-t">📊 Dashboard <span class="hd-sub">— Overzicht</span></div>
+    <div class="live"><span class="live-dot"></span><span class="mono" style="font-size:.58rem;text-transform:uppercase;letter-spacing:2px;color:var(--success)">Live</span></div>
+    <button class="btn" onclick="loadMagazijn()">↻ Vernieuwen</button>
+  </header>
+
+  <div class="cnt">
+
+    <!-- ═══ DASHBOARD ═══ -->
+    <div class="pnl a" id="p-dashboard">
+      <div class="ds-grid" id="ds-cards"></div>
+
+      <h3 style="font-size:.9rem;font-weight:600;margin-bottom:14px;color:var(--text2)">Snelle links</h3>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;">
+        <div onclick="go(document.querySelector('[data-tab=magazijn]'))" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px 20px;cursor:pointer;transition:all .2s;" onmouseover="this.style.borderColor='var(--border-h)';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='none'">
+          <div style="font-size:32px;margin-bottom:10px">📦</div>
+          <div style="font-weight:700;font-size:.9rem;margin-bottom:4px">Magazijn</div>
+          <div style="font-size:.75rem;color:var(--text2)">Bekijk alle registraties, foto's en statussen</div>
+        </div>
+        <div onclick="go(document.querySelector('[data-tab=bezoeksrapport]'))" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px 20px;cursor:pointer;transition:all .2s;" onmouseover="this.style.borderColor='var(--border-h)';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='none'">
+          <div style="font-size:32px;margin-bottom:10px">📋</div>
+          <div style="font-weight:700;font-size:.9rem;margin-bottom:4px">Bezoeksrapport</div>
+          <div style="font-size:.75rem;color:var(--text2)">Ingezonden bezoeksrapporten bekijken</div>
+        </div>
+        <div onclick="go(document.querySelector('[data-tab=daikin]'))" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px 20px;cursor:pointer;transition:all .2s;" onmouseover="this.style.borderColor='var(--border-h)';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='none'">
+          <div style="font-size:32px;margin-bottom:10px">✅</div>
+          <div style="font-weight:700;font-size:.9rem;margin-bottom:4px">Daikin Checklist</div>
+          <div style="font-size:.75rem;color:var(--text2)">Daikin checklists en inspecties</div>
+        </div>
+      </div>
+
+      <h3 style="font-size:.9rem;font-weight:600;margin:24px 0 14px;color:var(--text2)">Laatste activiteit</h3>
+      <div id="ds-activity" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;">
+        <div style="color:var(--text3);font-size:.82rem">Nog geen activiteit geladen</div>
+      </div>
+    </div>
+
+    <!-- ═══ MAGAZIJN ═══ -->
+    <div class="pnl" id="p-magazijn">
+      <div class="cat-grid" id="cat-cards"></div>
+      <div class="fl">
+        <div class="sr">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input id="mag-search" placeholder="Zoeken op omschrijving, project, ref..." oninput="renderTable()">
+        </div>
+        <select id="mag-filter" onchange="renderTable()">
+          <option value="">Alle Categorieën</option>
+          <option value="paars">Spare part — Stock</option>
+          <option value="oranje">Spare part — Interventie</option>
+          <option value="geel">Niet volledig</option>
+          <option value="rood">Beschadigd / Retour lev.</option>
+          <option value="blauw">Retour van werf</option>
+          <option value="roze">Verbruikte spare parts</option>
+        </select>
+        <div style="flex:1"></div>
+        <span style="font-size:.75rem;color:var(--text3)" id="rc">0 items</span>
+      </div>
+      <div class="tw">
+        <div class="ts"><table><thead><tr>
+          <th>#</th><th>Categorie</th><th>Omschrijving</th><th>Project</th><th>Ref.</th><th>Serial</th><th>Status</th><th>Datum</th><th>Foto's</th><th></th>
+        </tr></thead><tbody id="mag-tb"></tbody></table></div>
+        <div class="tf"><div id="tc">Toont 0 van 0 items</div></div>
+      </div>
+    </div>
+
+    <!-- ═══ BEZOEKSRAPPORT ═══ -->
+    <div class="pnl" id="p-bezoeksrapport">
+      <div class="coming">
+        <div class="coming-icon">📋</div>
+        <div class="coming-title">Bezoeksrapport</div>
+        <div class="coming-sub">Hier komen de ingezonden bezoeksrapporten van de techniekers. De data wordt automatisch opgehaald zodra het bezoeksrapport-formulier gekoppeld is aan Firebase.</div>
+      </div>
+    </div>
+
+    <!-- ═══ DAIKIN CHECKLIST ═══ -->
+    <div class="pnl" id="p-daikin">
+      <div class="coming">
+        <div class="coming-icon">✅</div>
+        <div class="coming-title">Daikin Checklist</div>
+        <div class="coming-sub">Hier komen de ingezonden Daikin checklists en inspecties. De data wordt automatisch opgehaald zodra het checklist-formulier gekoppeld is aan Firebase.</div>
+      </div>
+    </div>
+
+    <!-- ═══ INSTELLINGEN ═══ -->
+    <div class="pnl" id="p-instellingen">
+      <div class="coming">
+        <div class="coming-icon">⚙️</div>
+        <div class="coming-title">Instellingen</div>
+        <div class="coming-sub">Gebruikersbeheer, rollen, notificatie-instellingen en meer. Komt binnenkort beschikbaar.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="mbg" id="modal" onclick="closeModal()">
+  <div class="mdl" onclick="event.stopPropagation()">
+    <div class="mdl-h">
+      <div><h3 style="font-size:1.1rem;font-weight:700;margin-bottom:6px" id="m-title"></h3><div id="m-cat"></div></div>
+      <button class="mdl-x" onclick="closeModal()">✕</button>
+    </div>
+    <div class="mdl-g" id="m-fields"></div>
+    <div id="m-photos"></div>
+    <div id="m-audit"></div>
+  </div>
+</div>
+
+<!-- FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyBKU-wCjV4Au4ngRG52Zmmxbzc3N3D8VBU",
+  authDomain:"advanced-intranet.firebaseapp.com",
+  projectId:"advanced-intranet",
+  storageBucket:"advanced-intranet.firebasestorage.app",
+  messagingSenderId:"309856938024",
+  appId:"1:309856938024:web:2108715f92c5dea2da2d1d"
+});
+const db=firebase.firestore();
+
+const SEC={
+  paars:{label:'Spare part — Stock',color:'#a78bfa',icon:'🟣'},
+  oranje:{label:'Spare part — Interventie',color:'#f97316',icon:'🟠'},
+  geel:{label:'Niet volledig',color:'#f7c948',icon:'🟡'},
+  rood:{label:'Beschadigd / Retour lev.',color:'#ff5c5c',icon:'🔴'},
+  blauw:{label:'Retour van werf',color:'#38b6ff',icon:'🔵'},
+  roze:{label:'Verbruikte spare parts',color:'#f472b6',icon:'🩷'}
+};
+const PL={photos:'📦 Product',artikelPhotos:'🔍 Artikelnr',stickerPhotos:'🏷️ Sticker',bonPhotos:'📋 Leverbon',schadePhotos:'⚠️ Schade',seriePhotos:'🔢 Serienr'};
+const PF=['photos','artikelPhotos','stickerPhotos','bonPhotos','schadePhotos','seriePhotos'];
+
+let magItems=[];
+let catFilter='';
+const titles={dashboard:'📊 Dashboard <span class="hd-sub">— Overzicht</span>',magazijn:'📦 Magazijn <span class="hd-sub">— Alle registraties</span>',bezoeksrapport:'📋 Bezoeksrapport <span class="hd-sub">— Ingezonden rapporten</span>',daikin:'✅ Daikin Checklist <span class="hd-sub">— Inspecties</span>',instellingen:'⚙️ Instellingen <span class="hd-sub">— Configuratie</span>'};
+
+// ══ NAVIGATION ══
+function go(el){
+  const tab=el.dataset.tab;
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('a'));
+  el.classList.add('a');
+  document.querySelectorAll('.pnl').forEach(p=>p.classList.remove('a'));
+  const p=document.getElementById('p-'+tab);
+  if(p)p.classList.add('a');
+  document.getElementById('hd-t').innerHTML=titles[tab]||tab;
+  if(tab==='magazijn')loadMagazijn();
+  if(tab==='dashboard')renderDashboard();
+}
+
+// ══ DASHBOARD ══
+function renderDashboard(){
+  const total=magItems.length;
+  const cats=Object.entries(SEC).map(([k,v])=>({key:k,...v,count:magItems.filter(i=>i.section===k).length}));
+  const open=magItems.filter(i=>!i.status||i.status==='open').length;
+  const done=magItems.filter(i=>i.status==='afgehandeld').length;
+  const withMail=magItems.filter(i=>i.emailSent).length;
+
+  document.getElementById('ds-cards').innerHTML=[
+    {label:'Totaal Items',value:total,color:'var(--accent)',sub:'In het magazijn'},
+    {label:'Open',value:open,color:'var(--warn)',sub:'Nog af te handelen'},
+    {label:'Mail Verstuurd',value:withMail,color:'#a78bfa',sub:'Wacht op leverancier'},
+    {label:'Afgehandeld',value:done,color:'var(--success)',sub:'Afgerond'}
+  ].map(s=>`<div class="ds-card"><div class="bar" style="background:${s.color}"></div><div class="ds-label">${s.label}</div><div class="ds-val" style="color:${s.color}">${s.value}</div><div class="ds-sub">${s.sub}</div></div>`).join('');
+
+  // Last 5 activities
+  const activities=[];
+  magItems.forEach(item=>{
+    if(item.audit){item.audit.forEach(a=>{activities.push({...a,itemId:item.id,desc:item.description});});}
+  });
+  activities.sort((a,b)=>(b.at||'').localeCompare(a.at||''));
+  const last5=activities.slice(0,5);
+  if(last5.length>0){
+    document.getElementById('ds-activity').innerHTML=last5.map(a=>`<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span class="mono" style="font-size:.65rem;color:var(--text3);flex-shrink:0;min-width:130px">${a.ts||''}</span>
+      <span style="font-size:.82rem"><strong style="color:var(--text)">#${a.itemId}</strong> ${a.desc?'('+a.desc+')':''} — 👤 ${a.user}: ${a.action}${a.details?' — '+a.details:''}</span>
+    </div>`).join('');
+  }else{
+    document.getElementById('ds-activity').innerHTML='<div style="color:var(--text3);font-size:.82rem;padding:10px">Nog geen activiteit</div>';
+  }
+}
+
+// ══ LOAD MAGAZIJN ══
+async function loadMagazijn(){
+  document.getElementById('mag-tb').innerHTML='<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text2)">⏳ Data laden uit Firebase...</td></tr>';
+  try{
+    const snap=await db.collection('magazijn').doc('items').get();
+    if(snap.exists&&snap.data().items){
+      magItems=JSON.parse(snap.data().items).filter(i=>!i.deleted);
+    }else{magItems=[];}
+  }catch(e){
+    document.getElementById('mag-tb').innerHTML='<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--danger)">⚠️ Fout: '+e.message+'</td></tr>';
+    return;
+  }
+  document.getElementById('mag-badge').textContent=magItems.length||'';
+  renderCards();
+  renderTable();
+  renderDashboard();
+}
+
+// ══ CATEGORY CARDS ══
+function renderCards(){
+  const el=document.getElementById('cat-cards');
+  el.innerHTML=Object.entries(SEC).map(([key,cfg])=>{
+    const count=magItems.filter(i=>i.section===key).length;
+    const active=catFilter===key;
+    return `<div class="cc${active?' a':''}" style="${active?'border-color:'+cfg.color+'88':''}" onclick="catFilter=catFilter==='${key}'?'':'${key}';document.getElementById('mag-filter').value=catFilter;renderCards();renderTable()">
+      <div class="cc-bar" style="background:${cfg.color}"></div>
+      <div class="cc-num" style="color:${cfg.color}">${count}</div>
+      <div class="cc-label">${cfg.label}</div>
+    </div>`;
+  }).join('');
+}
+
+// ══ TABLE ══
+function renderTable(){
+  const search=document.getElementById('mag-search').value.toLowerCase();
+  const filter=document.getElementById('mag-filter').value||catFilter;
+  const filtered=magItems.filter(i=>{
+    if(filter&&i.section!==filter)return false;
+    if(search){const d=(i.description||'').toLowerCase(),p=(i.projectNumber||'').toLowerCase(),r=(i.reference||'').toLowerCase(),s=(i.serial||'').toLowerCase();
+      if(!d.includes(search)&&!p.includes(search)&&!r.includes(search)&&!s.includes(search))return false;}
+    return true;
+  });
+  const tb=document.getElementById('mag-tb');
+  if(!filtered.length){
+    tb.innerHTML='<tr><td colspan="10" class="empty"><div class="empty-icon">📦</div><div class="empty-title">Geen items gevonden</div><div class="empty-sub">Pas je filters aan of voeg items toe via de Magazijn app</div></td></tr>';
+  }else{
+    tb.innerHTML=filtered.map(item=>{
+      const sec=SEC[item.section]||{label:item.section,color:'#555e7d'};
+      const tp=PF.reduce((s,f)=>s+(item[f]?.length||0),0);
+      const hc=PF.some(f=>item[f]?.some(p=>p.storageUrl));
+      const sc=item.status==='afgehandeld'?'var(--success)':item.emailSent?'var(--warn)':'var(--accent)';
+      const st=item.status==='afgehandeld'?'Afgehandeld':item.emailSent?'Mail':'Open';
+      return `<tr>
+        <td class="mono" style="font-size:.76rem;color:var(--text3)">${item.id}</td>
+        <td><span class="cb" style="background:${sec.color}1a;color:${sec.color}"><span class="cd" style="background:${sec.color}"></span>${sec.label}</span></td>
+        <td style="font-weight:600;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item.description||'—'}</td>
+        <td class="mono" style="font-size:.76rem;color:var(--text2)">${item.projectNumber||'—'}</td>
+        <td style="font-size:.8rem;color:var(--text2)">${item.reference||'—'}</td>
+        <td class="mono" style="font-size:.72rem;color:var(--text2)">${item.serial||'—'}</td>
+        <td><span class="sd"><span class="cd" style="background:${sc}"></span>${st}</span></td>
+        <td class="mono" style="font-size:.7rem;color:var(--text3);white-space:nowrap">${item.timestamp||'—'}</td>
+        <td>${tp>0?`<span class="pb" style="background:${hc?'rgba(56,217,169,.12)':'rgba(139,146,176,.1)'};color:${hc?'var(--success)':'var(--text2)'}">📷 ${tp}${hc?' ☁️':''}</span>`:'—'}</td>
+        <td><button class="vb" onclick="openModal(${item.id})" title="Bekijken"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></td>
+      </tr>`;
+    }).join('');
+  }
+  document.getElementById('rc').textContent=filtered.length+' items';
+  document.getElementById('tc').innerHTML=`Toont <strong style="color:var(--text2)">${filtered.length}</strong> van <strong style="color:var(--text2)">${magItems.length}</strong> items`;
+}
+
+// ══ DETAIL MODAL ══
+function openModal(id){
+  const item=magItems.find(i=>i.id===id);if(!item)return;
+  const sec=SEC[item.section]||{label:item.section,color:'#555e7d'};
+  document.getElementById('m-title').textContent='Item #'+item.id;
+  document.getElementById('m-cat').innerHTML=`<span class="cb" style="background:${sec.color}1a;color:${sec.color}"><span class="cd" style="background:${sec.color}"></span>${sec.label}</span>`;
+  const sc=item.status==='afgehandeld'?'var(--success)':item.emailSent?'var(--warn)':'var(--accent)';
+  const st=item.status==='afgehandeld'?'✅ Afgehandeld':item.emailSent?'📧 Mail verstuurd':'Open';
+  document.getElementById('m-fields').innerHTML=[['Omschrijving',item.description],['Projectnummer',item.projectNumber],['Referentie',item.reference],['Serienummer',item.serial],['Leverancier',item.supplierId],['Geregistreerd',item.timestamp],['Door',item.createdBy]].map(([k,v])=>`<div><div class="mdl-lb">${k}</div><div class="mdl-v">${v||'—'}</div></div>`).join('')+
+    `<div><div class="mdl-lb">Status</div><div><span class="cb" style="background:${sc};color:#fff;opacity:.85;padding:4px 10px">${st}</span></div></div>`;
+
+  let ph='';
+  PF.forEach(f=>{
+    const photos=item[f];if(!photos||!photos.length)return;
+    ph+=`<div class="ps"><div class="ps-t">${PL[f]||f}</div><div class="pg">`;
+    photos.forEach(p=>{
+      ph+=p.storageUrl?`<div><img src="${p.storageUrl}" class="pt" onclick="window.open('${p.storageUrl}','_blank')"/><div class="pt-ts">${p.timestamp||''}</div></div>`
+        :`<div><div class="pp">Alleen lokaal</div><div class="pt-ts">${p.timestamp||''}</div></div>`;
+    });
+    ph+=`</div></div>`;
+  });
+  document.getElementById('m-photos').innerHTML=ph;
+
+  if(item.audit&&item.audit.length){
+    document.getElementById('m-audit').innerHTML=`<div class="ps-t" style="margin-top:12px">Activiteit</div><div class="al">${item.audit.map(a=>`<div class="ae"><span class="at">${a.ts||''}</span><span>👤 ${a.user}: ${a.action}${a.details?' — '+a.details:''}</span></div>`).join('')}</div>`;
+  }else{document.getElementById('m-audit').innerHTML='';}
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal(){document.getElementById('modal').classList.remove('show');}
+
+// ══ INIT ══
+loadMagazijn();
+</script>
 </body>
 </html>
