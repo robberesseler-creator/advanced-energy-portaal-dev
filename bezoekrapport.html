@@ -24,8 +24,8 @@
     messagingSenderId: "309856938024",
     appId: "1:309856938024:web:2108715f92c5dea2da2d1d"
   });
-  const db = firebase.firestore();
-  const storage = firebase.storage();
+  var db = firebase.firestore();
+  var storage = firebase.storage();
 </script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
@@ -3338,11 +3338,21 @@ function generatePDF(){
 function finalizeAllReports(){
   const types=[...completedTypes].map(t=>TYPES[t].label).join(', ');
   document.getElementById('suc-msg').textContent=`Alle rapporten (${types}) zijn opgeslagen.`;
+  const syncPanel = document.getElementById('sync-status-panel');
+  if(syncPanel) syncPanel.innerHTML = '☁️ <strong>Bezig met uploaden naar cloud...</strong><br><small>Sluit deze pagina NIET tot het klaar is.</small>';
   showPanel('panel-4');
   window.scrollTo({top:0,behavior:'smooth'});
-  // Firebase sync
+  // Firebase sync: eerst data, dan foto's
   saveDataToFirebase().then(()=>{
-    syncPhotosToCloud();
+    if(syncPanel) syncPanel.innerHTML = '📷 <strong>Foto\'s uploaden naar cloud...</strong><br><small>Dit kan even duren bij veel foto\'s. Niet sluiten!</small>';
+    return syncPhotosToCloud();
+  }).then(()=>{
+    if(syncPanel) syncPanel.innerHTML = '✅ <strong>Alles gesynchroniseerd!</strong>';
+    syncPanel.style.color = '#38d9a9';
+  }).catch((err)=>{
+    console.error('Sync error:', err);
+    if(syncPanel) syncPanel.innerHTML = '⚠️ <strong>Synchronisatie mislukt</strong><br><small>Data is lokaal opgeslagen. Probeer later opnieuw.</small>';
+    syncPanel.style.color = '#ff5c5c';
   });
 }
 
@@ -3581,10 +3591,31 @@ function loadFromLocalStorage(){
 
 // ── FOTO UPLOAD NAAR FIREBASE STORAGE ──
 async function syncPhotosToCloud(){
-  if(!currentDocId) return;
+  if(!currentDocId) { console.warn('syncPhotos: geen docId'); return; }
   let uploadCount = 0;
   let errorCount = 0;
-  setCloudStatus('syncing', 'Foto\'s uploaden...');
+  let skippedCount = 0;
+  let totalPhotos = 0;
+  const syncPanel = document.getElementById('sync-status-panel');
+
+  // Tel eerst totaal aantal te uploaden foto's
+  for(const [sk, d] of Object.entries(itemData)){
+    if(!d || !d.photos) continue;
+    for(let i = 0; i < d.photos.length; i++){
+      const p = d.photos[i];
+      if(typeof p === 'string' && p.startsWith('data:')) totalPhotos++;
+    }
+  }
+
+  if(totalPhotos === 0){
+    console.log('syncPhotos: geen foto\'s om te uploaden');
+    if(syncPanel) syncPanel.innerHTML = '✅ <strong>Opgeslagen!</strong> (geen foto\'s om te uploaden)';
+    if(syncPanel) syncPanel.style.color = '#38d9a9';
+    return;
+  }
+
+  setCloudStatus('syncing', `0/${totalPhotos} foto's uploaden...`);
+  if(syncPanel) syncPanel.innerHTML = `📷 <strong>Foto's uploaden: 0/${totalPhotos}</strong><br><small>Niet sluiten!</small>`;
 
   for(const [sk, d] of Object.entries(itemData)){
     if(!d || !d.photos || d.photos.length === 0) continue;
@@ -3593,32 +3624,45 @@ async function syncPhotosToCloud(){
     for(let i = 0; i < d.photos.length; i++){
       const photo = d.photos[i];
       // Skip als het al een URL is (al geüpload)
-      if(typeof photo === 'string' && photo.startsWith('http')) continue;
+      if(typeof photo === 'string' && photo.startsWith('http')){ skippedCount++; continue; }
       // Skip als we al een storageUrl hebben voor deze index
-      if(d.storageUrls[i] && d.storageUrls[i].startsWith('http')) continue;
+      if(d.storageUrls[i] && d.storageUrls[i].startsWith('http')){ skippedCount++; continue; }
       // Skip als het geen base64 is
-      if(typeof photo !== 'string' || !photo.startsWith('data:')) continue;
+      if(typeof photo !== 'string' || !photo.startsWith('data:')){ skippedCount++; continue; }
 
       try {
-        setCloudStatus('syncing', `Foto ${uploadCount+1} uploaden...`);
-        const ts = Date.now() + '_' + i;
-        const path = `bezoekrapport/${currentDocId}/${sk}/${ts}.jpg`;
+        const ts = Date.now() + '_' + Math.random().toString(36).substr(2,5) + '_' + i;
+        const safeSk = sk.replace(/[^a-zA-Z0-9_-]/g,'_');
+        const path = `bezoekrapport/${currentDocId}/${safeSk}/${ts}.jpg`;
         const ref = storage.ref(path);
 
         // Converteer base64 naar blob
-        const response = await fetch(photo);
-        const blob = await response.blob();
+        const parts = photo.split(',');
+        const mime = parts[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+        const byteString = atob(parts[1]);
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for(let j = 0; j < byteString.length; j++){
+          ia[j] = byteString.charCodeAt(j);
+        }
+        const blob = new Blob([ab], { type: mime });
 
-        // Upload
-        await ref.put(blob, { contentType: 'image/jpeg' });
-        const url = await ref.getDownloadURL();
+        // Upload naar Firebase Storage
+        const snapshot = await ref.put(blob, { contentType: mime });
+        const url = await snapshot.ref.getDownloadURL();
 
-        // Sla URL op
+        // Sla URL op in itemData
         d.storageUrls[i] = url;
         uploadCount++;
+
+        // Update visuele feedback
+        setCloudStatus('syncing', `${uploadCount}/${totalPhotos} foto's...`);
+        if(syncPanel) syncPanel.innerHTML = `📷 <strong>Foto's uploaden: ${uploadCount}/${totalPhotos}</strong><br><small>Niet sluiten!</small>`;
+
       } catch(err) {
-        console.error(`Foto upload fout voor ${sk}[${i}]:`, err);
+        console.error(`FOTO UPLOAD FOUT [${sk}][${i}]:`, err.code, err.message);
         errorCount++;
+        if(syncPanel) syncPanel.innerHTML = `⚠️ <strong>Fout bij foto ${uploadCount+errorCount}/${totalPhotos}</strong><br><small>${err.message}</small>`;
       }
     }
   }
@@ -3626,7 +3670,6 @@ async function syncPhotosToCloud(){
   // Update Firestore met de nieuwe storageUrls
   if(uploadCount > 0){
     try {
-      // Hergebruik buildSavePayload() die al alle base64 stript
       const payload = buildSavePayload();
       await db.collection('bezoekrapport').doc(currentDocId).update({
         itemData: payload.itemData,
@@ -3637,29 +3680,27 @@ async function syncPhotosToCloud(){
     }
   }
 
-  // Update localStorage ook
+  // Update localStorage
   saveToLocalStorage();
 
+  // Toon resultaat
   if(errorCount > 0){
-    setCloudStatus('error', `${uploadCount} foto's geüpload, ${errorCount} mislukt`);
+    setCloudStatus('error', `${uploadCount} OK, ${errorCount} mislukt`);
+    if(syncPanel){
+      syncPanel.innerHTML = `⚠️ <strong>${uploadCount} foto's geüpload, ${errorCount} mislukt</strong><br><small>Controleer je internetverbinding</small>`;
+      syncPanel.style.color = '#ff5c5c';
+    }
   } else if(uploadCount > 0){
     setCloudStatus('done', `${uploadCount} foto's geüpload`);
+    if(syncPanel){
+      syncPanel.innerHTML = `✅ <strong>Alles gesynchroniseerd! (${uploadCount} foto's)</strong>`;
+      syncPanel.style.color = '#38d9a9';
+    }
   } else {
     setCloudStatus('done', 'Alles gesynchroniseerd');
+    if(syncPanel){
+      syncPanel.innerHTML = '✅ <strong>Alles gesynchroniseerd!</strong>';
+      syncPanel.style.color = '#38d9a9';
+    }
   }
 }
-
-// ── INIT: LAAD DATA BIJ OPSTART ──
-(function initLoadData(){
-  const loaded = loadFromLocalStorage();
-  if(loaded){
-    console.log('Data geladen uit localStorage');
-  }
-})();
-
-// Init
-updateHubCards();
-</script>
-<div class="toast-inline" id="global-toast"></div>
-</body>
-</html>
