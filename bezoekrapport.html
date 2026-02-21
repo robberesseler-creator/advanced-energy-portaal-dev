@@ -11,21 +11,20 @@
 <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiQmV6b2VrcmFwcG9ydCIsInNob3J0X25hbWUiOiJCZXpvZWsiLCJzdGFydF91cmwiOiIuIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiIzBmMTExNyIsInRoZW1lX2NvbG9yIjoiIzAwMDAwMCJ9">
 <title>Bezoekrapport</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script>
-  firebase.initializeApp({
-    apiKey: "AIzaSyBKU-wCjV4Au4ngRG52Zmmxbzc3N3D8VBU",
-    authDomain: "advanced-intranet.firebaseapp.com",
-    projectId: "advanced-intranet",
-    storageBucket: "advanced-intranet.firebasestorage.app",
-    messagingSenderId: "309856938024",
-    appId: "1:309856938024:web:2108715f92c5dea2da2d1d"
-  });
-  var db = firebase.firestore();
-  var storage = firebase.storage();
+firebase.initializeApp({
+  apiKey:"AIzaSyBKU-wCjV4Au4ngRG52Zmmxbzc3N3D8VBU",
+  authDomain:"advanced-intranet.firebaseapp.com",
+  projectId:"advanced-intranet",
+  storageBucket:"advanced-intranet.firebasestorage.app",
+  messagingSenderId:"309856938024",
+  appId:"1:309856938024:web:2108715f92c5dea2da2d1d"
+});
+const db=firebase.firestore();
+const storage=firebase.storage();
 </script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
@@ -479,9 +478,7 @@
       <div class="suc-t">Rapport opgeslagen!</div>
       <div class="suc-s" id="suc-msg"></div>
       <button class="btn btn-p" onclick="generatePDF()" style="margin-bottom:10px">📄 Download PDF</button>
-      <div id="sync-status-panel" style="margin-bottom:12px;font-size:13px;color:var(--text2)">
-        ☁️ Bezig met synchroniseren naar cloud...
-      </div>
+      <div id="sync-status-panel" style="margin-bottom:12px;font-size:13px;color:var(--text2)"></div>
       <button class="btn btn-s" onclick="backToHub()" style="margin-bottom:10px">← Terug</button>
       <button class="btn btn-s" onclick="reset()">+ Nieuw rapport</button>
     </div>
@@ -852,7 +849,7 @@ function saveChecklistAndReturn(){
     }
   }
   completedTypes.add(activeTab);
-  saveToLocalStorage(); // Tussentijds lokaal opslaan
+  saveToLocalStorage();
   goBackToHub();
 }
 
@@ -3338,21 +3335,19 @@ function generatePDF(){
 function finalizeAllReports(){
   const types=[...completedTypes].map(t=>TYPES[t].label).join(', ');
   document.getElementById('suc-msg').textContent=`Alle rapporten (${types}) zijn opgeslagen.`;
-  const syncPanel = document.getElementById('sync-status-panel');
-  if(syncPanel) syncPanel.innerHTML = '☁️ <strong>Bezig met uploaden naar cloud...</strong><br><small>Sluit deze pagina NIET tot het klaar is.</small>';
+  const syncPanel=document.getElementById('sync-status-panel');
+  if(syncPanel) syncPanel.innerHTML='☁️ <strong>Bezig met opslaan naar cloud...</strong>';
   showPanel('panel-4');
   window.scrollTo({top:0,behavior:'smooth'});
-  // Firebase sync: eerst data, dan foto's
+  // Firebase: eerst data opslaan, dan foto's uploaden
   saveDataToFirebase().then(()=>{
-    if(syncPanel) syncPanel.innerHTML = '📷 <strong>Foto\'s uploaden naar cloud...</strong><br><small>Dit kan even duren bij veel foto\'s. Niet sluiten!</small>';
+    if(syncPanel) syncPanel.innerHTML='📷 <strong>Foto\'s uploaden...</strong><br><small>Sluit deze pagina niet!</small>';
     return syncPhotosToCloud();
   }).then(()=>{
-    if(syncPanel) syncPanel.innerHTML = '✅ <strong>Alles gesynchroniseerd!</strong>';
-    syncPanel.style.color = '#38d9a9';
-  }).catch((err)=>{
-    console.error('Sync error:', err);
-    if(syncPanel) syncPanel.innerHTML = '⚠️ <strong>Synchronisatie mislukt</strong><br><small>Data is lokaal opgeslagen. Probeer later opnieuw.</small>';
-    syncPanel.style.color = '#ff5c5c';
+    if(syncPanel){syncPanel.innerHTML='✅ <strong>Alles gesynchroniseerd!</strong>';syncPanel.style.color='#38d9a9';}
+  }).catch(err=>{
+    console.error('Sync error:',err);
+    if(syncPanel){syncPanel.innerHTML='⚠️ <strong>Sync mislukt</strong><br><small>'+err.message+'</small>';syncPanel.style.color='#ff5c5c';}
   });
 }
 
@@ -3389,10 +3384,9 @@ function reset(){
   const multiName=document.querySelector('#hub-airmu .tname');
   if(multiName) multiName.textContent='Lucht/Lucht Multi';
   selected=[];activeTab='';itemData={};completedTypes=new Set();deletedItems=new Set();
-  // Reset Firebase/localStorage state
-  currentDocId = null;
+  currentDocId=null;
   localStorage.removeItem(LS_KEY);
-  document.getElementById('cloud-status').style.display='none';
+  const cs=document.getElementById('cloud-status');if(cs)cs.style.display='none';
   ['solar','airmo','airmu','airwater','geo','charge'].forEach(t=>{
     const card=document.getElementById('hub-'+t);
     if(card) card.classList.remove('completed');
@@ -3406,301 +3400,212 @@ function reset(){
 // ══════════════════════════
 // FIREBASE SYNC
 // ══════════════════════════
-const LS_KEY = 'bezoekrapport_data';
-let currentDocId = null;
+const LS_KEY='bezoekrapport_data';
+let currentDocId=null;
 
 function generateDocId(){
-  return 'br_' + Date.now() + '_' + Math.random().toString(36).substr(2,9);
+  return 'br_'+Date.now()+'_'+Math.random().toString(36).substr(2,9);
 }
 
-function setCloudStatus(status, msg){
-  const el = document.getElementById('cloud-status');
-  if(!el) return;
-  el.style.display = 'inline-block';
-  if(status === 'syncing'){
-    el.style.background = 'rgba(247,201,72,.2)';
-    el.style.color = '#f7c948';
-    el.style.border = '1px solid rgba(247,201,72,.3)';
-    el.textContent = '☁️ ' + (msg || 'Synchroniseren...');
-  } else if(status === 'done'){
-    el.style.background = 'rgba(56,217,169,.15)';
-    el.style.color = '#38d9a9';
-    el.style.border = '1px solid rgba(56,217,169,.3)';
-    el.textContent = '☁️ ' + (msg || 'Opgeslagen');
-    setTimeout(()=>{ el.style.display = 'none'; }, 4000);
-  } else if(status === 'error'){
-    el.style.background = 'rgba(255,92,92,.15)';
-    el.style.color = '#ff5c5c';
-    el.style.border = '1px solid rgba(255,92,92,.3)';
-    el.textContent = '⚠️ ' + (msg || 'Sync fout');
-  }
+function setCloudStatus(status,msg){
+  const el=document.getElementById('cloud-status');
+  if(!el)return;
+  el.style.display='inline-block';
+  if(status==='syncing'){el.style.background='rgba(247,201,72,.2)';el.style.color='#f7c948';el.style.border='1px solid rgba(247,201,72,.3)';el.textContent='☁️ '+(msg||'Synchroniseren...');}
+  else if(status==='done'){el.style.background='rgba(56,217,169,.15)';el.style.color='#38d9a9';el.style.border='1px solid rgba(56,217,169,.3)';el.textContent='☁️ '+(msg||'Opgeslagen');setTimeout(()=>{el.style.display='none';},4000);}
+  else if(status==='error'){el.style.background='rgba(255,92,92,.15)';el.style.color='#ff5c5c';el.style.border='1px solid rgba(255,92,92,.3)';el.textContent='⚠️ '+(msg||'Sync fout');}
 }
 
 function buildSavePayload(){
-  // Strip ALLE base64 foto's uit itemData voor Firestore (max 1MB)
-  // Bewaar alleen metadata + storageUrls
-  const cleanData = {};
-  for(const [sk, d] of Object.entries(itemData)){
-    // Kopieer alleen de kleine velden, NOOIT base64 foto data
-    const clean = {
-      notes: d.notes || '',
-      strings: d.strings || '',
-      mppTrackers: d.mppTrackers || '',
-      location: d.location || '',
-      boardType: d.boardType || {},
-      mountType: d.mountType || '',
-      fixType: d.fixType || '',
-      unitType: d.unitType || '',
-      connType: d.connType || '',
-      sqm: d.sqm || '',
-      floor: d.floor || '',
-      sqmRows: d.sqmRows || [],
-      radRows: d.radRows || [],
-      fuelType: d.fuelType || '',
-      fuelAmount: d.fuelAmount || '',
-      buildYear: d.buildYear || '',
-      meterType: d.meterType || [],
-      phaseType: d.phaseType || '',
-      insulation: d.insulation || '',
-      woningType: d.woningType || '',
-      heatedFloors: d.heatedFloors || '',
-      totalSqm: d.totalSqm || '',
-      boilerTemp: d.boilerTemp || '',
-      batType: d.batType || '',
-      batVerbruik: d.batVerbruik || '',
-      batProductie: d.batProductie || '',
-      batAfname: d.batAfname || '',
-      batInjectie: d.batInjectie || '',
-      batCalcSkipped: d.batCalcSkipped || false,
-      // Foto info: alleen het AANTAL foto's en storageUrls
-      photoCount: (d.photos || []).length,
-      storageUrls: (d.storageUrls || []).filter(u => u && u.startsWith('http'))
+  const cleanData={};
+  for(const [sk,d] of Object.entries(itemData)){
+    cleanData[sk]={
+      notes:d.notes||'',
+      strings:d.strings||'',
+      mppTrackers:d.mppTrackers||'',
+      location:d.location||'',
+      boardType:d.boardType||{},
+      mountType:d.mountType||'',
+      fixType:d.fixType||'',
+      unitType:d.unitType||'',
+      connType:d.connType||'',
+      sqm:d.sqm||'',
+      floor:d.floor||'',
+      sqmRows:d.sqmRows||[],
+      radRows:d.radRows||[],
+      fuelType:d.fuelType||'',
+      fuelAmount:d.fuelAmount||'',
+      buildYear:d.buildYear||'',
+      meterType:d.meterType||[],
+      phaseType:d.phaseType||'',
+      insulation:d.insulation||'',
+      woningType:d.woningType||'',
+      heatedFloors:d.heatedFloors||'',
+      totalSqm:d.totalSqm||'',
+      boilerTemp:d.boilerTemp||'',
+      batType:d.batType||'',
+      batVerbruik:d.batVerbruik||'',
+      batProductie:d.batProductie||'',
+      batAfname:d.batAfname||'',
+      batInjectie:d.batInjectie||'',
+      batCalcSkipped:d.batCalcSkipped||false,
+      photoCount:(d.photos||[]).length,
+      storageUrls:(d.storageUrls||[]).filter(u=>u&&u.startsWith('http'))
     };
-    cleanData[sk] = clean;
   }
   return {
-    klantNaam: document.getElementById('klant-naam')?.value || '',
-    klantAdres: document.getElementById('klant-adres')?.value || '',
-    completedTypes: [...completedTypes],
-    deletedItems: [...deletedItems],
-    selected: selected,
-    itemData: JSON.stringify(cleanData),
-    extraSplitCount: extraSplitCount,
-    extraMultiSplitCount: extraMultiSplitCount,
-    updatedAt: new Date().toISOString(),
-    createdAt: currentDocId ? undefined : new Date().toISOString()
+    klantNaam:document.getElementById('klant-naam')?.value||'',
+    klantAdres:document.getElementById('klant-adres')?.value||'',
+    completedTypes:[...completedTypes],
+    deletedItems:[...deletedItems],
+    selected:selected,
+    itemData:JSON.stringify(cleanData),
+    extraSplitCount:extraSplitCount,
+    extraMultiSplitCount:extraMultiSplitCount,
+    updatedAt:new Date().toISOString(),
+    createdAt:currentDocId?undefined:new Date().toISOString()
   };
 }
 
 async function saveDataToFirebase(){
-  try {
-    setCloudStatus('syncing', 'Opslaan naar cloud...');
-    if(!currentDocId) currentDocId = generateDocId();
-    const payload = buildSavePayload();
-    // Verwijder undefined velden
-    Object.keys(payload).forEach(k => payload[k] === undefined && delete payload[k]);
-    await db.collection('bezoekrapport').doc(currentDocId).set(payload, {merge: true});
-    // Sla ook op in localStorage
+  try{
+    setCloudStatus('syncing','Opslaan naar cloud...');
+    if(!currentDocId)currentDocId=generateDocId();
+    const payload=buildSavePayload();
+    Object.keys(payload).forEach(k=>payload[k]===undefined&&delete payload[k]);
+    await db.collection('bezoekrapport').doc(currentDocId).set(payload,{merge:true});
     saveToLocalStorage();
-    setCloudStatus('done', 'Opgeslagen in cloud');
+    setCloudStatus('done','Opgeslagen in cloud');
     return true;
-  } catch(err) {
-    console.error('Firebase save error:', err);
-    setCloudStatus('error', 'Cloud opslaan mislukt');
-    // Fallback: sla lokaal op
+  }catch(err){
+    console.error('Firebase save error:',err);
+    setCloudStatus('error','Cloud opslaan mislukt');
     saveToLocalStorage();
     return false;
   }
 }
 
 function saveToLocalStorage(){
-  try {
-    const data = {
-      docId: currentDocId,
-      klantNaam: document.getElementById('klant-naam')?.value || '',
-      klantAdres: document.getElementById('klant-adres')?.value || '',
-      completedTypes: [...completedTypes],
-      deletedItems: [...deletedItems],
-      selected: selected,
-      itemData: itemData,
-      extraSplitCount: extraSplitCount,
-      extraMultiSplitCount: extraMultiSplitCount,
-      savedAt: new Date().toISOString()
+  try{
+    const data={
+      docId:currentDocId,
+      klantNaam:document.getElementById('klant-naam')?.value||'',
+      klantAdres:document.getElementById('klant-adres')?.value||'',
+      completedTypes:[...completedTypes],
+      deletedItems:[...deletedItems],
+      selected:selected,
+      itemData:itemData,
+      extraSplitCount:extraSplitCount,
+      extraMultiSplitCount:extraMultiSplitCount,
+      savedAt:new Date().toISOString()
     };
-    localStorage.setItem(LS_KEY, JSON.stringify(data));
-  } catch(e) {
-    console.warn('localStorage save error:', e);
-  }
+    localStorage.setItem(LS_KEY,JSON.stringify(data));
+  }catch(e){console.warn('localStorage save error:',e);}
 }
 
 function loadFromLocalStorage(){
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    if(!raw) return false;
-    const data = JSON.parse(raw);
-    if(!data || !data.itemData) return false;
-    // Herstel state
-    if(data.docId) currentDocId = data.docId;
-    if(data.klantNaam) document.getElementById('klant-naam').value = data.klantNaam;
-    if(data.klantAdres) document.getElementById('klant-adres').value = data.klantAdres;
-    if(data.completedTypes) completedTypes = new Set(data.completedTypes);
-    if(data.deletedItems) deletedItems = new Set(data.deletedItems);
-    if(data.selected) selected = data.selected;
-    if(data.extraSplitCount) {
-      // Recreëer extra split types
-      for(let i=1; i<=data.extraSplitCount; i++){
-        extraSplitCount = i;
-        const key = 'airmo-'+i;
-        if(!TYPES[key]){
-          TYPES[key] = {label:`Lucht/Lucht Mono ${i+1}/${data.extraSplitCount+1}`, icon:'🌡️', cls:'airmo', items:[
-            {key:'woning', label:'Woning', shared:true, optional:true},
-            {key:'buitenunit-e'+i, label:'Buitenunit', shared:false, hasFixType:true},
-            {key:'binnenunit-e'+i, label:'Binnenunit', shared:false, hasUnitType:true},
-            {key:'elek-aansl-e'+i, label:'Elektrische aansluiting', shared:false, hasConnType:true},
-            {key:'beschrijving-e'+i, label:'Beschrijving project', shared:false, noPhoto:true},
-          ]};
-        }
-      }
-      if(extraSplitCount > 0) updateMonoLabels();
-    }
-    if(data.extraMultiSplitCount) {
-      for(let i=1; i<=data.extraMultiSplitCount; i++){
-        extraMultiSplitCount = i;
-        const key = 'airmu-'+i;
-        if(!TYPES[key]){
-          TYPES[key] = {label:`Lucht/Lucht Multi ${i+1}/${data.extraMultiSplitCount+1}`, icon:'🌡️', cls:'airmu', items:[
-            {key:'woning', label:'Woning', shared:true, optional:true},
-            {key:'buitenunit-mu'+i, label:'Buitenunit', shared:false, hasFixType:true},
-            {key:'binnenunit-mu'+i+'-1', label:'Binnenunit 1/2', shared:false, hasUnitType:true},
-            {key:'binnenunit-mu'+i+'-2', label:'Binnenunit 2/2', shared:false, hasUnitType:true},
-            {key:'elek-aansl-mu'+i, label:'Elektrische aansluiting', shared:false, hasConnType:true},
-            {key:'beschrijving-mu'+i, label:'Beschrijving project', shared:false, noPhoto:true},
-          ]};
-        }
-      }
-      if(extraMultiSplitCount > 0) updateMultiLabels();
-    }
-    itemData = data.itemData;
-    updateHubCards();
+  try{
+    const raw=localStorage.getItem(LS_KEY);
+    if(!raw)return false;
+    const data=JSON.parse(raw);
+    if(!data||!data.itemData)return false;
+    if(data.docId)currentDocId=data.docId;
+    if(data.klantNaam){const el=document.getElementById('klant-naam');if(el)el.value=data.klantNaam;}
+    if(data.klantAdres){const el=document.getElementById('klant-adres');if(el)el.value=data.klantAdres;}
+    if(data.completedTypes)completedTypes=new Set(data.completedTypes);
+    if(data.deletedItems)deletedItems=new Set(data.deletedItems);
+    if(data.selected)selected=data.selected;
+    if(data.extraSplitCount)extraSplitCount=data.extraSplitCount;
+    if(data.extraMultiSplitCount)extraMultiSplitCount=data.extraMultiSplitCount;
+    itemData=data.itemData;
     return true;
-  } catch(e) {
-    console.warn('localStorage load error:', e);
-    return false;
-  }
+  }catch(e){console.warn('localStorage load error:',e);return false;}
 }
 
-// ── FOTO UPLOAD NAAR FIREBASE STORAGE ──
 async function syncPhotosToCloud(){
-  if(!currentDocId) { console.warn('syncPhotos: geen docId'); return; }
-  let uploadCount = 0;
-  let errorCount = 0;
-  let skippedCount = 0;
-  let totalPhotos = 0;
-  const syncPanel = document.getElementById('sync-status-panel');
+  if(!currentDocId)return;
+  let uploadCount=0,errorCount=0,totalPhotos=0;
+  const syncPanel=document.getElementById('sync-status-panel');
 
-  // Tel eerst totaal aantal te uploaden foto's
-  for(const [sk, d] of Object.entries(itemData)){
-    if(!d || !d.photos) continue;
-    for(let i = 0; i < d.photos.length; i++){
-      const p = d.photos[i];
-      if(typeof p === 'string' && p.startsWith('data:')) totalPhotos++;
+  // Tel totaal foto's
+  for(const [sk,d] of Object.entries(itemData)){
+    if(!d||!d.photos)continue;
+    for(let i=0;i<d.photos.length;i++){
+      if(typeof d.photos[i]==='string'&&d.photos[i].startsWith('data:'))totalPhotos++;
     }
   }
-
-  if(totalPhotos === 0){
-    console.log('syncPhotos: geen foto\'s om te uploaden');
-    if(syncPanel) syncPanel.innerHTML = '✅ <strong>Opgeslagen!</strong> (geen foto\'s om te uploaden)';
-    if(syncPanel) syncPanel.style.color = '#38d9a9';
+  if(totalPhotos===0){
+    if(syncPanel){syncPanel.innerHTML='✅ <strong>Opgeslagen!</strong>';syncPanel.style.color='#38d9a9';}
     return;
   }
+  if(syncPanel)syncPanel.innerHTML=`📷 <strong>Foto's uploaden: 0/${totalPhotos}</strong><br><small>Niet sluiten!</small>`;
 
-  setCloudStatus('syncing', `0/${totalPhotos} foto's uploaden...`);
-  if(syncPanel) syncPanel.innerHTML = `📷 <strong>Foto's uploaden: 0/${totalPhotos}</strong><br><small>Niet sluiten!</small>`;
+  for(const [sk,d] of Object.entries(itemData)){
+    if(!d||!d.photos||d.photos.length===0)continue;
+    if(!d.storageUrls)d.storageUrls=[];
 
-  for(const [sk, d] of Object.entries(itemData)){
-    if(!d || !d.photos || d.photos.length === 0) continue;
-    if(!d.storageUrls) d.storageUrls = [];
+    for(let i=0;i<d.photos.length;i++){
+      const photo=d.photos[i];
+      if(typeof photo==='string'&&photo.startsWith('http'))continue;
+      if(d.storageUrls[i]&&d.storageUrls[i].startsWith('http'))continue;
+      if(typeof photo!=='string'||!photo.startsWith('data:'))continue;
 
-    for(let i = 0; i < d.photos.length; i++){
-      const photo = d.photos[i];
-      // Skip als het al een URL is (al geüpload)
-      if(typeof photo === 'string' && photo.startsWith('http')){ skippedCount++; continue; }
-      // Skip als we al een storageUrl hebben voor deze index
-      if(d.storageUrls[i] && d.storageUrls[i].startsWith('http')){ skippedCount++; continue; }
-      // Skip als het geen base64 is
-      if(typeof photo !== 'string' || !photo.startsWith('data:')){ skippedCount++; continue; }
+      try{
+        const ts=Date.now()+'_'+Math.random().toString(36).substr(2,5)+'_'+i;
+        const safeSk=sk.replace(/[^a-zA-Z0-9_-]/g,'_');
+        const path=`bezoekrapport/${currentDocId}/${safeSk}/${ts}.jpg`;
+        const ref=storage.ref(path);
 
-      try {
-        const ts = Date.now() + '_' + Math.random().toString(36).substr(2,5) + '_' + i;
-        const safeSk = sk.replace(/[^a-zA-Z0-9_-]/g,'_');
-        const path = `bezoekrapport/${currentDocId}/${safeSk}/${ts}.jpg`;
-        const ref = storage.ref(path);
+        // Base64 naar blob
+        const parts=photo.split(',');
+        const mime=parts[0].match(/:(.*?);/)?.[1]||'image/jpeg';
+        const byteString=atob(parts[1]);
+        const ab=new ArrayBuffer(byteString.length);
+        const ia=new Uint8Array(ab);
+        for(let j=0;j<byteString.length;j++)ia[j]=byteString.charCodeAt(j);
+        const blob=new Blob([ab],{type:mime});
 
-        // Converteer base64 naar blob
-        const parts = photo.split(',');
-        const mime = parts[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
-        const byteString = atob(parts[1]);
-        const ab = new ArrayBuffer(byteString.length);
-        const ia = new Uint8Array(ab);
-        for(let j = 0; j < byteString.length; j++){
-          ia[j] = byteString.charCodeAt(j);
-        }
-        const blob = new Blob([ab], { type: mime });
-
-        // Upload naar Firebase Storage
-        const snapshot = await ref.put(blob, { contentType: mime });
-        const url = await snapshot.ref.getDownloadURL();
-
-        // Sla URL op in itemData
-        d.storageUrls[i] = url;
+        const snapshot=await ref.put(blob,{contentType:mime});
+        const url=await snapshot.ref.getDownloadURL();
+        d.storageUrls[i]=url;
         uploadCount++;
 
-        // Update visuele feedback
-        setCloudStatus('syncing', `${uploadCount}/${totalPhotos} foto's...`);
-        if(syncPanel) syncPanel.innerHTML = `📷 <strong>Foto's uploaden: ${uploadCount}/${totalPhotos}</strong><br><small>Niet sluiten!</small>`;
-
-      } catch(err) {
-        console.error(`FOTO UPLOAD FOUT [${sk}][${i}]:`, err.code, err.message);
+        setCloudStatus('syncing',`${uploadCount}/${totalPhotos} foto's...`);
+        if(syncPanel)syncPanel.innerHTML=`📷 <strong>Foto's uploaden: ${uploadCount}/${totalPhotos}</strong><br><small>Niet sluiten!</small>`;
+      }catch(err){
+        console.error(`FOTO UPLOAD FOUT [${sk}][${i}]:`,err.code,err.message);
         errorCount++;
-        if(syncPanel) syncPanel.innerHTML = `⚠️ <strong>Fout bij foto ${uploadCount+errorCount}/${totalPhotos}</strong><br><small>${err.message}</small>`;
       }
     }
   }
 
-  // Update Firestore met de nieuwe storageUrls
-  if(uploadCount > 0){
-    try {
-      const payload = buildSavePayload();
+  // Update Firestore met storageUrls
+  if(uploadCount>0){
+    try{
+      const payload=buildSavePayload();
       await db.collection('bezoekrapport').doc(currentDocId).update({
-        itemData: payload.itemData,
-        updatedAt: new Date().toISOString()
+        itemData:payload.itemData,
+        updatedAt:new Date().toISOString()
       });
-    } catch(err) {
-      console.error('Firestore update na foto upload fout:', err);
-    }
+    }catch(err){console.error('Firestore update na foto upload:',err);}
   }
-
-  // Update localStorage
   saveToLocalStorage();
 
-  // Toon resultaat
-  if(errorCount > 0){
-    setCloudStatus('error', `${uploadCount} OK, ${errorCount} mislukt`);
-    if(syncPanel){
-      syncPanel.innerHTML = `⚠️ <strong>${uploadCount} foto's geüpload, ${errorCount} mislukt</strong><br><small>Controleer je internetverbinding</small>`;
-      syncPanel.style.color = '#ff5c5c';
-    }
-  } else if(uploadCount > 0){
-    setCloudStatus('done', `${uploadCount} foto's geüpload`);
-    if(syncPanel){
-      syncPanel.innerHTML = `✅ <strong>Alles gesynchroniseerd! (${uploadCount} foto's)</strong>`;
-      syncPanel.style.color = '#38d9a9';
-    }
-  } else {
-    setCloudStatus('done', 'Alles gesynchroniseerd');
-    if(syncPanel){
-      syncPanel.innerHTML = '✅ <strong>Alles gesynchroniseerd!</strong>';
-      syncPanel.style.color = '#38d9a9';
-    }
+  if(errorCount>0){
+    setCloudStatus('error',`${uploadCount} OK, ${errorCount} mislukt`);
+    if(syncPanel){syncPanel.innerHTML=`⚠️ <strong>${uploadCount} geüpload, ${errorCount} mislukt</strong>`;syncPanel.style.color='#ff5c5c';}
+  }else{
+    setCloudStatus('done',`${uploadCount} foto's geüpload`);
+    if(syncPanel){syncPanel.innerHTML=`✅ <strong>Alles gesynchroniseerd! (${uploadCount} foto's)</strong>`;syncPanel.style.color='#38d9a9';}
   }
 }
+
+// ── INIT: LAAD DATA ──
+(function(){loadFromLocalStorage();})();
+
+// Init
+updateHubCards();
+</script>
+<div class="toast-inline" id="global-toast"></div>
+</body>
+</html>
