@@ -812,36 +812,51 @@ async function generateBRPdf(docId){
       y+=noteH+3;
     }
 
-    // Foto's (laden van storageUrl)
-    const urls=(d.storageUrls||[]).filter(u=>u&&u.startsWith('http'));
-    if(urls.length>0){
+    // Foto's laden
+    let photoUrls=(d.storageUrls||[]).filter(u=>u&&u.startsWith('http'));
+    // Fallback: kijk of photos[] zelf URLs bevat
+    if(photoUrls.length===0 && d.photos && d.photos.length>0){
+      photoUrls=d.photos.filter(p=>typeof p==='string'&&p.startsWith('http'));
+    }
+    // Foto's die nog als base64 in photos staan (lokaal, niet geüpload)
+    const base64Photos=(d.photos||[]).filter(p=>typeof p==='string'&&p.startsWith('data:'));
+
+    const allPhotos=[...photoUrls.map(u=>({type:'url',src:u})),...base64Photos.map(b=>({type:'b64',src:b}))];
+
+    if(allPhotos.length>0){
       checkSpace(40);
       const maxPerRow=3;
       const gap=3;
       const imgW=(cw-8-(maxPerRow-1)*gap)/maxPerRow;
       const imgH=38;
       let px=ml+4;
-      let loadedCount=0;
 
-      for(let i=0;i<urls.length;i++){
+      for(let i=0;i<allPhotos.length;i++){
         if(i>0&&i%maxPerRow===0){
           y+=imgH+gap;px=ml+4;
           checkSpace(imgH+gap);
         }
         try{
-          // Laad afbeelding als base64
-          const resp=await fetch(urls[i]);
-          const blob=await resp.blob();
-          const b64=await new Promise((res,rej)=>{
-            const r=new FileReader();
-            r.onload=()=>res(r.result);
-            r.onerror=rej;
-            r.readAsDataURL(blob);
-          });
+          let b64=allPhotos[i].src;
+          if(allPhotos[i].type==='url'){
+            // Laad afbeelding via Image element (CORS-friendly)
+            b64=await new Promise((resolve,reject)=>{
+              const img=new Image();
+              img.crossOrigin='anonymous';
+              img.onload=()=>{
+                const canvas=document.createElement('canvas');
+                canvas.width=img.naturalWidth;
+                canvas.height=img.naturalHeight;
+                const ctx=canvas.getContext('2d');
+                ctx.drawImage(img,0,0);
+                resolve(canvas.toDataURL('image/jpeg',0.8));
+              };
+              img.onerror=()=>reject(new Error('Foto laden mislukt'));
+              img.src=allPhotos[i].src;
+            });
+          }
           doc.addImage(b64,'JPEG',px,y,imgW,imgH);
-          loadedCount++;
         }catch(e){
-          // Teken placeholder
           doc.setFillColor(230,230,230);
           doc.roundedRect(px,y,imgW,imgH,1,1,'F');
           doc.setFontSize(7);doc.setTextColor(150,150,150);
