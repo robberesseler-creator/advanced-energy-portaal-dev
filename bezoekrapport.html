@@ -3427,22 +3427,46 @@ function setCloudStatus(status, msg){
 }
 
 function buildSavePayload(){
-  // Strip base64 foto's uit itemData voor Firestore (te groot)
-  // Bewaar alleen storageUrl's
+  // Strip ALLE base64 foto's uit itemData voor Firestore (max 1MB)
+  // Bewaar alleen metadata + storageUrls
   const cleanData = {};
   for(const [sk, d] of Object.entries(itemData)){
-    cleanData[sk] = {
-      ...d,
-      photos: (d.photos || []).map((p, idx) => {
-        // Als het al een storageUrl is (http), bewaar die. Anders placeholder.
-        if(typeof p === 'string' && p.startsWith('http')) return p;
-        // Bewaar referentie dat er een foto is, maar niet de base64
-        const urls = d.storageUrls || [];
-        return urls[idx] || '__pending_upload__';
-      }),
-      // Bewaar storageUrls apart
-      storageUrls: d.storageUrls || []
+    // Kopieer alleen de kleine velden, NOOIT base64 foto data
+    const clean = {
+      notes: d.notes || '',
+      strings: d.strings || '',
+      mppTrackers: d.mppTrackers || '',
+      location: d.location || '',
+      boardType: d.boardType || {},
+      mountType: d.mountType || '',
+      fixType: d.fixType || '',
+      unitType: d.unitType || '',
+      connType: d.connType || '',
+      sqm: d.sqm || '',
+      floor: d.floor || '',
+      sqmRows: d.sqmRows || [],
+      radRows: d.radRows || [],
+      fuelType: d.fuelType || '',
+      fuelAmount: d.fuelAmount || '',
+      buildYear: d.buildYear || '',
+      meterType: d.meterType || [],
+      phaseType: d.phaseType || '',
+      insulation: d.insulation || '',
+      woningType: d.woningType || '',
+      heatedFloors: d.heatedFloors || '',
+      totalSqm: d.totalSqm || '',
+      boilerTemp: d.boilerTemp || '',
+      batType: d.batType || '',
+      batVerbruik: d.batVerbruik || '',
+      batProductie: d.batProductie || '',
+      batAfname: d.batAfname || '',
+      batInjectie: d.batInjectie || '',
+      batCalcSkipped: d.batCalcSkipped || false,
+      // Foto info: alleen het AANTAL foto's en storageUrls
+      photoCount: (d.photos || []).length,
+      storageUrls: (d.storageUrls || []).filter(u => u && u.startsWith('http'))
     };
+    cleanData[sk] = clean;
   }
   return {
     klantNaam: document.getElementById('klant-naam')?.value || '',
@@ -3602,20 +3626,10 @@ async function syncPhotosToCloud(){
   // Update Firestore met de nieuwe storageUrls
   if(uploadCount > 0){
     try {
-      const cleanData = {};
-      for(const [sk, d] of Object.entries(itemData)){
-        cleanData[sk] = {
-          ...d,
-          photos: (d.photos || []).map((p, idx) => {
-            if(typeof p === 'string' && p.startsWith('http')) return p;
-            const urls = d.storageUrls || [];
-            return urls[idx] || '__pending_upload__';
-          }),
-          storageUrls: d.storageUrls || []
-        };
-      }
+      // Hergebruik buildSavePayload() die al alle base64 stript
+      const payload = buildSavePayload();
       await db.collection('bezoekrapport').doc(currentDocId).update({
-        itemData: JSON.stringify(cleanData),
+        itemData: payload.itemData,
         updatedAt: new Date().toISOString()
       });
     } catch(err) {
