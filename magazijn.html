@@ -9,6 +9,22 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#000000">
 <title>Magazijn</title>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+  firebase.initializeApp({
+    apiKey: "AIzaSyBKU-wCjV4Au4ngRG52Zmmxbzc3N3D8VBU",
+    authDomain: "advanced-intranet.firebaseapp.com",
+    projectId: "advanced-intranet",
+    storageBucket: "advanced-intranet.firebasestorage.app",
+    messagingSenderId: "309856938024",
+    appId: "1:309856938024:web:2108715f92c5dea2da2d1d"
+  });
+  const db = firebase.firestore();
+</script>
+
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
   :root{
@@ -515,7 +531,17 @@ let suppliers=JSON.parse(localStorage.getItem('mag-suppliers')||'null')||[
   {id:'pylontech',name:'Pylontech',logo:'',email:''},{id:'daikin',name:'Daikin',logo:'',email:''},
   {id:'renson',name:'Renson',logo:'',email:''},
 ];
-function saveSup(){localStorage.setItem('mag-suppliers',JSON.stringify(suppliers));}
+function saveSup(){localStorage.setItem('mag-suppliers',JSON.stringify(suppliers));
+  // === FIREBASE SYNC ===
+  try{
+    const supsForCloud=suppliers.map(s=>{const copy=Object.assign({},s);copy.logo='';return copy;});
+    db.collection('magazijn').doc('suppliers').set({
+      suppliers:JSON.stringify(supsForCloud),
+      lastUpdated:new Date().toISOString()
+    }).then(()=>{console.log('✅ Firebase: leveranciers opgeslagen');})
+      .catch(e=>{console.warn('⚠️ Firebase suppliers save error:',e);});
+  }catch(e){console.warn('Firebase sync error:',e);}
+}
 
 function deleteSupplier(sid){
   const sup=suppliers.find(s=>s.id===sid);if(!sup)return;
@@ -2361,7 +2387,27 @@ function cleanEmptyItems(){
     nextId=maxId+1;
   }
 }
-function saveData(){cleanEmptyItems();localStorage.setItem('mag-items',JSON.stringify(items));localStorage.setItem('mag-nextId',nextId);}
+function saveData(){cleanEmptyItems();localStorage.setItem('mag-items',JSON.stringify(items));localStorage.setItem('mag-nextId',nextId);
+  // === FIREBASE SYNC ===
+  try{
+    // Items opslaan zonder foto's (foto's zijn te groot voor Firestore)
+    const itemsForCloud=items.map(i=>{
+      const copy=Object.assign({},i);
+      // Verwijder foto data (base64 te groot), bewaar alleen metadata
+      ['photos','artikelPhotos','stickerPhotos','bonPhotos'].forEach(f=>{
+        if(copy[f]){copy[f]=copy[f].map(p=>({name:p.name||'',timestamp:p.timestamp||'',editedAt:p.editedAt||''}));}
+      });
+      return copy;
+    });
+    db.collection('magazijn').doc('items').set({
+      items:JSON.stringify(itemsForCloud),
+      nextId:nextId,
+      lastUpdated:new Date().toISOString(),
+      updatedBy:magazijnier||'onbekend'
+    }).then(()=>{console.log('✅ Firebase: items opgeslagen');})
+      .catch(e=>{console.warn('⚠️ Firebase save error:',e);});
+  }catch(e){console.warn('Firebase sync error:',e);}
+}
 function loadData(){const s=localStorage.getItem('mag-items');if(s){items=JSON.parse(s);items.forEach(i=>{i.open=false;if(!i.audit)i.audit=[];if(!i.status)i.status='open';if(!i.uuid)i.uuid=genUUID();});
   // Dedup: remove items with duplicate uuid, keep first
   const seen=new Set();const before=items.length;
@@ -2385,6 +2431,24 @@ function exportData(){
   a.href=URL.createObjectURL(blob);a.download='magazijn-'+new Date().toISOString().slice(0,10)+'.json';a.click();showToast('Geëxporteerd (incl. archief)');}
 
 loadData();updateHub();initUser();
+
+// === FIREBASE: Laad data van cloud als localStorage leeg is ===
+(function loadFromFirebase(){
+  if(items.length>0)return; // localStorage heeft al data, skip
+  db.collection('magazijn').doc('items').get().then(doc=>{
+    if(doc.exists&&doc.data().items){
+      const cloudItems=JSON.parse(doc.data().items);
+      if(cloudItems.length>0&&items.length===0){
+        items=cloudItems;items.forEach(i=>{i.open=false;if(!i.audit)i.audit=[];if(!i.status)i.status='open';if(!i.uuid)i.uuid=genUUID();});
+        nextId=doc.data().nextId||1;
+        localStorage.setItem('mag-items',JSON.stringify(items));
+        localStorage.setItem('mag-nextId',nextId);
+        updateHub();showToast('Data geladen vanuit cloud ☁️');
+        console.log('✅ Firebase: '+cloudItems.length+' items geladen');
+      }
+    }
+  }).catch(e=>{console.warn('Firebase load error:',e);});
+})();
 </script>
 </body>
 </html>
