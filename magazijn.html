@@ -43,7 +43,10 @@
   }
 
   // Sync alle foto's zonder storageUrl naar Firebase Storage
+  let syncRunning = false;
   async function syncPhotosToCloud() {
+    if (syncRunning) return;
+    syncRunning = true;
     const photoFields = ['photos','artikelPhotos','stickerPhotos','bonPhotos','schadePhotos','seriePhotos'];
     let uploaded = 0;
     for (const it of items) {
@@ -52,7 +55,6 @@
         if (!it[field]) continue;
         for (const photo of it[field]) {
           if (photo.storageUrl || !photo.data) continue;
-          // Foto heeft nog geen cloud URL — uploaden
           const path = 'magazijn/' + (it.uuid||it.id) + '/' + field + '/' + Date.now() + '_' + Math.random().toString(36).substr(2,4) + '.jpg';
           const url = await uploadToStorage(photo.data, path);
           if (url) {
@@ -63,10 +65,12 @@
         }
       }
     }
+    syncRunning = false;
     if (uploaded > 0) {
-      localStorage.setItem('mag-items', JSON.stringify(items));
       console.log('✅ ' + uploaded + ' foto(s) naar cloud geüpload');
       showToast(uploaded + ' foto(\'s) geüpload naar cloud ☁️');
+      // Sla op naar ZOWEL localStorage als Firestore
+      saveData();
     }
   }
 </script>
@@ -1058,7 +1062,7 @@ function wizFinishAddToExisting(){
   wizMatchedItem.stickerPhotos.push({data:wizStickerPhoto,timestamp:ts()+' — '+magazijnier});
   wizMatchedItem.lastModified=ts();wizMatchedItem.modifiedBy=magazijnier;
   saveData();
-  syncPhotosToCloud().then(()=>saveData());
+  syncPhotosToCloud();
   closeWizard();
   openSection(wizMatchedItem.section);
   setTimeout(()=>{toggleItem(wizMatchedItem.id);},200);
@@ -1077,7 +1081,7 @@ function wizFinishWithCategoryChange(){
   wizMatchedItem.categoryHistory.push({from:oldSection,to:wizDetectedColor,at:ts(),by:magazijnier});
   wizMatchedItem.lastModified=ts();wizMatchedItem.modifiedBy=magazijnier;
   saveData();
-  syncPhotosToCloud().then(()=>saveData());
+  syncPhotosToCloud();
   closeWizard();
   openSection(wizDetectedColor);
   setTimeout(()=>{toggleItem(wizMatchedItem.id);},200);
@@ -1092,7 +1096,7 @@ function wizFinishKeepCategory(){
   wizMatchedItem.stickerPhotos.push({data:wizStickerPhoto,timestamp:ts()+' — '+magazijnier});
   wizMatchedItem.lastModified=ts();wizMatchedItem.modifiedBy=magazijnier;
   saveData();
-  syncPhotosToCloud().then(()=>saveData());
+  syncPhotosToCloud();
   closeWizard();
   openSection(wizMatchedItem.section);
   setTimeout(()=>{toggleItem(wizMatchedItem.id);},200);
@@ -1110,7 +1114,7 @@ function wizFinishCreateNew(){
     emailSent:false,open:true,deleted:false,timestamp:ts(),createdBy:magazijnier
   };
   items.push(item);saveData();
-  syncPhotosToCloud().then(()=>saveData());
+  syncPhotosToCloud();
   closeWizard();
   openSection(wizDetectedColor);
   setTimeout(()=>{toggleItem(item.id);},200);
@@ -2216,7 +2220,7 @@ function addPhotos(id,files,field){
         it[field].push({data:dataUrl,timestamp:ts()+' — '+magazijnier});
         renderItems();saveData();
         // Upload foto's naar cloud op achtergrond
-        syncPhotosToCloud().then(()=>saveData());
+        syncPhotosToCloud();
       });
     };reader.readAsDataURL(file);
   });
@@ -2488,8 +2492,8 @@ function exportData(){
 
 loadData();updateHub();initUser();
 
-// === FIREBASE: Sync bestaande foto's naar cloud (achtergrond) ===
-setTimeout(()=>{syncPhotosToCloud().then(()=>saveData());}, 3000);
+// === FIREBASE: Sync bestaande foto's naar cloud (achtergrond, 5 sec na laden) ===
+setTimeout(()=>{syncPhotosToCloud();}, 5000);
 
 // === FIREBASE: Laad data van cloud als localStorage leeg is ===
 (function loadFromFirebase(){
