@@ -22,12 +22,12 @@
         .card-icon { width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
         .card-icon.magazijn   { background: #e0f2fe; }
         .card-icon.bezoek     { background: #fef3c7; }
-        .card-icon.dashboard  { background: #f0f4ff; }
+        .card-icon.projecten  { background: #e0e7ff; }
+        .card-icon.montage    { background: #fce7f3; }
+        .card-icon.service    { background: #f3e8ff; }
+        .card-icon.onderhoud  { background: #dcfce7; }
         .card-text h2 { font-size: 1rem; font-weight: 700; margin-bottom: 2px; }
         .card-text p { font-size: 0.82rem; color: #8b8b8b; line-height: 1.4; }
-        .card-badge { font-size: 0.68rem; font-weight: 700; padding: 3px 10px; border-radius: 10px; flex-shrink: 0; }
-        .card-badge.gsm { background: #dcfce7; color: #16a34a; }
-        .card-badge.pc { background: #e0e7ff; color: #4f46e5; }
         .card-arrow { margin-left: auto; color: #c0c8d8; font-size: 1.2rem; flex-shrink: 0; transition: color 0.2s ease; }
         .card:hover .card-arrow { color: #3b82f6; }
         .footer { text-align: center; margin-top: 3rem; font-size: 0.78rem; color: #b0b8c8; }
@@ -42,28 +42,36 @@
             <p>Plenion Portaal</p>
         </div>
 
-        <div class="section-label">📱 GSM Apps (ter plaatse bij klant)</div>
+        <div class="section-label">Applicaties</div>
         <div class="grid">
             <a href="plenion-magazijn__9_.html" class="card">
                 <div class="card-icon magazijn">📦</div>
-                <div class="card-text"><h2>Magazijn</h2><p>Registraties, foto's & stock beheer</p></div>
-                <span class="card-badge gsm">📱 GSM</span>
+                <div class="card-text"><h2>Magazijn</h2><p>Voorraadbeheer en materialen</p></div>
                 <span class="card-arrow">›</span>
             </a>
             <a href="bezoekrapport.html" class="card">
                 <div class="card-icon bezoek">📋</div>
-                <div class="card-text"><h2>Bezoeksrapport</h2><p>Checklists, foto's & technische data</p></div>
-                <span class="card-badge gsm">📱 GSM</span>
+                <div class="card-text"><h2>Bezoeksrapport</h2><p>Rapportage van klantbezoeken</p></div>
                 <span class="card-arrow">›</span>
             </a>
-        </div>
-
-        <div class="section-label">🖥️ Dashboard (kantoor / PC)</div>
-        <div class="grid">
             <a href="index.html" class="card">
-                <div class="card-icon dashboard">📊</div>
-                <div class="card-text"><h2>Dashboard</h2><p>Overzicht — projecten, montage, service, onderhoud</p></div>
-                <span class="card-badge pc">🖥️ PC</span>
+                <div class="card-icon projecten">📁</div>
+                <div class="card-text"><h2>Projecten</h2><p>Actieve projecten uit bezoeksrapporten</p></div>
+                <span class="card-arrow">›</span>
+            </a>
+            <a href="index.html" class="card">
+                <div class="card-icon montage">🔧</div>
+                <div class="card-text"><h2>Montage</h2><p>Installaties en montage-opdrachten</p></div>
+                <span class="card-arrow">›</span>
+            </a>
+            <a href="index.html" class="card">
+                <div class="card-icon service">🛠️</div>
+                <div class="card-text"><h2>Service</h2><p>Service-aanvragen en interventies</p></div>
+                <span class="card-arrow">›</span>
+            </a>
+            <a href="index.html" class="card">
+                <div class="card-icon onderhoud">🔄</div>
+                <div class="card-text"><h2>Onderhoud</h2><p>Gepland onderhoud en contracten</p></div>
                 <span class="card-arrow">›</span>
             </a>
         </div>
