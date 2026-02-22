@@ -250,6 +250,13 @@
 
   @media(max-width:500px){.hub-grid{grid-template-columns:1fr 1fr;}}
 </style>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<script>
+firebase.initializeApp({apiKey:"AIzaSyBKU-wCjV4Au4ngRG52Zmmxbzc3N3D8VBU",authDomain:"advanced-intranet.firebaseapp.com",projectId:"advanced-intranet",storageBucket:"advanced-intranet.firebasestorage.app",messagingSenderId:"309856938024",appId:"1:309856938024:web:2108715f92c5dea2da2d1d"});
+var db=firebase.firestore(),cloudStorage=firebase.storage();
+</script>
 </head>
 <body>
 <header>
@@ -2566,7 +2573,36 @@ function cleanEmptyItems(){
     nextId=maxId+1;
   }
 }
-function saveData(){cleanEmptyItems();localStorage.setItem('mag-items',JSON.stringify(items));localStorage.setItem('mag-nextId',nextId);}
+function saveData(){cleanEmptyItems();localStorage.setItem('mag-items',JSON.stringify(items));localStorage.setItem('mag-nextId',nextId);
+  // ── Sync to Firebase ──
+  syncMagToFirebase();
+}
+var _syncTimer=null;
+function syncMagToFirebase(){
+  if(_syncTimer)clearTimeout(_syncTimer);
+  _syncTimer=setTimeout(function(){
+    items.forEach(function(item){
+      if(!item.uuid) return;
+      var clean={};
+      Object.keys(item).forEach(function(k){
+        if(k==='open') return;
+        var v=item[k];
+        // Skip base64 photo data — too large for Firestore
+        if(Array.isArray(v)){
+          clean[k]=v.map(function(p){
+            if(typeof p==='string'&&p.startsWith('data:')) return '(local)';
+            return p;
+          });
+        } else {
+          clean[k]=v;
+        }
+      });
+      clean.timestamp=clean.timestamp||new Date().toISOString();
+      clean.updatedAt=new Date().toISOString();
+      db.collection('magazijn').doc(item.uuid).set(clean,{merge:true}).catch(function(e){console.warn('Mag sync err:',e);});
+    });
+  },2000); // debounce 2s
+}
 function loadData(){const s=localStorage.getItem('mag-items');if(s){items=JSON.parse(s);items.forEach(i=>{i.open=false;if(!i.audit)i.audit=[];if(!i.status)i.status='open';if(!i.uuid)i.uuid=genUUID();});
   // Dedup: remove items with duplicate uuid, keep first
   const seen=new Set();const before=items.length;
