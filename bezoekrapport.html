@@ -11,21 +11,6 @@
 <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiQmV6b2VrcmFwcG9ydCIsInNob3J0X25hbWUiOiJCZXpvZWsiLCJzdGFydF91cmwiOiIuIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiIzBmMTExNyIsInRoZW1lX2NvbG9yIjoiIzAwMDAwMCJ9">
 <title>Bezoekrapport</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
-<script>
-firebase.initializeApp({
-  apiKey:"AIzaSyBKU-wCjV4Au4ngRG52Zmmxbzc3N3D8VBU",
-  authDomain:"advanced-intranet.firebaseapp.com",
-  projectId:"advanced-intranet",
-  storageBucket:"advanced-intranet.firebasestorage.app",
-  messagingSenderId:"309856938024",
-  appId:"1:309856938024:web:2108715f92c5dea2da2d1d"
-});
-const db=firebase.firestore();
-const storage=firebase.storage();
-</script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
   :root {
@@ -48,11 +33,11 @@ const storage=firebase.storage();
   .logo img{height:32px;width:32px;object-fit:contain;}
   .logo-text{display:flex;flex-direction:column;gap:1px;}
   .logo-title{font-size:17px;font-weight:700;letter-spacing:-.3px;color:#fff;}
-  .logo-datetime{font-size:11px;font-weight:400;color:rgba(255,255,255,.7);letter-spacing:.2px;}
+  .logo-sub{font-size:11px;font-weight:400;color:rgba(255,255,255,.7);letter-spacing:.2px;}
   .hstep{font-size:12px;color:var(--text2);background:var(--surface2);
     border:1px solid var(--border);padding:5px 12px;border-radius:20px;}
 
-  main{max-width:680px;margin:0 auto;padding:28px 16px 60px;}
+  main{max-width:393px;margin:0 auto;padding:20px 14px 60px;}
 
   .panel{display:none;animation:fadeUp .3s ease;}
   .panel.active{display:block;}
@@ -62,19 +47,29 @@ const storage=firebase.storage();
 
   /* Hub grid - all 6 types */
   .tgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px;}
-  .tcard{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);
-    padding:22px 16px;cursor:pointer;transition:all .2s;text-align:center;position:relative;user-select:none;
-    opacity:0.35;}
+  .tcard{background:var(--surface);border:3px solid var(--border);border-radius:var(--radius);
+    cursor:pointer;transition:all .2s;text-align:center;position:relative;user-select:none;
+    opacity:0.35;overflow:hidden;}
   .tcard:hover:not(.disabled){border-color:var(--border-hover);transform:translateY(-2px);}
   .tcard.disabled{cursor:not-allowed;pointer-events:none;}
-  .tcard.clickable{cursor:pointer;pointer-events:auto;}
+  .tcard.clickable{cursor:pointer;pointer-events:auto;opacity:1;}
   .tcard.completed{opacity:1;border-color:var(--success);background:rgba(56,217,169,.07);}
+  .tcard .tc-bar{height:6px;width:100%;}
+  .tcard .tc-body{padding:18px 16px 20px;}
   .tck{position:absolute;top:10px;right:10px;width:20px;height:20px;border-radius:50%;
     display:flex;align-items:center;justify-content:center;font-size:11px;opacity:0;transition:opacity .2s;}
   .tcard.completed .tck{opacity:1;background:var(--success);color:#0f2a22;}
   .ticon{font-size:32px;margin-bottom:10px;}
   .tname{font-size:14px;font-weight:600;}
   .tsoon{font-size:10px;color:var(--text3);margin-top:3px;}
+  .tcard.solar{border-color:rgba(247,201,72,.55);} .tcard.solar .tc-bar{background:var(--solar);}
+  .tcard.battery{border-color:rgba(79,142,247,.55);} .tcard.battery .tc-bar{background:var(--battery);}
+  .tcard.airmo{border-color:rgba(255,140,66,.55);} .tcard.airmo .tc-bar{background:var(--air);}
+  .tcard.airmu{border-color:rgba(255,140,66,.55);} .tcard.airmu .tc-bar{background:var(--air);}
+  .tcard.charge{border-color:rgba(167,139,250,.55);} .tcard.charge .tc-bar{background:#a78bfa;}
+  .tcard.airwater{border-color:rgba(56,182,255,.55);} .tcard.airwater .tc-bar{background:#38b6ff;}
+  .tcard.geo{border-color:rgba(76,175,80,.55);} .tcard.geo .tc-bar{background:#4caf50;}
+  .tcard.completed{border-color:var(--success);} .tcard.completed .tc-bar{background:var(--success);}
 
   /* Score badges on hub cards */
   .score-badges{display:flex;gap:8px;justify-content:center;margin-top:8px;}
@@ -160,12 +155,13 @@ const storage=firebase.storage();
   .ci-add:hover{border-color:var(--border-hover);background:rgba(255,255,255,.08);}
 
   /* Inline toast */
-  .toast-inline{display:none;background:#ff5c5c;color:#fff;font-size:13px;font-weight:600;
+  .toast-inline{display:none;background:var(--success);color:#0f2a22;font-size:13px;font-weight:600;
     padding:10px 18px;border-radius:12px;text-align:center;
     position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;
     max-width:90vw;box-shadow:0 4px 20px rgba(0,0,0,.4);}
   .toast-inline.show{display:block;animation:fadeUp .2s ease;}
-  .toast-inline.warn{background:#f39c12;}
+  .toast-inline.error{background:#ff5c5c;color:#fff;}
+  .toast-inline.warn{background:#f7c948;color:#3a2800;}
 
   .thumbrow{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
   .twrap{position:relative;width:80px;height:80px;border-radius:var(--radius-sm);
@@ -300,11 +296,10 @@ const storage=firebase.storage();
     <img src="data:image/png;base64,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" alt="AE"/>
     <div class="logo-text">
       <span class="logo-title">Bezoekrapport</span>
-      <span class="logo-datetime" id="header-datetime"></span>
+      <span class="logo-sub" id="header-datetime"></span>
     </div>
   </div>
   <div class="hstep" id="hstep"></div>
-  <div id="cloud-status" style="display:none;font-size:11px;padding:4px 10px;border-radius:20px;font-weight:600;letter-spacing:.3px;margin-left:6px"></div>
 </header>
 
 <!-- ══ EDITOR ══ -->
@@ -401,10 +396,10 @@ const storage=firebase.storage();
   <!-- STEP 1: HUB -->
   <div class="panel active" id="panel-1">
     <div class="ptitle">Verslag plaatsbezoek</div>
-    <div class="psub">Klantgegevens</div>
+    <div class="psub">Klantgegevens <span style="color:#ff5c5c">*</span></div>
     <div style="display:flex;gap:10px;margin-bottom:20px">
-      <input type="text" id="klant-naam" class="note" placeholder="Naam klant" style="min-height:auto;padding:10px 12px;flex:1">
-      <input type="text" id="klant-adres" class="note" placeholder="Adres" style="min-height:auto;padding:10px 12px;flex:1">
+      <input type="text" id="klant-naam" class="note" placeholder="Naam klant" style="min-height:auto;padding:10px 12px;flex:1" onfocus="this.style.borderColor=''" oninput="autoSave()">
+      <input type="text" id="klant-adres" class="note" placeholder="Adres" style="min-height:auto;padding:10px 12px;flex:1" onfocus="this.style.borderColor=''" oninput="autoSave()">
     </div>
     <div class="psub">Klik op een type om de checklist te starten</div>
     <div class="tgrid" id="hub-grid"></div>
@@ -429,7 +424,7 @@ const storage=firebase.storage();
     <div class="clist" id="clist"></div>
     <div class="brow" style="margin-top:24px">
       <button class="btn btn-s" onclick="goBackToHub()">← Terug</button>
-      <button class="btn btn-p" onclick="saveChecklistAndReturn()">💾 Bewaar</button>
+      <button class="btn btn-p" onclick="saveChecklistAndReturn()">✅ Bevestigen</button>
       <button class="btn btn-s" id="btn-extra-split" onclick="addExtraSplit()" style="display:none">+ Extra monosplit</button>
       <button class="btn btn-s" id="btn-extra-multi-split" onclick="addExtraMultiSplit()" style="display:none">+ Extra multisplit</button>
     </div>
@@ -478,7 +473,6 @@ const storage=firebase.storage();
       <div class="suc-t">Rapport opgeslagen!</div>
       <div class="suc-s" id="suc-msg"></div>
       <button class="btn btn-p" onclick="generatePDF()" style="margin-bottom:10px">📄 Download PDF</button>
-      <div id="sync-status-panel" style="margin-bottom:12px;font-size:13px;color:var(--text2)"></div>
       <button class="btn btn-s" onclick="backToHub()" style="margin-bottom:10px">← Terug</button>
       <button class="btn btn-s" onclick="reset()">+ Nieuw rapport</button>
     </div>
@@ -491,24 +485,24 @@ const storage=firebase.storage();
 // ══════════════════════════
 const TYPES = {
   solar: { label:'Zon / Thuisbatterij', icon:'☀️🔋', cls:'solar', items:[
-    {key:'woning',    label:'Woning',                     shared:true, optional:true},
-    {key:'dak',       label:'Dak ☀️',                     shared:false, optional:true},
+    {key:'woning',    label:'Woning',                     shared:true, optional:true, hasParking:true},
+    {key:'dak',       label:'Dak ☀️',                     shared:false, optional:true, hasPanelCount:true, hasDakType:true},
     {key:'traject',   label:'Kabelroute DC kabels',       shared:false, optional:true},
-    {key:'omvormer',  label:'Omvormer',                   shared:true, hasStrings:true, hasMppTrackers:true, hasLocation:true, hasMeterType:true},
+    {key:'omvormer',  label:'Omvormer',                   shared:true, hasStrings:true, hasMppTrackers:true, hasLocation:true, hasMeterType:true, optional:true, skipLabel:'Bestaande omvormer'},
     {key:'loc-bat',   label:'Locatie thuisbatterij 🔋',   shared:false, hasLocation:true, hasBatCalc:true, optional:true},
     {key:'internet',  label:'Internet locatie 🔋',        shared:false, optional:true},
     {key:'elek-bord', label:'Elektrisch bord',            shared:true, hasPhaseType:true, hasBoardType:true},
     {key:'hoofdzek',  label:'Zekering digitale meter',  shared:true},
   ]},
   airmo: { label:'Lucht/Lucht Mono', icon:'🌡️', cls:'airmo', items:[
-    {key:'woning',       label:'Woning',                  shared:true, optional:true},
+    {key:'woning',       label:'Woning',                  shared:true, optional:true, hasParking:true},
     {key:'buitenunit',   label:'Buitenunit',              shared:false, hasFixType:true},
     {key:'binnenunit',   label:'Binnenunit',              shared:false, hasUnitType:true},
     {key:'elek-aansl',   label:'Elektrische aansluiting', shared:false, hasConnType:true},
     {key:'beschrijving', label:'Beschrijving project',    shared:false, noPhoto:true},
   ]},
   airmu: { label:'Lucht/Lucht Multi', icon:'🌡️', cls:'airmu', items:[
-    {key:'woning',          label:'Woning',                  shared:true, optional:true},
+    {key:'woning',          label:'Woning',                  shared:true, optional:true, hasParking:true},
     {key:'buitenunit-m',    label:'Buitenunit',              shared:false, hasFixType:true},
     {key:'binnenunit-m-1',  label:'Binnenunit 1/2',          shared:false, hasUnitType:true},
     {key:'binnenunit-m-2',  label:'Binnenunit 2/2',          shared:false, hasUnitType:true},
@@ -516,7 +510,7 @@ const TYPES = {
     {key:'beschrijving-m',  label:'Beschrijving project',    shared:false, noPhoto:true},
   ]},
   airwater: { label:'Lucht/Water', icon:'💧', cls:'airwater', items:[
-    {key:'woning',            label:'Woning',                  shared:true, optional:true, hasFuelType:true},
+    {key:'woning',            label:'Woning',                  shared:true, optional:true, hasFuelType:true, hasParking:true},
     {key:'vloervw-w',         label:'Vloerverwarming',         shared:false, hasSqm:true, optional:true},
     {key:'radiatoren-w',      label:'Radiatoren',              shared:false, hasRadRows:true, optional:true},
     {key:'buitenunit-w',      label:'Buitenunit',              shared:false, hasFixType:true, hasPowerCalc:true},
@@ -526,7 +520,7 @@ const TYPES = {
     {key:'beschrijving-w',    label:'Beschrijving project',    shared:false, noPhoto:true},
   ]},
   geo: { label:'Geothermie', icon:'🌍', cls:'geo', items:[
-    {key:'woning',            label:'Woning',                  shared:true, optional:true, hasFuelType:true},
+    {key:'woning',            label:'Woning',                  shared:true, optional:true, hasFuelType:true, hasParking:true},
     {key:'vloervw-g',         label:'Vloerverwarming',         shared:false, hasSqm:true, optional:true},
     {key:'radiatoren-g',      label:'Radiatoren',              shared:false, hasRadRows:true, optional:true},
     {key:'binnenunit-g',      label:'Binnenunit',              shared:false, hasUnitType:true},
@@ -537,7 +531,7 @@ const TYPES = {
     {key:'beschrijving-g',    label:'Beschrijving project',    shared:false, noPhoto:true},
   ]},
   charge: { label:'Laadpaal', icon:'⚡', cls:'charge', items:[
-    {key:'woning',          label:'Woning',                shared:true, optional:true},
+    {key:'woning',          label:'Woning',                shared:true, optional:true, hasParking:true},
     {key:'loc-laadpunt',    label:'Locatie laadpunt',      shared:false, hasMountType:true},
     {key:'internet',        label:'Internet locatie',      shared:false},
     {key:'elek-bord',       label:'Elektrisch bord',       shared:true, hasPhaseType:true, hasBoardType:true},
@@ -555,7 +549,7 @@ const STAMPS = {
 // ══════════════════════════
 // STATE
 // ══════════════════════════
-let selected=[], activeTab='', itemData={}, completedTypes=new Set(), deletedItems=new Set(), extraSplitCount=0, extraMultiSplitCount=0;
+let selected=[], activeTab='', itemData={}, completedTypes=new Set(), deletedItems=new Set(), touchedItems=new Set(), extraSplitCount=0, extraMultiSplitCount=0;
 
 // Always use shared key for shared items (data stored once)
 function getSK(type,item){
@@ -620,6 +614,25 @@ function openChecklist(type){
 }
 
 function goBackToHub(){
+  // I: Check for incomplete required fields and warn
+  if(activeTab && TYPES[activeTab]){
+    const items=itemsForTab(activeTab).filter(i=>!deletedItems.has(i.sk));
+    const hasData=items.some(i=>{const d=itemData[i.sk];return d&&(d.photos.length>0||d.notes.trim()!=='');});
+    if(hasData && !completedTypes.has(activeTab)){
+      const missing=[];
+      items.forEach(i=>{
+        const d=itemData[i.sk]||{};
+        if(i.hasParking&&!d.parking) missing.push('Parking ('+i.label+')');
+        if(i.hasPhaseType&&!d.phaseType) missing.push('Aansluiting ('+i.label+')');
+        if(i.hasLocation&&!d.location) missing.push('Locatie ('+i.label+')');
+      });
+      if(missing.length>0){
+        const el=document.getElementById('global-toast');
+        if(el){el.textContent='Let op: '+missing.length+' verplicht veld(en) niet ingevuld';el.className='toast-inline show warn';if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(()=>{el.classList.remove('show');},3000);}
+      }
+    }
+  }
+  autoSave();
   showPanel('panel-1');
   updateHubCards();
   window.scrollTo({top:0,behavior:'smooth'});
@@ -674,16 +687,18 @@ function renderHubGrid(){
   let html='';
   HUB_ORDER.forEach(h=>{
     if(h.disabled){
-      html+=`<div class="tcard disabled"><div class="ticon">${h.icon}</div><div class="tname">Checklist ${h.label}</div><div class="tsoon">Binnenkort</div></div>`;
+      html+=`<div class="tcard disabled"><div class="tc-bar"></div><div class="tc-body"><div class="ticon">${h.icon}</div><div class="tname">Checklist ${h.label}</div><div class="tsoon">Binnenkort</div></div></div>`;
       return;
     }
     const def=TYPES[h.key];
     if(!def) return;
     html+=`<div class="tcard clickable ${def.cls}" id="hub-${h.key}" onclick="openChecklist('${h.key}')">
+      <div class="tc-bar"></div><div class="tc-body">
       <div class="tck">✓</div>
       <div class="ticon">${def.icon}</div>
       <div class="tname">Checklist ${def.label}</div>
       <div class="score-badges" id="scores-${h.key}"></div>
+      </div>
     </div>`;
   });
   // Add dynamic split cards
@@ -691,20 +706,20 @@ function renderHubGrid(){
     const key='airmo-'+i;
     if(TYPES[key]){
       html+=`<div class="tcard clickable airmo" id="hub-${key}" onclick="openChecklist('${key}')">
-        <div class="tck">✓</div><div class="ticon">🌡️</div>
+        <div class="tc-bar"></div><div class="tc-body"><div class="tck">✓</div><div class="ticon">🌡️</div>
         <div class="tname">Checklist ${TYPES[key].label}</div>
         <div class="score-badges" id="scores-${key}"></div>
-      </div>`;
+        </div></div>`;
     }
   }
   for(let i=1;i<=extraMultiSplitCount;i++){
     const key='airmu-'+i;
     if(TYPES[key]){
       html+=`<div class="tcard clickable airmu" id="hub-${key}" onclick="openChecklist('${key}')">
-        <div class="tck">✓</div><div class="ticon">🌡️</div>
+        <div class="tc-bar"></div><div class="tc-body"><div class="tck">✓</div><div class="ticon">🌡️</div>
         <div class="tname">Checklist ${TYPES[key].label}</div>
         <div class="score-badges" id="scores-${key}"></div>
-      </div>`;
+        </div></div>`;
     }
   }
   grid.innerHTML=html;
@@ -748,7 +763,7 @@ function discardChecklist(){
   items.forEach(item=>{
     if(item.shared && otherSharedKeys.has(item.key)) return; // keep shared data for other checklists
     if(itemData[item.sk]){
-      itemData[item.sk]={photos:[],notes:'',strings:'',mppTrackers:'',location:'',boardType:{},mountType:'',fixType:'',unitType:'',connType:'',sqm:'',floor:'',sqmRows:[],radRows:[],fuelType:'',fuelAmount:'',buildYear:'',meterType:[],phaseType:'',insulation:'',woningType:'',heatedFloors:'',totalSqm:'',boilerTemp:'',batType:'',batVerbruik:'',batProductie:'',batAfname:'',batInjectie:''};
+      itemData[item.sk]={photos:[],notes:'',strings:'',mppTrackers:'',location:'',boardType:{},mountType:'',fixType:'',unitType:'',connType:'',sqm:'',floor:'',sqmRows:[],radRows:[],fuelType:'',fuelAmount:'',buildYear:'',meterType:[],phaseType:'',insulation:'',woningType:'',heatedFloors:'',totalSqm:'',boilerTemp:'',batType:'',batVerbruik:'',batProductie:'',batAfname:'',batInjectie:'',parking:'',panelCount:'',dakTypes:[],dakZijdes:'',dakBedekking:'',platRichting:''};
     }
     deletedItems.delete(item.sk);
   });
@@ -841,15 +856,39 @@ function saveChecklistAndReturn(){
       const d=itemData[item.sk]||{};
       if(!d.phaseType){
         showToast(item.sk,'Type aansluiting is verplicht');
-        const ci=document.getElementById('ci-'+item.sk);
-        if(ci) ci.classList.add('open');
-        ci.scrollIntoView({behavior:'smooth',block:'center'});
         return;
+      }
+    }
+    if(item.hasParking){
+      const d=itemData[item.sk]||{};
+      if(!d.parking){
+        showToast(item.sk,'Parking selectie is verplicht');
+        return;
+      }
+    }
+    if(item.hasPanelCount){
+      const d=itemData[item.sk]||{};
+      if(!d.panelCount||parseInt(d.panelCount)<1){
+        showToast(item.sk,'Aantal panelen is verplicht');
+        return;
+      }
+    }
+    if(item.hasDakType){
+      const d=itemData[item.sk]||{};
+      if(!d.dakTypes||d.dakTypes.length===0){
+        showToast(item.sk,'Type dak is verplicht');
+        return;
+      }
+      if(d.dakTypes.includes('schuin')){
+        if(!d.dakZijdes){showToast(item.sk,'Aantal zijdes (schuin dak) is verplicht');return;}
+        if(!d.dakBedekking){showToast(item.sk,'Dakbedekking is verplicht');return;}
+      }
+      if(d.dakTypes.includes('plat')){
+        if(!d.platRichting){showToast(item.sk,'Oriëntatie (plat dak) is verplicht');return;}
       }
     }
   }
   completedTypes.add(activeTab);
-  saveToLocalStorage();
   goBackToHub();
 }
 
@@ -931,7 +970,7 @@ function addExtraSplit(){
   newCard.className='tcard clickable airmo';
   newCard.id='hub-'+newKey;
   newCard.onclick=()=>openChecklist(newKey);
-  newCard.innerHTML=`<div class="tck">✓</div><div class="ticon">🌡️</div><div class="tname">${TYPES[newKey].label}</div><div class="score-badges" id="scores-${newKey}"></div>`;
+  newCard.innerHTML=`<div class="tc-bar"></div><div class="tc-body"><div class="tck">✓</div><div class="ticon">🌡️</div><div class="tname">${TYPES[newKey].label}</div><div class="score-badges" id="scores-${newKey}"></div></div>`;
   if(disabledCards.length>0) hubGrid.insertBefore(newCard,disabledCards[0]);
   else hubGrid.appendChild(newCard);
   // Update all hub card names
@@ -990,7 +1029,7 @@ function addExtraMultiSplit(){
   newCard.className='tcard clickable airmu';
   newCard.id='hub-'+newKey;
   newCard.onclick=()=>openChecklist(newKey);
-  newCard.innerHTML=`<div class="tck">✓</div><div class="ticon">🌡️</div><div class="tname">${TYPES[newKey].label}</div><div class="score-badges" id="scores-${newKey}"></div>`;
+  newCard.innerHTML=`<div class="tc-bar"></div><div class="tc-body"><div class="tck">✓</div><div class="ticon">🌡️</div><div class="tname">${TYPES[newKey].label}</div><div class="score-badges" id="scores-${newKey}"></div></div>`;
   if(disabledCards.length>0) hubGrid.insertBefore(newCard,disabledCards[0]);
   else hubGrid.appendChild(newCard);
   updateMultiHubCards();
@@ -1324,7 +1363,11 @@ function renderItems(){
   }
   document.getElementById('clist').innerHTML=allItems.map((item)=>{
     const d=itemData[item.sk]||{photos:[],notes:'',strings:'',mppTrackers:'',location:''};
-    const done=d.photos.length>0||d.notes.trim()!=='';
+    const touched=touchedItems.has(item.sk);
+    // Shared items with existing data count as done even if not touched in this checklist
+    const hasData=d.photos.length>0||d.notes.trim()!=='';
+    const isSharedWithData=item.isShared && hasData && !touched;
+    const done=(touched&&hasData)||isSharedWithData;
     const isDeleted=deletedItems.has(item.sk);
     if(!isDeleted) num++;
     const displayNum=isDeleted?'—':num;
@@ -1336,14 +1379,84 @@ function renderItems(){
       </div>`).join('');
     
     let fieldsHtml='';
-    if(item.hasStrings||item.hasMppTrackers||item.hasLocation||item.hasMeterType||item.hasPhaseType||item.hasBoardType||item.hasMountType||item.hasFixType||item.hasUnitType||item.hasConnType||item.hasSqm||item.hasRadRows||item.hasFuelType){
+    if(item.hasStrings||item.hasMppTrackers||item.hasLocation||item.hasMeterType||item.hasPhaseType||item.hasBoardType||item.hasMountType||item.hasFixType||item.hasUnitType||item.hasConnType||item.hasSqm||item.hasRadRows||item.hasFuelType||item.hasParking||item.hasPanelCount||item.hasDakType){
       fieldsHtml+=``;
+    }
+    if(item.hasParking){
+      const pk=d.parking||'';
+      const pkBeschik=pk==='beschikbaar'?'active':'';
+      const pkAanvr=pk==='aanvragen'?'active':'';
+      fieldsHtml+=`<div class="loc-row">
+        <label>Parking <span style="color:#ff5c5c">*</span></label>
+        <div class="loc-btns">
+          <button class="loc-btn ${pkBeschik}" onclick="saveParking('${item.sk}','beschikbaar',this)">Parking beschikbaar</button>
+          <button class="loc-btn ${pkAanvr}" onclick="saveParking('${item.sk}','aanvragen',this)">Parking tijdig aanvragen</button>
+        </div>
+      </div>`;
+    }
+    if(item.hasPanelCount){
+      fieldsHtml+=`<div class="loc-row">
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">Aantal panelen: <span style="color:#ff5c5c">*</span></label>
+        <input type="number" class="note" placeholder="Gewenst aantal" min="1" max="100"
+          style="min-height:auto;padding:10px 12px;resize:none"
+          value="${d.panelCount||''}"
+          oninput="hideToast('${item.sk}')"
+          onchange="saveDakField('${item.sk}','panelCount',this.value)"/>
+      </div>`;
+    }
+    if(item.hasDakType){
+      ensureData(item.sk);
+      const dt=itemData[item.sk].dakTypes||[];
+      const hasSchuin=dt.includes('schuin');
+      const hasPlat=dt.includes('plat');
+      fieldsHtml+=`<div class="loc-row">
+        <label>Type dak: <span style="color:#ff5c5c">*</span></label>
+        <div class="loc-btns">
+          <button class="loc-btn ${hasSchuin?'active':''}" onclick="toggleDakType('${item.sk}','schuin',this)">Schuin dak</button>
+          <button class="loc-btn ${hasPlat?'active':''}" onclick="toggleDakType('${item.sk}','plat',this)">Plat dak</button>
+        </div>
+      </div>`;
+      if(hasSchuin){
+        const zijdes=itemData[item.sk].dakZijdes||'';
+        const z1=zijdes==='1-zijde'?'active':'';
+        const z2=zijdes==='2-zijdes'?'active':'';
+        fieldsHtml+=`<div class="loc-row">
+          <label>Schuin dak — aantal zijdes: <span style="color:#ff5c5c">*</span></label>
+          <div class="loc-btns">
+            <button class="loc-btn ${z1}" onclick="saveDakField('${item.sk}','dakZijdes','1-zijde',this)">1 zijde</button>
+            <button class="loc-btn ${z2}" onclick="saveDakField('${item.sk}','dakZijdes','2-zijdes',this)">2 zijdes</button>
+          </div>
+        </div>`;
+        const bed=itemData[item.sk].dakBedekking||'';
+        fieldsHtml+=`<div class="loc-row">
+          <label>Dakbedekking: <span style="color:#ff5c5c">*</span></label>
+          <div class="loc-btns" style="flex-wrap:wrap">
+            ${['Pannen','Tegelpannen','Leien','Zink','Steeldeck'].map(b=>{
+              const v=b.toLowerCase();
+              const a=bed===v?'active':'';
+              return '<button class="loc-btn '+a+'" onclick="saveDakField(\''+item.sk+'\',\'dakBedekking\',\''+v+'\',this)">'+b+'</button>';
+            }).join('')}
+          </div>
+        </div>`;
+      }
+      if(hasPlat){
+        const pr=itemData[item.sk].platRichting||'';
+        const ow=pr==='oost-west'?'active':'';
+        const zu=pr==='zuid'?'active':'';
+        fieldsHtml+=`<div class="loc-row">
+          <label>Plat dak — oriëntatie: <span style="color:#ff5c5c">*</span></label>
+          <div class="loc-btns">
+            <button class="loc-btn ${ow}" onclick="saveDakField('${item.sk}','platRichting','oost-west',this)">Oost-West</button>
+            <button class="loc-btn ${zu}" onclick="saveDakField('${item.sk}','platRichting','zuid',this)">Zuid</button>
+          </div>
+        </div>`;
+      }
     }
     if(item.hasStrings||item.hasMppTrackers){
       fieldsHtml+=`<div class="fields-row">`;
       if(item.hasStrings){
         fieldsHtml+=`<div>
-          <label style="display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">Aantal strings:</label>
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">Aantal strings: <span style="color:#ff5c5c">*</span></label>
           <input type="number" class="note" placeholder="Min 1" min="1" max="8"
             style="min-height:auto;padding:10px 12px;resize:none"
             value="${d.strings||''}"
@@ -1353,7 +1466,7 @@ function renderItems(){
       }
       if(item.hasMppTrackers){
         fieldsHtml+=`<div>
-          <label style="display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">Aantal MPP trackers:</label>
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">Aantal MPP trackers: <span style="color:#ff5c5c">*</span></label>
           <input type="number" class="note" placeholder="Max 4" min="1" max="4"
             style="min-height:auto;padding:10px 12px;resize:none"
             value="${d.mppTrackers||''}"
@@ -1432,7 +1545,7 @@ function renderItems(){
       const fuel=itemData[item.sk].fuelType||'';
       const fuelVal=itemData[item.sk].fuelAmount||'';
       fieldsHtml+=`<div class="loc-row"><div>
-        <label>Verwarmingstype:</label>
+        <label>Verwarmingstype: <span style="color:#ff5c5c">*</span></label>
         <div class="mount-btns">
           <button class="mount-btn ${fuel==='gas'?'active':''}" onclick="saveFuelType('${item.sk}','gas',this)">Gas</button>
           <button class="mount-btn ${fuel==='mazout'?'active':''}" onclick="saveFuelType('${item.sk}','mazout',this)">Mazout</button>
@@ -1447,14 +1560,14 @@ function renderItems(){
             oninput="hideToast('${item.sk}')"
             onchange="saveFuelAmount('${item.sk}',this.value)"/>
         </div><div style="flex:1">
-          <label style="display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">Bouwjaar woning:</label>
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">Bouwjaar woning: <span style="color:#ff5c5c">*</span></label>
           <input type="number" class="note" placeholder="Jaartal" min="1900" max="${new Date().getFullYear()}" step="1"
             style="min-height:auto;padding:10px 12px;resize:none"
             value="${itemData[item.sk].buildYear||''}"
             oninput="hideToast('${item.sk}')"
             onchange="saveBuildYear('${item.sk}',this.value)"/>
         </div><div style="flex:1">
-          <label style="display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">Verwarmde opp. (m²):</label>
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">Verwarmde opp. (m²): <span style="color:#ff5c5c">*</span></label>
           <input type="number" class="note" placeholder="m²" min="1" max="300" step="1"
             style="min-height:auto;padding:10px 12px;resize:none"
             value="${itemData[item.sk].totalSqm||''}"
@@ -1462,7 +1575,7 @@ function renderItems(){
             onchange="saveTotalSqm('${item.sk}',this.value)"/>
         </div></div>`;
         fieldsHtml+=`<div class="fields-row"><div style="flex:1">
-          <label style="display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">Huidige keteltemperatuur (°C):</label>
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">Huidige keteltemperatuur (°C): <span style="color:#ff5c5c">*</span></label>
           <input type="number" class="note" placeholder="°C" min="20" max="90" step="1"
             style="min-height:auto;padding:10px 12px;resize:none"
             value="${itemData[item.sk].boilerTemp||''}"
@@ -1474,7 +1587,7 @@ function renderItems(){
         const wtype=itemData[item.sk].woningType||'';
         const hfloors=itemData[item.sk].heatedFloors||'';
         fieldsHtml+=`<div class="loc-row"><div>
-          <label>Type woning:</label>
+          <label>Type woning: <span style="color:#ff5c5c">*</span></label>
           <div class="mount-btns">
             <button class="mount-btn ${wtype==='vrijstaand'?'active':''}" onclick="saveWoningField('${item.sk}','woningType','vrijstaand',this)">Vrijstaand</button>
             <button class="mount-btn ${wtype==='halfopen'?'active':''}" onclick="saveWoningField('${item.sk}','woningType','halfopen',this)">Halfopen</button>
@@ -1483,7 +1596,7 @@ function renderItems(){
           </div>
         </div></div>`;
         fieldsHtml+=`<div class="loc-row"><div>
-          <label>Aantal verwarmde bouwlagen:</label>
+          <label>Aantal verwarmde bouwlagen: <span style="color:#ff5c5c">*</span></label>
           <div class="mount-btns">
             <button class="mount-btn ${hfloors==='1'?'active':''}" onclick="saveWoningField('${item.sk}','heatedFloors','1',this)">1</button>
             <button class="mount-btn ${hfloors==='2'?'active':''}" onclick="saveWoningField('${item.sk}','heatedFloors','2',this)">2</button>
@@ -1492,7 +1605,7 @@ function renderItems(){
           </div>
         </div></div>`;
         fieldsHtml+=`<div class="loc-row"><div>
-          <label>Isolatiegraad:</label>
+          <label>Isolatiegraad: <span style="color:#ff5c5c">*</span></label>
           <div class="mount-btns">
             <button class="mount-btn ${iso==='geen'?'active':''}" onclick="saveWoningField('${item.sk}','insulation','geen',this)">Geen isolatie</button>
             <button class="mount-btn ${iso==='origineel'?'active':''}" onclick="saveWoningField('${item.sk}','insulation','origineel',this)">Originele isolatie</button>
@@ -1510,14 +1623,14 @@ function renderItems(){
             oninput="hideToast('${item.sk}')"
             onchange="saveFuelAmount('${item.sk}',this.value)"/>
         </div><div style="flex:1">
-          <label style="display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">Bouwjaar woning:</label>
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">Bouwjaar woning: <span style="color:#ff5c5c">*</span></label>
           <input type="number" class="note" placeholder="Jaartal" min="1900" max="${new Date().getFullYear()}" step="1"
             style="min-height:auto;padding:10px 12px;resize:none"
             value="${itemData[item.sk].buildYear||''}"
             oninput="hideToast('${item.sk}')"
             onchange="saveBuildYear('${item.sk}',this.value)"/>
         </div><div style="flex:1">
-          <label style="display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">Verwarmde opp. (m²):</label>
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">Verwarmde opp. (m²): <span style="color:#ff5c5c">*</span></label>
           <input type="number" class="note" placeholder="m²" min="1" max="300" step="1"
             style="min-height:auto;padding:10px 12px;resize:none"
             value="${itemData[item.sk].totalSqm||''}"
@@ -1525,7 +1638,7 @@ function renderItems(){
             onchange="saveTotalSqm('${item.sk}',this.value)"/>
         </div></div>`;
         fieldsHtml+=`<div class="fields-row"><div style="flex:1">
-          <label style="display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">Huidige keteltemperatuur (°C):</label>
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">Huidige keteltemperatuur (°C): <span style="color:#ff5c5c">*</span></label>
           <input type="number" class="note" placeholder="°C" min="20" max="90" step="1"
             style="min-height:auto;padding:10px 12px;resize:none"
             value="${itemData[item.sk].boilerTemp||''}"
@@ -1537,7 +1650,7 @@ function renderItems(){
         const wtypeM=itemData[item.sk].woningType||'';
         const hfloorsM=itemData[item.sk].heatedFloors||'';
         fieldsHtml+=`<div class="loc-row"><div>
-          <label>Type woning:</label>
+          <label>Type woning: <span style="color:#ff5c5c">*</span></label>
           <div class="mount-btns">
             <button class="mount-btn ${wtypeM==='vrijstaand'?'active':''}" onclick="saveWoningField('${item.sk}','woningType','vrijstaand',this)">Vrijstaand</button>
             <button class="mount-btn ${wtypeM==='halfopen'?'active':''}" onclick="saveWoningField('${item.sk}','woningType','halfopen',this)">Halfopen</button>
@@ -1546,7 +1659,7 @@ function renderItems(){
           </div>
         </div></div>`;
         fieldsHtml+=`<div class="loc-row"><div>
-          <label>Aantal verwarmde bouwlagen:</label>
+          <label>Aantal verwarmde bouwlagen: <span style="color:#ff5c5c">*</span></label>
           <div class="mount-btns">
             <button class="mount-btn ${hfloorsM==='1'?'active':''}" onclick="saveWoningField('${item.sk}','heatedFloors','1',this)">1</button>
             <button class="mount-btn ${hfloorsM==='2'?'active':''}" onclick="saveWoningField('${item.sk}','heatedFloors','2',this)">2</button>
@@ -1555,7 +1668,7 @@ function renderItems(){
           </div>
         </div></div>`;
         fieldsHtml+=`<div class="loc-row"><div>
-          <label>Isolatiegraad:</label>
+          <label>Isolatiegraad: <span style="color:#ff5c5c">*</span></label>
           <div class="mount-btns">
             <button class="mount-btn ${isoM==='geen'?'active':''}" onclick="saveWoningField('${item.sk}','insulation','geen',this)">Geen isolatie</button>
             <button class="mount-btn ${isoM==='origineel'?'active':''}" onclick="saveWoningField('${item.sk}','insulation','origineel',this)">Originele isolatie</button>
@@ -1577,7 +1690,7 @@ function renderItems(){
         }
       }
       fieldsHtml+=`<div class="loc-row"><div>
-        <label>Locatie:</label>
+        <label>Locatie: <span style="color:#ff5c5c">*</span></label>
         <div class="loc-btns">
           <button class="loc-btn ${d.location==='kelder'?'active':''}" onclick="saveLocation('${item.sk}','kelder',this)">Kelder</button>
           <button class="loc-btn ${d.location==='gelijkvloers'?'active':''}" onclick="saveLocation('${item.sk}','gelijkvloers',this)">Gelijkvloers</button>
@@ -1653,7 +1766,7 @@ function renderItems(){
       if(!itemData[item.sk].meterType) itemData[item.sk].meterType=[];
       const mt=itemData[item.sk].meterType;
       fieldsHtml+=`<div class="loc-row"><div>
-        <label>Energiemeter:</label>
+        <label>Energiemeter: <span style="color:#ff5c5c">*</span></label>
         <div class="board-btns">
           <button class="board-btn ${mt.includes('Bidirectionele meter')?'active':''}" onclick="toggleMeterType('${item.sk}','Bidirectionele meter',this)">Bidirectionele meter</button>
           <button class="board-btn ${mt.includes('3-fasige energiemeter')?'active':''}" onclick="toggleMeterType('${item.sk}','3-fasige energiemeter',this)">3-fasige energiemeter</button>
@@ -1664,10 +1777,10 @@ function renderItems(){
       ensureData(item.sk);
       const pt=itemData[item.sk].phaseType||'';
       fieldsHtml+=`<div class="loc-row"><div>
-        <label>Type aansluiting:</label>
+        <label>Type aansluiting: <span style="color:#ff5c5c">*</span></label>
         <div class="mount-btns">
           <button class="mount-btn ${pt==='2-fase'?'active':''}" onclick="savePhaseType('${item.sk}','2-fase',this)">2-fase</button>
-          <button class="mount-btn ${pt==='3-fase'?'active':''}" onclick="savePhaseType('${item.sk}','3-fase',this)">3-fase</button>
+          <button class="mount-btn ${pt==='3x400V'?'active':''}" onclick="savePhaseType('${item.sk}','3x400V',this)">3x400V</button>
           <button class="mount-btn ${pt==='3x230V'?'active':''}" onclick="savePhaseType('${item.sk}','3x230V',this)">3x230V</button>
         </div>
       </div></div>`;
@@ -1698,7 +1811,7 @@ function renderItems(){
       ensureData(item.sk);
       const ft=itemData[item.sk].fixType||'';
       fieldsHtml+=`<div class="loc-row"><div>
-        <label>Bevestigingstechniek:</label>
+        <label>Bevestigingstechniek: <span style="color:#ff5c5c">*</span></label>
         <div class="mount-btns">
           <button class="mount-btn ${ft==='vloerblokken'?'active':''}" onclick="saveFixType('${item.sk}','vloerblokken',this)">Vloerblokken</button>
           <button class="mount-btn ${ft==='muurbeugel'?'active':''}" onclick="saveFixType('${item.sk}','muurbeugel',this)">Muurbeugel</button>
@@ -1726,7 +1839,7 @@ function renderItems(){
       ensureData(item.sk);
       const ut=itemData[item.sk].unitType||'';
       fieldsHtml+=`<div class="loc-row"><div>
-        <label>Type binnenunit:</label>
+        <label>Type binnenunit: <span style="color:#ff5c5c">*</span></label>
         <div class="mount-btns">
           <button class="mount-btn ${ut==='wandmodel'?'active':''}" onclick="saveUnitType('${item.sk}','wandmodel',this)">Wandmodel</button>
           <button class="mount-btn ${ut==='vloermodel'?'active':''}" onclick="saveUnitType('${item.sk}','vloermodel',this)">Vloermodel</button>
@@ -1737,7 +1850,7 @@ function renderItems(){
       ensureData(item.sk);
       const ct=itemData[item.sk].connType||'';
       fieldsHtml+=`<div class="loc-row"><div>
-        <label>Type aansluiting:</label>
+        <label>Type aansluiting: <span style="color:#ff5c5c">*</span></label>
         <div class="mount-btns">
           <button class="mount-btn ${ct==='stekker'?'active':''}" onclick="saveConnType('${item.sk}','stekker',this)">Aansluiting via stekker</button>
           <button class="mount-btn ${ct==='bord'?'active':''}" onclick="saveConnType('${item.sk}','bord',this)">Aansluiting via bord</button>
@@ -1750,7 +1863,7 @@ function renderItems(){
     let actionBtn='';
     if(item.optional && isDeleted){
       actionBtn=`<button class="ci-restore" onclick="event.stopPropagation();restoreItem('${item.sk}')" title="Herstellen">↩</button>`;
-    } else if(item.optional && !isDeleted && !item.isShared && !done){
+    } else if(item.optional && !isDeleted && !done){
       actionBtn=`<button class="ci-trash" onclick="event.stopPropagation();deleteItem('${item.sk}')" title="Verwijderen">🗑</button>`;
     }
     // Show + button on last binnenunit of airmu, with trash if >2 inner units
@@ -1766,7 +1879,7 @@ function renderItems(){
     <div class="ci ${done&&!isDeleted?'completed':''} ${isDeleted?'deleted':''}" id="ci-${item.sk}">
       <div class="ci-head" ${!isDeleted?`onclick="toggleItem('${item.sk}')"`:''}>
         <div class="cnum">${displayNum}</div>
-        <div class="clabel">${item.label.replace(/([\u{2600}-\u{27BF}\u{1F300}-\u{1F9FF}]\u{FE0F}?)/gu,'<span style="filter:grayscale(1) brightness(2)">$1</span>')}</div>
+        <div class="clabel">${isDeleted&&item.skipLabel?item.skipLabel:item.label.replace(/([\u{2600}-\u{27BF}\u{1F300}-\u{1F9FF}]\u{FE0F}?)/gu,'<span style="filter:grayscale(1) brightness(2)">$1</span>')}</div>
         ${item.isShared&&!isDeleted?`<span class="sbadge ${sharedHasDataElsewhere(item.key,activeTab)?'ok':'nok'}">Gedeeld</span>`:''}
         <div class="ci-actions">${actionBtn}</div>
         ${!isDeleted?`<span class="sbadge ${done?'ok':'nok'}">${done?'OK':'NOK'}</span>`:''}
@@ -1775,11 +1888,17 @@ function renderItems(){
       <div class="ci-body">
         ${!item.noPhoto?`${item.hint?`<div style="font-size:11px;color:var(--text3);padding:0 4px;margin-bottom:6px">${item.hint}</div>`:''}
         <div class="thumbrow" id="thumbs-${item.sk}">${thumbs}</div>
-        <div class="photoarea">
-          <input type="file" accept="image/*" capture="environment" multiple onchange="addPhotos('${item.sk}',this)"/>
-          <div class="picon">📷</div>
-          <div class="ptxt">Foto toevoegen</div>
-          <div class="psub" style="font-size:11px;color:var(--text3);margin-top:3px">Na het toevoegen kan je de foto bewerken</div>
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <div class="photoarea" style="flex:1;margin-bottom:0">
+            <input type="file" accept="image/*" capture="environment" multiple onchange="addPhotos('${item.sk}',this)"/>
+            <div class="picon">📷</div>
+            <div class="ptxt">Camera</div>
+          </div>
+          <div class="photoarea" style="flex:1;margin-bottom:0">
+            <input type="file" accept="image/*" multiple onchange="addPhotos('${item.sk}',this)"/>
+            <div class="picon">🖼️</div>
+            <div class="ptxt">Bibliotheek</div>
+          </div>
         </div>`:''}
         ${fieldsHtml}
         ${item.noteHint?`<div style="font-size:11px;color:var(--text3);padding:0 4px;margin-bottom:4px">${item.noteHint}</div>`:''}
@@ -1787,6 +1906,19 @@ function renderItems(){
       </div>
     </div>`;
   }).join('');
+  // A: Auto-open first incomplete non-deleted item
+  const activeItems=allItems.filter(i=>!deletedItems.has(i.sk));
+  const anyOpen=document.querySelector('.ci.open');
+  if(!anyOpen && activeItems.length>0){
+    const firstIncomplete=activeItems.find(i=>{
+      if(!touchedItems.has(i.sk)) return true;
+      const d=itemData[i.sk]||{photos:[],notes:''};
+      return !(d.photos.length>0||d.notes.trim()!=='');
+    });
+    const target=firstIncomplete||activeItems[0];
+    const el=document.getElementById('ci-'+target.sk);
+    if(el) el.classList.add('open');
+  }
 }
 
 // ══════════════════════════
@@ -1794,19 +1926,24 @@ function renderItems(){
 // ══════════════════════════
 let toastTimer=null;
 const blockingErrors={};
-function showToast(sk,msg,blocking,warn){
-  // Open the item first
+function showToast(sk,msg,blocking,type){
+  // Open the item and scroll to it
   const ci=document.getElementById('ci-'+sk);
-  if(ci && !ci.classList.contains('open')){
-    document.querySelectorAll('.ci.open').forEach(e=>e.classList.remove('open'));
-    ci.classList.add('open');
+  if(ci){
+    if(!ci.classList.contains('open')){
+      document.querySelectorAll('.ci.open').forEach(e=>e.classList.remove('open'));
+      ci.classList.add('open');
+    }
+    setTimeout(()=>ci.scrollIntoView({behavior:'smooth',block:'center'}),100);
   }
   if(blocking) blockingErrors[sk]=msg;
   const el=document.getElementById('global-toast');
   if(el){
     el.textContent=msg;
-    el.classList.add('show');
-    if(warn) el.classList.add('warn'); else el.classList.remove('warn');
+    el.className='toast-inline show';
+    if(type==='success') { /* green default */ }
+    else if(type==='warn') el.classList.add('warn');
+    else el.classList.add('error');
     if(!blocking){
       if(toastTimer)clearTimeout(toastTimer);
       toastTimer=setTimeout(()=>hideToast(sk),3000);
@@ -1859,6 +1996,22 @@ function validateCurrentItem(sk){
   if(item.hasPhaseType && !d.phaseType){
     showToast(sk,'Type aansluiting is verplicht');return false;
   }
+  if(item.hasParking && !d.parking){
+    showToast(sk,'Parking selectie is verplicht');return false;
+  }
+  if(item.hasPanelCount && (!d.panelCount||parseInt(d.panelCount)<1)){
+    showToast(sk,'Aantal panelen is verplicht');return false;
+  }
+  if(item.hasDakType){
+    if(!d.dakTypes||d.dakTypes.length===0){showToast(sk,'Type dak is verplicht');return false;}
+    if(d.dakTypes.includes('schuin')){
+      if(!d.dakZijdes){showToast(sk,'Aantal zijdes (schuin dak) is verplicht');return false;}
+      if(!d.dakBedekking){showToast(sk,'Dakbedekking is verplicht');return false;}
+    }
+    if(d.dakTypes.includes('plat')){
+      if(!d.platRichting){showToast(sk,'Oriëntatie (plat dak) is verplicht');return false;}
+    }
+  }
   if(item.hasFuelType){
     if(!d.fuelType){showToast(sk,'Verwarmingstype is verplicht',true);return false;}
     if(!d.fuelAmount||parseFloat(d.fuelAmount)<=0){showToast(sk,d.fuelType==='gas'?'Aantal m³ gas is verplicht':'Liter mazout is verplicht',true);return false;}
@@ -1910,28 +2063,53 @@ function validateCurrentItem(sk){
 
 function deleteItem(sk){
   deletedItems.add(sk);
-  // Close if open
   const ci=document.getElementById('ci-'+sk);
   if(ci)ci.classList.remove('open');
-  renderItems();updateProgress();
+  renderItems();updateProgress();autoSave();
 }
 
 function restoreItem(sk){
   deletedItems.delete(sk);
-  renderItems();updateProgress();
+  renderItems();updateProgress();autoSave();
 }
 
 function toggleItem(sk){
   const ci=document.getElementById('ci-'+sk);
   const was=ci.classList.contains('open');
-  // If closing current item, validate
+  // Mark current open item as touched (without blocking validation)
   const openEl=document.querySelector('.ci.open');
   if(openEl && openEl.id!=='ci-'+sk){
-    const openSk=openEl.id.replace('ci-','');
-    if(!validateCurrentItem(openSk)) return;
+    touchedItems.add(openEl.id.replace('ci-',''));
   }
   document.querySelectorAll('.ci.open').forEach(e=>e.classList.remove('open'));
-  if(!was)ci.classList.add('open');
+  if(!was){
+    ci.classList.add('open');
+  } else {
+    // B: Auto-advance to next incomplete item
+    touchedItems.add(sk);
+    const d=itemData[sk]||{photos:[],notes:''};
+    const done=d.photos.length>0||d.notes.trim()!=='';
+    if(done){
+      const items=itemsForTab(activeTab);
+      const idx=items.findIndex(i=>i.sk===sk);
+      for(let i=idx+1;i<items.length;i++){
+        if(!deletedItems.has(items[i].sk)){
+          if(!touchedItems.has(items[i].sk)){
+            const nextEl=document.getElementById('ci-'+items[i].sk);
+            if(nextEl){nextEl.classList.add('open');nextEl.scrollIntoView({behavior:'smooth',block:'center'});}
+            break;
+          }
+          const nd=itemData[items[i].sk]||{photos:[],notes:''};
+          if(!(nd.photos.length>0||nd.notes.trim()!=='')){
+            const nextEl=document.getElementById('ci-'+items[i].sk);
+            if(nextEl){nextEl.classList.add('open');nextEl.scrollIntoView({behavior:'smooth',block:'center'});}
+            break;
+          }
+        }
+      }
+    }
+  }
+  autoSave();
 }
 
 function nextItem(sk){
@@ -1953,7 +2131,8 @@ function nextItem(sk){
 // DATA OPERATIONS
 // ══════════════════════════
 function ensureData(sk){
-  if(!itemData[sk]) itemData[sk]={photos:[],notes:'',strings:'',mppTrackers:'',location:'',boardType:{},mountType:'',fixType:'',unitType:'',connType:'',sqm:'',floor:'',sqmRows:[],radRows:[],fuelType:'',fuelAmount:'',buildYear:'',meterType:[],phaseType:'',insulation:'',woningType:'',heatedFloors:'',totalSqm:'',boilerTemp:'',batType:'',batVerbruik:'',batProductie:'',batAfname:'',batInjectie:''};
+  if(!itemData[sk]) itemData[sk]={photos:[],notes:'',strings:'',mppTrackers:'',location:'',boardType:{},mountType:'',fixType:'',unitType:'',connType:'',sqm:'',floor:'',sqmRows:[],radRows:[],fuelType:'',fuelAmount:'',buildYear:'',meterType:[],phaseType:'',insulation:'',woningType:'',heatedFloors:'',totalSqm:'',boilerTemp:'',batType:'',batVerbruik:'',batProductie:'',batAfname:'',batInjectie:'',parking:'',panelCount:'',dakTypes:[],dakZijdes:'',dakBedekking:'',platRichting:''};
+  if(!itemData[sk].dakTypes) itemData[sk].dakTypes=[];
   if(!itemData[sk].boardType) itemData[sk].boardType={};
   if(!itemData[sk].sqmRows) itemData[sk].sqmRows=[];
   if(!itemData[sk].radRows) itemData[sk].radRows=[];
@@ -1969,12 +2148,36 @@ function addPhotos(sk,input){
   const files=Array.from(input.files);let pending=files.length;
   files.forEach(f=>{
     const r=new FileReader();
-    r.onload=e=>{itemData[sk].photos.push(e.target.result);pending--;if(pending===0){refreshItem(sk);updateProgress();}};
+    r.onload=e=>{
+      // H: Add timestamp overlay to photo
+      const img=new Image();
+      img.onload=()=>{
+        const c=document.createElement('canvas');
+        const mx=1024;
+        const scale=Math.min(1,mx/Math.max(img.width,img.height));
+        c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);
+        const ctx=c.getContext('2d');
+        ctx.drawImage(img,0,0,c.width,c.height);
+        // Timestamp bar
+        const now=new Date();
+        const stamp=now.toLocaleDateString('nl-BE',{day:'2-digit',month:'2-digit',year:'numeric'})+', '+now.toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'});
+        const barH=Math.round(c.height*0.045);
+        const fontSize=Math.round(barH*0.7);
+        ctx.fillStyle='rgba(0,0,0,0.55)';
+        ctx.fillRect(0,c.height-barH,c.width,barH);
+        ctx.fillStyle='#fff';ctx.font=`600 ${fontSize}px sans-serif`;
+        ctx.textBaseline='middle';
+        ctx.fillText(stamp,8,c.height-barH/2);
+        itemData[sk].photos.push(c.toDataURL('image/jpeg',.65));
+        pending--;if(pending===0){refreshItem(sk);updateProgress();}
+      };
+      img.src=e.target.result;
+    };
     r.readAsDataURL(f);
   });
 }
-function delPhoto(sk,idx){if(itemData[sk]){itemData[sk].photos.splice(idx,1);refreshItem(sk);updateProgress();}}
-function saveNote(sk,v){ensureData(sk);itemData[sk].notes=v;refreshItem(sk);updateProgress();}
+function delPhoto(sk,idx){if(itemData[sk]){itemData[sk].photos.splice(idx,1);refreshItem(sk);updateProgress();autoSave();}}
+function saveNote(sk,v){ensureData(sk);itemData[sk].notes=v;refreshItem(sk);updateProgress();autoSave();}
 
 function saveStrings(sk,v){
   ensureData(sk);
@@ -2467,6 +2670,51 @@ function savePhaseType(sk,type,btn){
   if(itemData[sk].phaseType) btn.classList.add('active');
 }
 
+function saveParking(sk,val,btn){
+  ensureData(sk);
+  if(itemData[sk].parking===val){
+    itemData[sk].parking='';
+  } else {
+    itemData[sk].parking=val;
+  }
+  hideToast(sk);
+  const parent=btn.parentElement;
+  parent.querySelectorAll('.loc-btn').forEach(b=>b.classList.remove('active'));
+  if(itemData[sk].parking) btn.classList.add('active');
+}
+
+function toggleDakType(sk,type,btn){
+  ensureData(sk);
+  if(!itemData[sk].dakTypes) itemData[sk].dakTypes=[];
+  const idx=itemData[sk].dakTypes.indexOf(type);
+  if(idx>=0){
+    itemData[sk].dakTypes.splice(idx,1);
+    // Clear sub-fields when deselecting
+    if(type==='schuin'){itemData[sk].dakZijdes='';itemData[sk].dakBedekking='';}
+    if(type==='plat'){itemData[sk].platRichting='';}
+  } else {
+    itemData[sk].dakTypes.push(type);
+  }
+  hideToast(sk);
+  refreshItem(sk);updateProgress();
+}
+
+function saveDakField(sk,field,value,btn){
+  ensureData(sk);
+  if(itemData[sk][field]===value){
+    itemData[sk][field]='';
+  } else {
+    itemData[sk][field]=value;
+  }
+  hideToast(sk);
+  if(btn){
+    const parent=btn.parentElement;
+    parent.querySelectorAll('.loc-btn').forEach(b=>b.classList.remove('active'));
+    if(itemData[sk][field]) btn.classList.add('active');
+  }
+  refreshItem(sk);updateProgress();
+}
+
 function saveMountType(sk,type,btn){
   ensureData(sk);
   // Toggle: if same type clicked, deselect
@@ -2534,18 +2782,51 @@ function saveConnType(sk,type,btn){
 }
 
 function refreshItem(sk){
-  // Re-render all items to update OK/NOK badges and trash visibility
+  touchedItems.add(sk);
   renderItems();
-  // Re-open the item that was being edited
   const ci=document.getElementById('ci-'+sk);
   if(ci && !ci.classList.contains('deleted')) ci.classList.add('open');
+  autoSave();
 }
 
 function updateProgress(){
   const items=itemsForTab(activeTab).filter(i=>!deletedItems.has(i.sk));
-  const done=items.filter(i=>{const d=itemData[i.sk];return d&&(d.photos.length>0||d.notes.trim()!=='');}).length;
-  const pct=items.length?Math.round(done/items.length*100):0;
-  document.getElementById('prog-txt').textContent=`${done} van ${items.length} ingevuld`;
+  // Determine if this is the first checklist being filled (nothing completed yet)
+  const isFirstChecklist=completedTypes.size===0 && selected.length<=1;
+  let totalChecks=0,doneChecks=0;
+  items.forEach(i=>{
+    const d=itemData[i.sk]||{photos:[],notes:''};
+    // Shared item with existing data from another checklist counts as done
+    const hasExistingData=i.isShared && !isFirstChecklist && (
+      (d.photos&&d.photos.length>0)||(d.notes&&d.notes.trim()!=='')||
+      d.parking||d.location||d.phaseType||d.strings||d.mppTrackers||d.fuelType
+    );
+    const effective=touchedItems.has(i.sk)||hasExistingData;
+    if(!i.noPhoto){totalChecks++;if(effective&&d.photos.length>0)doneChecks++;}
+    totalChecks++;if(effective&&d.notes&&d.notes.trim()!=='')doneChecks++;
+    if(i.hasParking){totalChecks++;if(effective&&d.parking)doneChecks++;}
+    if(i.hasLocation){totalChecks++;if(effective&&d.location)doneChecks++;}
+    if(i.hasPhaseType){totalChecks++;if(effective&&d.phaseType)doneChecks++;}
+    if(i.hasFixType){totalChecks++;if(effective&&d.fixType)doneChecks++;}
+    if(i.hasUnitType){totalChecks++;if(effective&&d.unitType)doneChecks++;}
+    if(i.hasStrings){totalChecks++;if(effective&&d.strings)doneChecks++;}
+    if(i.hasMppTrackers){totalChecks++;if(effective&&d.mppTrackers)doneChecks++;}
+    if(i.hasFuelType){totalChecks++;if(effective&&d.fuelType)doneChecks++;}
+    if(i.hasConnType){totalChecks++;if(effective&&d.connType)doneChecks++;}
+    if(i.hasPanelCount){totalChecks++;if(effective&&d.panelCount)doneChecks++;}
+    if(i.hasDakType){
+      totalChecks++;if(effective&&d.dakTypes&&d.dakTypes.length>0)doneChecks++;
+      if(d.dakTypes&&d.dakTypes.includes('schuin')){
+        totalChecks++;if(effective&&d.dakZijdes)doneChecks++;
+        totalChecks++;if(effective&&d.dakBedekking)doneChecks++;
+      }
+      if(d.dakTypes&&d.dakTypes.includes('plat')){
+        totalChecks++;if(effective&&d.platRichting)doneChecks++;
+      }
+    }
+  });
+  const pct=totalChecks?Math.round(doneChecks/totalChecks*100):0;
+  document.getElementById('prog-txt').textContent=`${doneChecks} van ${totalChecks} ingevuld`;
   document.getElementById('prog-pct').textContent=pct+'%';
   document.getElementById('prog-fill').style.width=pct+'%';
   // Dynamic solar label
@@ -2553,9 +2834,11 @@ function updateProgress(){
     const dakSk=getSK('solar',{shared:false,key:'dak'});
     const batSk=getSK('solar',{shared:false,key:'loc-bat'});
     const intSk=getSK('solar',{shared:false,key:'internet'});
+    const omvSk=getSK('solar',{shared:true,key:'omvormer'});
     const dakDel=deletedItems.has(dakSk);
     const batDel=deletedItems.has(batSk);
     const intDel=deletedItems.has(intSk);
+    const omvDel=deletedItems.has(omvSk);
     const dakD=itemData[dakSk];
     const batD=itemData[batSk];
     const intD=itemData[intSk];
@@ -2567,8 +2850,10 @@ function updateProgress(){
     const hasIntData=intActive&&intD&&(intD.photos.length>0||intD.notes.trim()!=='');
     let newLabel='Zon / Thuisbatterij';
     let newIcon='☀️🔋';
-    // Deleted = niet meer in checklist = niet van toepassing
-    if(dakDel&&(!batDel||!intDel)){newLabel='Thuisbatterij';newIcon='🔋';}
+    // Omvormer + dak geskipt = alleen thuisbatterij
+    if(omvDel&&dakDel&&(!batDel||!intDel)){newLabel='Thuisbatterij';newIcon='🔋';}
+    // Dak geskipt maar omvormer actief
+    else if(dakDel&&(!batDel||!intDel)){newLabel='Thuisbatterij';newIcon='🔋';}
     else if((batDel&&intDel)&&!dakDel){newLabel='Zonnepanelen';newIcon='☀️';}
     else if(hasDakData&&!hasBatData&&!hasIntData){newLabel='Zonnepanelen';newIcon='☀️';}
     else if(!hasDakData&&(hasBatData||hasIntData)){newLabel='Thuisbatterij';newIcon='🔋';}
@@ -2956,7 +3241,7 @@ function saveEditor(){
   // Save annotations as editable objects
   meta.annotations=JSON.parse(JSON.stringify(annotations));
   // Save flattened preview for display/export
-  itemData[edSK].photos[edIdx]=edCanvas.toDataURL('image/jpeg',.92);
+  itemData[edSK].photos[edIdx]=edCanvas.toDataURL('image/jpeg',.65);
   refreshItem(edSK);closeEditor();
 }
 function closeEditor(){document.getElementById('editor-overlay').classList.remove('open');document.getElementById('stamp-tray').classList.remove('open');}
@@ -3022,10 +3307,32 @@ function renderOverview(){
     ${items.map((item,idx)=>{
       const d=itemData[item.sk]||{photos:[],notes:''};
       const done=d.photos.length>0||d.notes.trim()!=='';
+      const fields=[];
+      if(d.parking) fields.push('🅿️ '+(d.parking==='beschikbaar'?'Parking beschikbaar':'Parking aanvragen'));
+      if(d.location) fields.push('📍 '+d.location);
+      if(d.phaseType) fields.push('⚡ '+d.phaseType);
+      if(d.strings) fields.push('Strings: '+d.strings);
+      if(d.mppTrackers) fields.push('MPP: '+d.mppTrackers);
+      if(d.fixType) fields.push('Bevestiging: '+d.fixType);
+      if(d.unitType) fields.push('Unit: '+d.unitType);
+      if(d.connType) fields.push('Aansluiting: '+d.connType);
+      if(d.mountType) fields.push('Montage: '+d.mountType);
+      if(d.panelCount) fields.push('Panelen: '+d.panelCount);
+      if(d.dakTypes&&d.dakTypes.length>0) fields.push('Dak: '+d.dakTypes.join(' + '));
+      if(d.dakZijdes) fields.push('Zijdes: '+d.dakZijdes);
+      if(d.dakBedekking) fields.push('Bedekking: '+d.dakBedekking);
+      if(d.platRichting) fields.push('Oriëntatie: '+d.platRichting);
+      if(d.fuelType) fields.push('Verwarming: '+d.fuelType+(d.fuelAmount?' ('+d.fuelAmount+')':''));
+      if(d.buildYear) fields.push('Bouwjaar: '+d.buildYear);
+      if(d.woningType) fields.push('Type: '+d.woningType);
+      if(d.insulation) fields.push('Isolatie: '+d.insulation);
+      if(d.totalSqm) fields.push('Opp: '+d.totalSqm+' m²');
+      if(d.boilerTemp) fields.push('Ketel: '+d.boilerTemp+'°C');
       return `<div class="ov-row">
         <div class="ov-n">${idx+1}</div>
         <div class="ov-c">
           <div class="ov-lbl">${item.label}${item.isShared?'<span class="sbadge" style="margin-left:6px">Gedeeld</span>':''}</div>
+          ${fields.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">${fields.map(f=>`<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);color:var(--text2)">${f}</span>`).join('')}</div>`:''}
           ${d.notes?`<div class="ov-note">💬 ${d.notes}</div>`:''}
           ${d.photos.length?`<div class="ov-photos">${d.photos.map(p=>`<img class="ov-ph" src="${p}"/>`).join('')}</div>`:''}
           <div class="ov-st"><div class="stdot" style="background:${done?'var(--success)':'var(--text3)'}"></div>
@@ -3333,22 +3640,30 @@ function generatePDF(){
 // FINALIZE & RESET
 // ══════════════════════════
 function finalizeAllReports(){
+  // C: Validate klantgegevens
+  const naam=document.getElementById('klant-naam').value.trim();
+  const adres=document.getElementById('klant-adres').value.trim();
+  if(!naam){
+    showPanel('panel-1');
+    document.getElementById('klant-naam').focus();
+    document.getElementById('klant-naam').style.borderColor='#ff5c5c';
+    const el=document.getElementById('global-toast');
+    if(el){el.textContent='Naam klant is verplicht';el.className='toast-inline show error';if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(()=>{el.classList.remove('show');},3000);}
+    return;
+  }
+  if(!adres){
+    showPanel('panel-1');
+    document.getElementById('klant-adres').focus();
+    document.getElementById('klant-adres').style.borderColor='#ff5c5c';
+    const el=document.getElementById('global-toast');
+    if(el){el.textContent='Adres klant is verplicht';el.className='toast-inline show error';if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(()=>{el.classList.remove('show');},3000);}
+    return;
+  }
   const types=[...completedTypes].map(t=>TYPES[t].label).join(', ');
   document.getElementById('suc-msg').textContent=`Alle rapporten (${types}) zijn opgeslagen.`;
-  const syncPanel=document.getElementById('sync-status-panel');
-  if(syncPanel) syncPanel.innerHTML='☁️ <strong>Bezig met opslaan naar cloud...</strong>';
   showPanel('panel-4');
+  localStorage.removeItem('bzr-data');
   window.scrollTo({top:0,behavior:'smooth'});
-  // Firebase: eerst data opslaan, dan foto's uploaden
-  saveDataToFirebase().then(()=>{
-    if(syncPanel) syncPanel.innerHTML='📷 <strong>Foto\'s uploaden...</strong><br><small>Sluit deze pagina niet!</small>';
-    return syncPhotosToCloud();
-  }).then(()=>{
-    if(syncPanel){syncPanel.innerHTML='✅ <strong>Alles gesynchroniseerd!</strong>';syncPanel.style.color='#38d9a9';}
-  }).catch(err=>{
-    console.error('Sync error:',err);
-    if(syncPanel){syncPanel.innerHTML='⚠️ <strong>Sync mislukt</strong><br><small>'+err.message+'</small>';syncPanel.style.color='#ff5c5c';}
-  });
 }
 
 function reset(){
@@ -3383,10 +3698,7 @@ function reset(){
   ];
   const multiName=document.querySelector('#hub-airmu .tname');
   if(multiName) multiName.textContent='Lucht/Lucht Multi';
-  selected=[];activeTab='';itemData={};completedTypes=new Set();deletedItems=new Set();
-  currentDocId=null;
-  localStorage.removeItem(LS_KEY);
-  const cs=document.getElementById('cloud-status');if(cs)cs.style.display='none';
+  selected=[];activeTab='';itemData={};completedTypes=new Set();deletedItems=new Set();touchedItems=new Set();
   ['solar','airmo','airmu','airwater','geo','charge'].forEach(t=>{
     const card=document.getElementById('hub-'+t);
     if(card) card.classList.remove('completed');
@@ -3394,258 +3706,74 @@ function reset(){
     if(sc) sc.innerHTML='';
   });
   document.getElementById('hub-save-row').style.display='none';
+  document.getElementById('klant-naam').value='';
+  document.getElementById('klant-adres').value='';
+  localStorage.removeItem('bzr-data');
   showPanel('panel-1');
 }
 
-// ══════════════════════════
-// FIREBASE SYNC
-// ══════════════════════════
-const LS_KEY='bezoekrapport_data';
-let currentDocId=null;
+// Init
+restoreData();
+updateHubCards();
 
-function generateDocId(){
-  return 'br_'+Date.now()+'_'+Math.random().toString(36).substr(2,9);
-}
-
-function setCloudStatus(status,msg){
-  const el=document.getElementById('cloud-status');
-  if(!el)return;
-  el.style.display='inline-block';
-  if(status==='syncing'){el.style.background='rgba(247,201,72,.2)';el.style.color='#f7c948';el.style.border='1px solid rgba(247,201,72,.3)';el.textContent='☁️ '+(msg||'Synchroniseren...');}
-  else if(status==='done'){el.style.background='rgba(56,217,169,.15)';el.style.color='#38d9a9';el.style.border='1px solid rgba(56,217,169,.3)';el.textContent='☁️ '+(msg||'Opgeslagen');setTimeout(()=>{el.style.display='none';},4000);}
-  else if(status==='error'){el.style.background='rgba(255,92,92,.15)';el.style.color='#ff5c5c';el.style.border='1px solid rgba(255,92,92,.3)';el.textContent='⚠️ '+(msg||'Sync fout');}
-}
-
-function buildSavePayload(){
-  const cleanData={};
-  for(const [sk,d] of Object.entries(itemData)){
-    // Bouw annotations metadata (zonder base64 originalData)
-    const cleanMeta={};
-    if(d.photoMeta){
-      for(const [idx,meta] of Object.entries(d.photoMeta)){
-        cleanMeta[idx]={
-          annotations:meta.annotations||[],
-          // originalData wordt apart naar Storage geüpload, sla URL op
-          originalUrl:meta.originalUrl||null
-        };
-      }
-    }
-    cleanData[sk]={
-      notes:d.notes||'',
-      strings:d.strings||'',
-      mppTrackers:d.mppTrackers||'',
-      location:d.location||'',
-      boardType:d.boardType||{},
-      mountType:d.mountType||'',
-      fixType:d.fixType||'',
-      unitType:d.unitType||'',
-      connType:d.connType||'',
-      sqm:d.sqm||'',
-      floor:d.floor||'',
-      sqmRows:d.sqmRows||[],
-      radRows:d.radRows||[],
-      fuelType:d.fuelType||'',
-      fuelAmount:d.fuelAmount||'',
-      buildYear:d.buildYear||'',
-      meterType:d.meterType||[],
-      phaseType:d.phaseType||'',
-      insulation:d.insulation||'',
-      woningType:d.woningType||'',
-      heatedFloors:d.heatedFloors||'',
-      totalSqm:d.totalSqm||'',
-      boilerTemp:d.boilerTemp||'',
-      batType:d.batType||'',
-      batVerbruik:d.batVerbruik||'',
-      batProductie:d.batProductie||'',
-      batAfname:d.batAfname||'',
-      batInjectie:d.batInjectie||'',
-      batCalcSkipped:d.batCalcSkipped||false,
-      photoCount:(d.photos||[]).length,
-      storageUrls:(d.storageUrls||[]).filter(u=>u&&u.startsWith('http')),
-      photoMeta:cleanMeta
-    };
-  }
-  return {
-    klantNaam:document.getElementById('klant-naam')?.value||'',
-    klantAdres:document.getElementById('klant-adres')?.value||'',
-    completedTypes:[...completedTypes],
-    deletedItems:[...deletedItems],
-    selected:selected,
-    itemData:JSON.stringify(cleanData),
-    extraSplitCount:extraSplitCount,
-    extraMultiSplitCount:extraMultiSplitCount,
-    updatedAt:new Date().toISOString(),
-    createdAt:currentDocId?undefined:new Date().toISOString()
-  };
-}
-
-async function saveDataToFirebase(){
+// D: Auto-save to localStorage (photos excluded — te groot voor localStorage)
+function autoSave(){
   try{
-    setCloudStatus('syncing','Opslaan naar cloud...');
-    if(!currentDocId)currentDocId=generateDocId();
-    const payload=buildSavePayload();
-    Object.keys(payload).forEach(k=>payload[k]===undefined&&delete payload[k]);
-    await db.collection('bezoekrapport').doc(currentDocId).set(payload,{merge:true});
-    saveToLocalStorage();
-    setCloudStatus('done','Opgeslagen in cloud');
-    return true;
-  }catch(err){
-    console.error('Firebase save error:',err);
-    setCloudStatus('error','Cloud opslaan mislukt');
-    saveToLocalStorage();
-    return false;
-  }
-}
-
-function saveToLocalStorage(){
-  try{
-    const data={
-      docId:currentDocId,
-      klantNaam:document.getElementById('klant-naam')?.value||'',
-      klantAdres:document.getElementById('klant-adres')?.value||'',
-      completedTypes:[...completedTypes],
-      deletedItems:[...deletedItems],
-      selected:selected,
-      itemData:itemData,
-      extraSplitCount:extraSplitCount,
-      extraMultiSplitCount:extraMultiSplitCount,
+    const lite={};
+    Object.keys(itemData).forEach(sk=>{
+      const d=itemData[sk];
+      if(!d) return;
+      const copy={...d};
+      delete copy.photos;
+      delete copy.photoMeta;
+      copy._photoCount=(d.photos||[]).length;
+      lite[sk]=copy;
+    });
+    const state={
+      itemData:lite,selected,completedTypes:[...completedTypes],deletedItems:[...deletedItems],
+      touchedItems:[...touchedItems],
+      extraSplitCount,extraMultiSplitCount,
+      klantNaam:document.getElementById('klant-naam').value,
+      klantAdres:document.getElementById('klant-adres').value,
       savedAt:new Date().toISOString()
     };
-    localStorage.setItem(LS_KEY,JSON.stringify(data));
-  }catch(e){console.warn('localStorage save error:',e);}
+    localStorage.setItem('bzr-data',JSON.stringify(state));
+  }catch(e){console.warn('AutoSave failed:',e);}
 }
-
-function loadFromLocalStorage(){
+function restoreData(){
   try{
-    const raw=localStorage.getItem(LS_KEY);
-    if(!raw)return false;
-    const data=JSON.parse(raw);
-    if(!data||!data.itemData)return false;
-    if(data.docId)currentDocId=data.docId;
-    if(data.klantNaam){const el=document.getElementById('klant-naam');if(el)el.value=data.klantNaam;}
-    if(data.klantAdres){const el=document.getElementById('klant-adres');if(el)el.value=data.klantAdres;}
-    if(data.completedTypes)completedTypes=new Set(data.completedTypes);
-    if(data.deletedItems)deletedItems=new Set(data.deletedItems);
-    if(data.selected)selected=data.selected;
-    if(data.extraSplitCount)extraSplitCount=data.extraSplitCount;
-    if(data.extraMultiSplitCount)extraMultiSplitCount=data.extraMultiSplitCount;
-    itemData=data.itemData;
-    return true;
-  }catch(e){console.warn('localStorage load error:',e);return false;}
-}
-
-async function syncPhotosToCloud(){
-  if(!currentDocId)return;
-  let uploadCount=0,errorCount=0,totalUploads=0;
-  const syncPanel=document.getElementById('sync-status-panel');
-
-  // Tel totaal uploads: bewerkte foto's + originele foto's
-  for(const [sk,d] of Object.entries(itemData)){
-    if(!d||!d.photos)continue;
-    for(let i=0;i<d.photos.length;i++){
-      if(typeof d.photos[i]==='string'&&d.photos[i].startsWith('data:'))totalUploads++;
-    }
-    // Tel originele foto's die nog niet geüpload zijn
-    if(d.photoMeta){
-      for(const [idx,meta] of Object.entries(d.photoMeta)){
-        if(meta.originalData&&typeof meta.originalData==='string'&&meta.originalData.startsWith('data:')&&!meta.originalUrl)totalUploads++;
-      }
-    }
-  }
-  if(totalUploads===0){
-    if(syncPanel){syncPanel.innerHTML='✅ <strong>Opgeslagen!</strong>';syncPanel.style.color='#38d9a9';}
-    return;
-  }
-  if(syncPanel)syncPanel.innerHTML=`📷 <strong>Uploaden: 0/${totalUploads}</strong><br><small>Niet sluiten!</small>`;
-
-  // Helper: base64 naar blob
-  function b64toBlob(b64){
-    const parts=b64.split(',');
-    const mime=parts[0].match(/:(.*?);/)?.[1]||'image/jpeg';
-    const byteString=atob(parts[1]);
-    const ab=new ArrayBuffer(byteString.length);
-    const ia=new Uint8Array(ab);
-    for(let j=0;j<byteString.length;j++)ia[j]=byteString.charCodeAt(j);
-    return new Blob([ab],{type:mime});
-  }
-
-  for(const [sk,d] of Object.entries(itemData)){
-    if(!d||!d.photos||d.photos.length===0)continue;
-    if(!d.storageUrls)d.storageUrls=[];
-
-    for(let i=0;i<d.photos.length;i++){
-      const photo=d.photos[i];
-      if(typeof photo==='string'&&photo.startsWith('http'))continue;
-      if(d.storageUrls[i]&&d.storageUrls[i].startsWith('http'))continue;
-      if(typeof photo!=='string'||!photo.startsWith('data:'))continue;
-
-      try{
-        const ts=Date.now()+'_'+Math.random().toString(36).substr(2,5)+'_'+i;
-        const safeSk=sk.replace(/[^a-zA-Z0-9_-]/g,'_');
-        // Upload bewerkte (platte) foto
-        const path=`bezoekrapport/${currentDocId}/${safeSk}/${ts}.jpg`;
-        const blob=b64toBlob(photo);
-        const snapshot=await storage.ref(path).put(blob,{contentType:'image/jpeg'});
-        const url=await snapshot.ref.getDownloadURL();
-        d.storageUrls[i]=url;
-        uploadCount++;
-        setCloudStatus('syncing',`${uploadCount}/${totalUploads}...`);
-        if(syncPanel)syncPanel.innerHTML=`📷 <strong>Uploaden: ${uploadCount}/${totalUploads}</strong><br><small>Niet sluiten!</small>`;
-      }catch(err){
-        console.error(`FOTO UPLOAD FOUT [${sk}][${i}]:`,err.code,err.message);
-        errorCount++;
-      }
-    }
-
-    // Upload originele foto's (zonder annotations) apart
-    if(d.photoMeta){
-      for(const [idx,meta] of Object.entries(d.photoMeta)){
-        if(!meta.originalData||typeof meta.originalData!=='string'||!meta.originalData.startsWith('data:'))continue;
-        if(meta.originalUrl)continue; // Al geüpload
-        try{
-          const ts=Date.now()+'_'+Math.random().toString(36).substr(2,5)+'_orig'+idx;
-          const safeSk=sk.replace(/[^a-zA-Z0-9_-]/g,'_');
-          const path=`bezoekrapport/${currentDocId}/${safeSk}/originals/${ts}.jpg`;
-          const blob=b64toBlob(meta.originalData);
-          const snapshot=await storage.ref(path).put(blob,{contentType:'image/jpeg'});
-          meta.originalUrl=await snapshot.ref.getDownloadURL();
-          uploadCount++;
-          setCloudStatus('syncing',`${uploadCount}/${totalUploads}...`);
-          if(syncPanel)syncPanel.innerHTML=`📷 <strong>Uploaden: ${uploadCount}/${totalUploads}</strong><br><small>Niet sluiten!</small>`;
-        }catch(err){
-          console.error(`ORIGINELE FOTO UPLOAD FOUT [${sk}][${idx}]:`,err.code,err.message);
-          errorCount++;
-        }
-      }
-    }
-  }
-
-  // Update Firestore met storageUrls + annotations
-  if(uploadCount>0){
-    try{
-      const payload=buildSavePayload();
-      await db.collection('bezoekrapport').doc(currentDocId).update({
-        itemData:payload.itemData,
-        updatedAt:new Date().toISOString()
+    const raw=localStorage.getItem('bzr-data');
+    if(!raw) return;
+    const s=JSON.parse(raw);
+    if(s.itemData){
+      // Restore metadata, re-init empty photo arrays
+      Object.keys(s.itemData).forEach(sk=>{
+        const d=s.itemData[sk];
+        d.photos=[];
+        delete d._photoCount;
       });
-    }catch(err){console.error('Firestore update na foto upload:',err);}
-  }
-  saveToLocalStorage();
-
-  if(errorCount>0){
-    setCloudStatus('error',`${uploadCount} OK, ${errorCount} mislukt`);
-    if(syncPanel){syncPanel.innerHTML=`⚠️ <strong>${uploadCount} geüpload, ${errorCount} mislukt</strong>`;syncPanel.style.color='#ff5c5c';}
-  }else{
-    setCloudStatus('done',`${uploadCount} bestanden geüpload`);
-    if(syncPanel){syncPanel.innerHTML=`✅ <strong>Alles gesynchroniseerd! (${uploadCount} bestanden)</strong>`;syncPanel.style.color='#38d9a9';}
-  }
+      itemData=s.itemData;
+    }
+    if(s.selected) selected=s.selected;
+    if(s.completedTypes) s.completedTypes.forEach(t=>completedTypes.add(t));
+    if(s.deletedItems) s.deletedItems.forEach(t=>deletedItems.add(t));
+    if(s.touchedItems) s.touchedItems.forEach(t=>touchedItems.add(t));
+    if(s.extraSplitCount) extraSplitCount=s.extraSplitCount;
+    if(s.extraMultiSplitCount) extraMultiSplitCount=s.extraMultiSplitCount;
+    if(s.klantNaam) document.getElementById('klant-naam').value=s.klantNaam;
+    if(s.klantAdres) document.getElementById('klant-adres').value=s.klantAdres;
+    // Restore dynamic split types
+    for(let i=1;i<=extraSplitCount;i++){
+      const key='airmo-'+i;
+      if(!TYPES[key]) TYPES[key]={label:'Lucht/Lucht Mono '+(i+1),icon:'🌡️',cls:'airmo',items:JSON.parse(JSON.stringify(TYPES['airmo'].items))};
+    }
+    for(let i=1;i<=extraMultiSplitCount;i++){
+      const key='airmu-'+i;
+      if(!TYPES[key]) TYPES[key]={label:'Lucht/Lucht Multi '+(i+1),icon:'🌡️',cls:'airmu',items:JSON.parse(JSON.stringify(TYPES['airmu'].items))};
+    }
+    renderHubGrid();updateHubCards();
+  }catch(e){console.warn('Restore failed:',e);}
 }
-
-// ── INIT: LAAD DATA ──
-(function(){loadFromLocalStorage();})();
-
-// Init
-updateHubCards();
 </script>
 <div class="toast-inline" id="global-toast"></div>
 </body>
