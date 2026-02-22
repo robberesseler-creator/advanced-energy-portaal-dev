@@ -4,1234 +4,270 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Advanced Energy — Plenion Dashboard</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='url(%23g)'/><defs><linearGradient id='g' x1='0' y1='0' x2='32' y2='32'><stop stop-color='%234f8ef7'/><stop offset='1' stop-color='%2338d9a9'/></linearGradient></defs><text x='16' y='22' text-anchor='middle' fill='white' font-size='14' font-weight='bold' font-family='sans-serif'>AE</text></svg>">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
-:root{
-  --bg:#0f1117;--surface:#181c27;--surface2:#1e2336;--header:#000;
-  --accent:#4f8ef7;--accent2:#38d9a9;
-  --success:#38d9a9;--danger:#ff5c5c;--warn:#f7c948;
-  --text:#e8ecf5;--text2:#8b92b0;--text3:#555e7d;
-  --border:#2a2f45;--border-h:#3d4460;
-  --r:12px;--rs:8px;
-}
-*{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;}
-::-webkit-scrollbar{width:5px;height:5px;}
-::-webkit-scrollbar-track{background:transparent;}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
-
-/* SIDEBAR */
-.sb{width:256px;background:var(--surface);border-right:1px solid var(--border);position:fixed;top:0;bottom:0;left:0;z-index:100;display:flex;flex-direction:column;}
-.sb-logo{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:11px;}
-.sb-logo-icon{width:34px;height:34px;border-radius:6px;background:linear-gradient(135deg,#4f8ef7,#38d9a9);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.72rem;}
-.sb-nav{flex:1;padding:14px 10px;overflow-y:auto;}
-.sb-sec{font-family:'DM Mono',monospace;font-size:.5rem;text-transform:uppercase;letter-spacing:3px;color:var(--text3);padding:12px 12px 6px;}
-.ni{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:var(--rs);color:var(--text2);cursor:pointer;font-size:.86rem;font-weight:500;margin-bottom:2px;position:relative;transition:all .15s;user-select:none;}
-.ni:hover{background:rgba(79,142,247,.06);}
-.ni.a{background:rgba(79,142,247,.1);color:var(--accent);font-weight:600;}
-.ni.a::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:18px;background:var(--accent);border-radius:0 2px 2px 0;}
-.ni-badge{background:var(--accent);color:#fff;font-size:.62rem;font-weight:700;padding:1px 7px;border-radius:10px;min-width:20px;text-align:center;}
-.sb-user{padding:14px 18px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;}
-.sb-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,rgba(79,142,247,.2),rgba(56,217,169,.2));color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.68rem;}
-
-/* MAIN */
-.mn{margin-left:256px;flex:1;position:relative;}
-.hd{height:56px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:14px;background:var(--header);position:sticky;top:0;z-index:50;}
-.hd-title{flex:1;font-size:1rem;font-weight:700;}
-.hd-sub{color:var(--text3);font-weight:400;font-size:.8rem;margin-left:8px;}
-.live{display:flex;align-items:center;gap:7px;margin-right:14px;}
-.live-dot{width:8px;height:8px;background:var(--success);border-radius:50%;box-shadow:0 0 8px rgba(56,217,169,.5);animation:pulse 2s ease-in-out infinite;}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.cnt{padding:24px 28px;}
-.mono{font-family:'DM Mono',monospace;}
-
-/* STAT CARDS (dashboard) */
-.ds-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
-.ds-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;position:relative;overflow:hidden;}
-.ds-card .bar{position:absolute;top:0;left:0;width:3px;height:100%;border-radius:0 2px 2px 0;opacity:.7;}
-.ds-label{font-family:'DM Mono',monospace;font-size:.52rem;text-transform:uppercase;letter-spacing:2px;color:var(--text3);margin-bottom:6px;}
-.ds-val{font-size:1.85rem;font-weight:700;letter-spacing:-1px;line-height:1;margin-bottom:4px;}
-.ds-sub{font-size:.7rem;color:var(--text3);}
-
-/* CATEGORY CARDS */
-.cat-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:24px;}
-.cc{background:var(--surface);border:2px solid var(--border);border-radius:var(--r);padding:16px 12px;text-align:center;cursor:pointer;transition:all .2s;}
-.cc:hover{border-color:var(--border-h);transform:translateY(-2px);}
-.cc.a{border-width:2px;}
-.cc-bar{width:100%;height:4px;border-radius:2px;margin-bottom:10px;}
-.cc-num{font-size:1.6rem;font-weight:700;font-family:'DM Mono',monospace;line-height:1;}
-.cc-label{font-size:.6rem;color:var(--text2);margin-top:6px;line-height:1.3;}
-
-/* FILTERS */
-.fl{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
-.sr{position:relative;flex:0 0 280px;}
-.sr svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);}
-.sr input{width:100%;padding-left:34px;}
-input,select{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.83rem;padding:10px 12px;outline:none;}
-input:focus{border-color:var(--accent);}
-select{color:var(--text2);font-size:.8rem;cursor:pointer;appearance:none;padding-right:30px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23555e7d' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;}
-.btn{padding:8px 14px;border-radius:var(--rs);border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;font-size:.8rem;font-weight:600;font-family:'DM Sans',sans-serif;transition:all .15s;}
-.btn:hover{border-color:var(--border-h);color:var(--text);}
-.btn-p{background:linear-gradient(135deg,#4f8ef7,#3a7de8);border:none;color:#fff;}
-.btn-p:hover{opacity:.9;}
-
-/* TABLE */
-.tw{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
-.ts{overflow-x:auto;}
-table{width:100%;border-collapse:collapse;min-width:1000px;}
-th{padding:12px 14px;font-family:'DM Mono',monospace;font-size:.55rem;text-transform:uppercase;letter-spacing:2px;color:var(--text3);text-align:left;border-bottom:1px solid var(--border);background:rgba(0,0,0,.15);white-space:nowrap;}
-td{padding:12px 14px;}
-tbody tr{border-bottom:1px solid var(--border);transition:background .1s;}
-tbody tr:hover{background:rgba(79,142,247,.02);}
-.tf{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-top:1px solid var(--border);font-size:.76rem;color:var(--text3);}
-
-/* BADGES */
-.cb{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:6px;font-size:.68rem;font-weight:600;}
-.cd{width:7px;height:7px;border-radius:50%;display:inline-block;}
-.sd{display:inline-flex;align-items:center;gap:5px;font-size:.76rem;}
-.pb{display:inline-block;padding:2px 7px;border-radius:5px;font-size:.68rem;font-weight:600;}
-.tag{display:inline-block;padding:2px 7px;border-radius:5px;font-size:.68rem;font-weight:600;margin-right:3px;}
-
-/* VIEW BTN */
-.vb{width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text3);transition:all .15s;}
-.vb:hover{border-color:var(--border-h);color:var(--text);background:rgba(255,255,255,.05);}
-
-/* MODAL */
-.mbg{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);}
-.mbg.show{display:flex;}
-.mdl{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;max-width:640px;width:92%;max-height:85vh;overflow:auto;}
-.mdl-h{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;}
-.mdl-x{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);font-size:16px;}
-.mdl-g{display:grid;grid-template-columns:1fr 1fr;gap:14px;font-size:.85rem;margin-bottom:20px;}
-.mdl-lb{font-family:'DM Mono',monospace;font-size:.55rem;text-transform:uppercase;letter-spacing:2px;color:var(--text3);margin-bottom:4px;}
-.mdl-v{color:var(--text);font-weight:500;}
-.ps{margin-bottom:16px;}
-.ps-t{font-family:'DM Mono',monospace;font-size:.55rem;text-transform:uppercase;letter-spacing:2px;color:var(--text3);margin-bottom:8px;}
-.pg{display:flex;gap:8px;flex-wrap:wrap;}
-.pt{width:110px;height:110px;object-fit:cover;border-radius:var(--rs);border:1px solid var(--border);cursor:pointer;}
-.pp{width:110px;height:110px;border-radius:var(--rs);border:2px dashed var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:.65rem;color:var(--text3);text-align:center;padding:8px;}
-.pt-ts{font-size:.58rem;color:var(--text3);margin-top:3px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.al{max-height:140px;overflow:auto;background:rgba(0,0,0,.2);border-radius:var(--rs);padding:10px;}
-.ae{font-size:.7rem;color:var(--text2);margin-bottom:4px;display:flex;gap:8px;}
-.at{color:var(--text3);font-family:'DM Mono',monospace;font-size:.62rem;flex-shrink:0;}
-
-/* PANELS */
-.pnl{display:none;}.pnl.a{display:block;}
-.empty{text-align:center;padding:60px 20px;color:var(--text3);}
-.empty-icon{font-size:48px;margin-bottom:12px;opacity:.5;}
-.empty-title{font-size:1rem;font-weight:600;color:var(--text2);margin-bottom:6px;}
-.empty-sub{font-size:.82rem;}
-.coming{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:40px;text-align:center;}
-.coming-icon{font-size:56px;margin-bottom:16px;}
-.coming-title{font-size:1.1rem;font-weight:700;margin-bottom:8px;}
-.coming-sub{color:var(--text2);font-size:.85rem;max-width:400px;margin:0 auto;}
+:root{--bg:#0f1117;--surface:#181c27;--surface2:#1e2336;--header:#000;--accent:#4f8ef7;--accent2:#38d9a9;--success:#38d9a9;--danger:#ff5c5c;--warn:#f7c948;--text:#e8ecf5;--text2:#8b92b0;--text3:#555e7d;--border:#2a2f45;--border-h:#3d4460;--r:12px;--rs:8px}
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex}::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.sb{width:260px;background:var(--surface);border-right:1px solid var(--border);position:fixed;top:0;bottom:0;left:0;z-index:100;display:flex;flex-direction:column}.sb-logo{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:11px}.sb-logo-icon{width:34px;height:34px;border-radius:6px;background:linear-gradient(135deg,#4f8ef7,#38d9a9);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.72rem}.sb-nav{flex:1;padding:14px 10px;overflow-y:auto}.sb-sec{font-family:'DM Mono',monospace;font-size:.5rem;text-transform:uppercase;letter-spacing:3px;color:var(--text3);padding:14px 12px 6px}.ni{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:var(--rs);color:var(--text2);cursor:pointer;font-size:.86rem;font-weight:500;margin-bottom:2px;position:relative;transition:all .15s;user-select:none}.ni:hover{background:rgba(79,142,247,.06)}.ni.a{background:rgba(79,142,247,.1);color:var(--accent);font-weight:600}.ni.a::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:18px;background:var(--accent);border-radius:0 2px 2px 0}.ni-icon{width:20px;text-align:center;font-size:1rem;flex-shrink:0}.ni-badge{background:var(--accent);color:#fff;font-size:.62rem;font-weight:700;padding:1px 7px;border-radius:10px;min-width:20px;text-align:center}.sb-user{padding:14px 18px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px}.sb-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,rgba(79,142,247,.2),rgba(56,217,169,.2));color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.68rem}
+.mn{margin-left:260px;flex:1;position:relative}.hd{height:56px;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:14px;background:var(--header);position:sticky;top:0;z-index:50}.hd-title{flex:1;font-size:1rem;font-weight:700}.hd-sub{color:var(--text3);font-weight:400;font-size:.8rem;margin-left:8px}.live{display:flex;align-items:center;gap:7px;margin-right:14px}.live-dot{width:8px;height:8px;background:var(--success);border-radius:50%;box-shadow:0 0 8px rgba(56,217,169,.5);animation:pulse 2s ease-in-out infinite}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}.cnt{padding:24px 28px}.mono{font-family:'DM Mono',monospace}
+.ds-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:24px}.ds-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;position:relative;overflow:hidden;transition:all .2s;cursor:pointer}.ds-card:hover{border-color:var(--border-h);transform:translateY(-1px)}.ds-card .bar{position:absolute;top:0;left:0;width:3px;height:100%;border-radius:0 2px 2px 0;opacity:.7}.ds-label{font-family:'DM Mono',monospace;font-size:.48rem;text-transform:uppercase;letter-spacing:2px;color:var(--text3);margin-bottom:5px}.ds-val{font-size:1.7rem;font-weight:700;letter-spacing:-1px;line-height:1;margin-bottom:3px}.ds-sub{font-size:.65rem;color:var(--text3)}
+.ql-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:24px}.ql-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px 14px;cursor:pointer;transition:all .2s;text-align:center}.ql-card:hover{border-color:var(--border-h);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.2)}.ql-icon{font-size:32px;margin-bottom:10px}.ql-title{font-weight:700;font-size:.82rem;margin-bottom:3px}.ql-desc{font-size:.66rem;color:var(--text2);line-height:1.4}.ql-count{display:inline-block;margin-top:7px;font-family:'DM Mono',monospace;font-size:.65rem;padding:2px 9px;border-radius:12px;background:rgba(79,142,247,.1);color:var(--accent);font-weight:600}
+.cat-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:24px}.cc{background:var(--surface);border:2px solid var(--border);border-radius:var(--r);padding:16px 12px;text-align:center;cursor:pointer;transition:all .2s}.cc:hover{border-color:var(--border-h);transform:translateY(-2px)}.cc-bar{width:100%;height:4px;border-radius:2px;margin-bottom:10px}.cc-num{font-size:1.6rem;font-weight:700;font-family:'DM Mono',monospace;line-height:1}.cc-label{font-size:.6rem;color:var(--text2);margin-top:6px;line-height:1.3}
+.fl{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap}.sr{position:relative;flex:0 0 240px}.sr svg{position:absolute;left:10px;top:50%;transform:translateY(-50%)}.sr input{width:100%;padding-left:34px}input,select,textarea{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.83rem;padding:10px 12px;outline:none}input:focus,select:focus,textarea:focus{border-color:var(--accent)}textarea{resize:vertical;min-height:60px}select{color:var(--text2);font-size:.8rem;cursor:pointer;appearance:none;padding-right:30px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23555e7d' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center}.btn{padding:8px 14px;border-radius:var(--rs);border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;font-size:.8rem;font-weight:600;font-family:'DM Sans',sans-serif;transition:all .15s}.btn:hover{border-color:var(--border-h);color:var(--text)}.btn-p{background:linear-gradient(135deg,#4f8ef7,#3a7de8);border:none;color:#fff}.btn-p:hover{opacity:.9}.btn-s{background:linear-gradient(135deg,#38d9a9,#2bc49a);border:none;color:#fff;display:inline-flex;align-items:center;gap:6px}.btn-s:hover{opacity:.9;color:#fff}.btn-add{background:linear-gradient(135deg,#4f8ef7,#3a7de8);border:none;color:#fff;display:inline-flex;align-items:center;gap:6px;padding:9px 16px;font-size:.82rem;border-radius:var(--rs);font-weight:600;cursor:pointer;transition:all .15s}.btn-add:hover{opacity:.9;transform:translateY(-1px);box-shadow:0 4px 12px rgba(79,142,247,.3)}
+.tw{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}.ts{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:800px}th{padding:12px 14px;font-family:'DM Mono',monospace;font-size:.55rem;text-transform:uppercase;letter-spacing:2px;color:var(--text3);text-align:left;border-bottom:1px solid var(--border);background:rgba(0,0,0,.15);white-space:nowrap}td{padding:11px 14px}tbody tr{border-bottom:1px solid var(--border);transition:background .1s}tbody tr:hover{background:rgba(79,142,247,.02)}.tf{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-top:1px solid var(--border);font-size:.76rem;color:var(--text3)}
+.cb{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:6px;font-size:.68rem;font-weight:600}.cd{width:7px;height:7px;border-radius:50%;display:inline-block}.sd{display:inline-flex;align-items:center;gap:5px;font-size:.76rem}.pb{display:inline-block;padding:2px 7px;border-radius:5px;font-size:.68rem;font-weight:600}.tag{display:inline-block;padding:2px 7px;border-radius:5px;font-size:.68rem;font-weight:600;margin-right:3px}
+.vb{width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text3);transition:all .15s;flex-shrink:0}.vb:hover{border-color:var(--border-h);color:var(--text);background:rgba(255,255,255,.05)}
+.mbg{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6);backdrop-filter:blur(4px)}.mbg.show{display:flex}.mdl{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;max-width:700px;width:92%;max-height:85vh;overflow:auto}.mdl-h{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}.mdl-x{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);font-size:16px}.mdl-g{display:grid;grid-template-columns:1fr 1fr;gap:14px;font-size:.85rem;margin-bottom:20px}.mdl-lb{font-family:'DM Mono',monospace;font-size:.55rem;text-transform:uppercase;letter-spacing:2px;color:var(--text3);margin-bottom:4px}.mdl-v{color:var(--text);font-weight:500}.ps{margin-bottom:16px}.ps-t{font-family:'DM Mono',monospace;font-size:.55rem;text-transform:uppercase;letter-spacing:2px;color:var(--text3);margin-bottom:8px}.pg{display:flex;gap:8px;flex-wrap:wrap}.pt{width:110px;height:110px;object-fit:cover;border-radius:var(--rs);border:1px solid var(--border);cursor:pointer}
+.pnl{display:none}.pnl.a{display:block}.empty{text-align:center;padding:60px 20px;color:var(--text3)}.empty-icon{font-size:48px;margin-bottom:12px;opacity:.5}.empty-title{font-size:1rem;font-weight:600;color:var(--text2);margin-bottom:6px}.empty-sub{font-size:.82rem}
+.confirm-bg{position:fixed;inset:0;z-index:300;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.7);backdrop-filter:blur(6px)}.confirm-bg.show{display:flex}.confirm-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;max-width:420px;width:90%;text-align:center;animation:popIn .2s ease}@keyframes popIn{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}.confirm-icon{font-size:48px;margin-bottom:16px}.confirm-title{font-size:1.1rem;font-weight:700;margin-bottom:8px}.confirm-sub{font-size:.85rem;color:var(--text2);margin-bottom:24px;line-height:1.5}.confirm-btns{display:flex;gap:10px;justify-content:center}.confirm-btns .btn{min-width:120px;padding:10px 20px;font-size:.85rem}
+.flow-bar{display:flex;align-items:center;gap:0;margin-bottom:20px;padding:14px 18px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);flex-wrap:wrap}.flow-step{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:.72rem;font-weight:600;color:var(--text3)}.flow-step.done{background:rgba(56,217,169,.1);color:var(--success)}.flow-step.active{background:rgba(79,142,247,.15);color:var(--accent)}.flow-arrow{color:var(--text3);font-size:.7rem;margin:0 2px}
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--success);color:#fff;padding:12px 24px;border-radius:var(--r);font-weight:600;font-size:.85rem;z-index:400;box-shadow:0 8px 32px rgba(56,217,169,.3);transition:transform .3s ease}.toast.show{transform:translateX(-50%) translateY(0)}
+/* ADD FORM MODAL */
+.add-bg{position:fixed;inset:0;z-index:250;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.65);backdrop-filter:blur(4px)}.add-bg.show{display:flex}
+.add-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;max-width:520px;width:92%;max-height:85vh;overflow:auto;animation:popIn .2s ease}
+.add-title{font-size:1rem;font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.fg{margin-bottom:14px}.fg label{display:block;font-family:'DM Mono',monospace;font-size:.55rem;text-transform:uppercase;letter-spacing:2px;color:var(--text3);margin-bottom:5px}.fg input,.fg select,.fg textarea{width:100%}
+.fg-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.chk-grid{display:flex;flex-wrap:wrap;gap:8px}.chk-item{display:flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--border);border-radius:var(--rs);cursor:pointer;font-size:.78rem;font-weight:500;transition:all .15s;user-select:none}.chk-item:hover{border-color:var(--border-h)}.chk-item.on{border-color:var(--accent);background:rgba(79,142,247,.1);color:var(--accent)}
+.add-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
 </style>
-</head>
-<body>
-
-<!-- SIDEBAR -->
-<aside class="sb">
-  <div class="sb-logo">
-    <div class="sb-logo-icon">AE</div>
-    <div>
-      <div style="font-weight:700;font-size:.88rem;letter-spacing:.3px">Advanced Energy</div>
-      <div class="mono" style="font-size:.55rem;text-transform:uppercase;letter-spacing:2px;color:var(--text3)">Plenion</div>
-    </div>
-  </div>
-  <div class="sb-nav">
-    <div class="sb-sec">Overzicht</div>
-    <div class="ni a" data-tab="dashboard" onclick="go(this)">
-      <span>📊</span><span style="flex:1">Dashboard</span>
-    </div>
-
-    <div class="sb-sec">Applicaties</div>
-    <div class="ni" data-tab="magazijn" onclick="go(this)">
-      <span>📦</span><span style="flex:1">Magazijn</span><span class="ni-badge" id="mag-badge">0</span>
-    </div>
-    <div class="ni" data-tab="bezoeksrapport" onclick="go(this)">
-      <span>📋</span><span style="flex:1">Bezoeksrapport</span><span class="ni-badge" id="br-badge" style="display:none">0</span>
-    </div>
-    <div class="ni" data-tab="daikin" onclick="go(this)">
-      <span>✅</span><span style="flex:1">Daikin Checklist</span>
-    </div>
-
-    <div class="sb-sec">Beheer</div>
-    <div class="ni" data-tab="instellingen" onclick="go(this)">
-      <span>⚙️</span><span style="flex:1">Instellingen</span>
-    </div>
-  </div>
-  <div class="sb-user">
-    <div class="sb-avatar">AD</div>
-    <div>
-      <div style="font-size:.8rem;font-weight:600">Admin</div>
-      <div class="mono" style="font-size:.58rem;color:var(--success);text-transform:uppercase;letter-spacing:1px">Online</div>
-    </div>
-  </div>
-</aside>
-
-<!-- MAIN -->
-<div class="mn">
-  <header class="hd">
-    <div class="hd-title" id="hd-t">📊 Dashboard <span class="hd-sub">— Overzicht</span></div>
-    <div class="live"><span class="live-dot"></span><span class="mono" style="font-size:.58rem;text-transform:uppercase;letter-spacing:2px;color:var(--success)">Live</span></div>
-    <button class="btn" onclick="loadMagazijn()">↻ Vernieuwen</button>
-  </header>
-
-  <div class="cnt">
-
-    <!-- ═══ DASHBOARD ═══ -->
-    <div class="pnl a" id="p-dashboard">
-      <div class="ds-grid" id="ds-cards"></div>
-
-      <h3 style="font-size:.9rem;font-weight:600;margin-bottom:14px;color:var(--text2)">Snelle links</h3>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;">
-        <div onclick="go(document.querySelector('[data-tab=magazijn]'))" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px 20px;cursor:pointer;transition:all .2s;" onmouseover="this.style.borderColor='var(--border-h)';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='none'">
-          <div style="font-size:32px;margin-bottom:10px">📦</div>
-          <div style="font-weight:700;font-size:.9rem;margin-bottom:4px">Magazijn</div>
-          <div style="font-size:.75rem;color:var(--text2)">Bekijk alle registraties, foto's en statussen</div>
-        </div>
-        <div onclick="go(document.querySelector('[data-tab=bezoeksrapport]'))" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px 20px;cursor:pointer;transition:all .2s;" onmouseover="this.style.borderColor='var(--border-h)';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='none'">
-          <div style="font-size:32px;margin-bottom:10px">📋</div>
-          <div style="font-weight:700;font-size:.9rem;margin-bottom:4px">Bezoeksrapport</div>
-          <div style="font-size:.75rem;color:var(--text2)">Ingezonden bezoeksrapporten bekijken</div>
-        </div>
-        <div onclick="go(document.querySelector('[data-tab=daikin]'))" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px 20px;cursor:pointer;transition:all .2s;" onmouseover="this.style.borderColor='var(--border-h)';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='none'">
-          <div style="font-size:32px;margin-bottom:10px">✅</div>
-          <div style="font-weight:700;font-size:.9rem;margin-bottom:4px">Daikin Checklist</div>
-          <div style="font-size:.75rem;color:var(--text2)">Daikin checklists en inspecties</div>
-        </div>
-      </div>
-
-      <h3 style="font-size:.9rem;font-weight:600;margin:24px 0 14px;color:var(--text2)">Laatste activiteit</h3>
-      <div id="ds-activity" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;">
-        <div style="color:var(--text3);font-size:.82rem">Nog geen activiteit geladen</div>
-      </div>
-    </div>
-
-    <!-- ═══ MAGAZIJN ═══ -->
-    <div class="pnl" id="p-magazijn">
-      <div class="cat-grid" id="cat-cards"></div>
-      <div class="fl">
-        <div class="sr">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input id="mag-search" placeholder="Zoeken op omschrijving, project, ref..." oninput="renderTable()">
-        </div>
-        <select id="mag-filter" onchange="renderTable()">
-          <option value="">Alle Categorieën</option>
-          <option value="paars">Spare part — Stock</option>
-          <option value="oranje">Spare part — Interventie</option>
-          <option value="geel">Niet volledig</option>
-          <option value="rood">Beschadigd / Retour lev.</option>
-          <option value="blauw">Retour van werf</option>
-          <option value="roze">Verbruikte spare parts</option>
-        </select>
-        <div style="flex:1"></div>
-        <span style="font-size:.75rem;color:var(--text3)" id="rc">0 items</span>
-      </div>
-      <div class="tw">
-        <div class="ts"><table><thead><tr>
-          <th>#</th><th>Categorie</th><th>Omschrijving</th><th>Project</th><th>Ref.</th><th>Serial</th><th>Status</th><th>Datum</th><th>Foto's</th><th></th>
-        </tr></thead><tbody id="mag-tb"></tbody></table></div>
-        <div class="tf"><div id="tc">Toont 0 van 0 items</div></div>
-      </div>
-    </div>
-
-    <!-- ═══ BEZOEKSRAPPORT ═══ -->
-    <div class="pnl" id="p-bezoeksrapport">
-      <div class="fl">
-        <div class="sr">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input id="br-search" placeholder="Zoeken op klant, adres, type..." oninput="renderBRTable()">
-        </div>
-        <select id="br-filter" onchange="renderBRTable()">
-          <option value="">Alle types</option>
-          <option value="solar">Zon / Thuisbatterij</option>
-          <option value="airmo">Lucht/Lucht Mono</option>
-          <option value="airmu">Lucht/Lucht Multi</option>
-          <option value="airwater">Lucht/Water</option>
-          <option value="geo">Geothermie</option>
-          <option value="charge">Laadpaal</option>
-        </select>
-        <button class="btn" onclick="loadBezoeksrapporten()">↻ Vernieuwen</button>
-        <div style="flex:1"></div>
-        <span style="font-size:.75rem;color:var(--text3)" id="br-rc">0 rapporten</span>
-      </div>
-      <div class="tw">
-        <div class="ts"><table><thead><tr>
-          <th>Klant</th><th>Adres</th><th>Types</th><th>Items</th><th>Foto's</th><th>Datum</th><th></th>
-        </tr></thead><tbody id="br-tb"></tbody></table></div>
-        <div class="tf"><div id="br-tc">Toont 0 van 0 rapporten</div></div>
-      </div>
-    </div>
-
-    <!-- ═══ DAIKIN CHECKLIST ═══ -->
-    <div class="pnl" id="p-daikin">
-      <div class="coming">
-        <div class="coming-icon">✅</div>
-        <div class="coming-title">Daikin Checklist</div>
-        <div class="coming-sub">Hier komen de ingezonden Daikin checklists en inspecties. De data wordt automatisch opgehaald zodra het checklist-formulier gekoppeld is aan Firebase.</div>
-      </div>
-    </div>
-
-    <!-- ═══ INSTELLINGEN ═══ -->
-    <div class="pnl" id="p-instellingen">
-      <div class="coming">
-        <div class="coming-icon">⚙️</div>
-        <div class="coming-title">Instellingen</div>
-        <div class="coming-sub">Gebruikersbeheer, rollen, notificatie-instellingen en meer. Komt binnenkort beschikbaar.</div>
-      </div>
-    </div>
-
-  </div>
-</div>
-
-<!-- DETAIL MODAL (Magazijn) -->
-<div class="mbg" id="modal" onclick="closeModal()">
-  <div class="mdl" onclick="event.stopPropagation()">
-    <div class="mdl-h">
-      <div><h3 style="font-size:1.1rem;font-weight:700;margin-bottom:6px" id="m-title"></h3><div id="m-cat"></div></div>
-      <button class="mdl-x" onclick="closeModal()">✕</button>
-    </div>
-    <div class="mdl-g" id="m-fields"></div>
-    <div id="m-photos"></div>
-    <div id="m-audit"></div>
-  </div>
-</div>
-
-<!-- DETAIL MODAL (Bezoeksrapport) -->
-<div class="mbg" id="br-modal" onclick="closeBRModal()">
-  <div class="mdl" style="max-width:760px" onclick="event.stopPropagation()">
-    <div class="mdl-h">
-      <div><h3 style="font-size:1.1rem;font-weight:700;margin-bottom:6px" id="br-m-title"></h3><div id="br-m-sub" style="font-size:.8rem;color:var(--text2)"></div></div>
-      <button class="mdl-x" onclick="closeBRModal()">✕</button>
-    </div>
-    <div class="mdl-g" id="br-m-fields"></div>
-    <div id="br-m-types"></div>
-    <div id="br-m-items"></div>
-  </div>
-</div>
-
-<!-- FOTO EDITOR OVERLAY -->
-<div id="photo-editor" style="display:none;position:fixed;inset:0;z-index:2000;background:#0a0c14;flex-direction:column">
-  <!-- Toolbar -->
-  <div style="display:flex;align-items:center;gap:6px;padding:8px 12px;background:#181c27;border-bottom:1px solid #2a2f45;flex-wrap:wrap">
-    <button class="ed-tb" id="pe-tool-select" onclick="peTool('select')" title="Selecteer" style="background:rgba(79,142,247,.2);color:#4f8ef7">↖</button>
-    <button class="ed-tb" id="pe-tool-arrow" onclick="peTool('arrow')" title="Pijl">→</button>
-    <button class="ed-tb" id="pe-tool-pen" onclick="peTool('pen')" title="Pen">✏️</button>
-    <button class="ed-tb" id="pe-tool-rect" onclick="peTool('rect')" title="Rechthoek">▭</button>
-    <button class="ed-tb" id="pe-tool-circle" onclick="peTool('circle')" title="Cirkel">○</button>
-    <button class="ed-tb" id="pe-tool-text" onclick="peTool('textbox')" title="Tekst">T</button>
-    <div style="width:1px;height:24px;background:#2a2f45;margin:0 4px"></div>
-    <input type="color" id="pe-color" value="#ff3b30" onchange="peColor=this.value" style="width:28px;height:28px;border:none;border-radius:4px;cursor:pointer">
-    <input type="range" id="pe-size" min="1" max="20" value="3" onchange="peSize=+this.value" style="width:60px">
-    <div style="width:1px;height:24px;background:#2a2f45;margin:0 4px"></div>
-    <button class="ed-tb" onclick="peDeleteSelected()" id="pe-del-btn" style="display:none;color:#ff5c5c" title="Verwijder">🗑️</button>
-    <div style="flex:1"></div>
-    <button class="ed-tb" onclick="peUndo()" title="Ongedaan maken">↩️</button>
-    <button onclick="peSave()" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 16px;font-weight:700;font-size:.8rem;cursor:pointer">✅ Opslaan</button>
-    <button onclick="peClose()" style="background:rgba(255,92,92,.15);color:#ff5c5c;border:1px solid rgba(255,92,92,.3);border-radius:6px;padding:6px 12px;font-weight:600;font-size:.8rem;cursor:pointer">✕</button>
-  </div>
-  <!-- Canvas -->
-  <div style="flex:1;display:flex;align-items:center;justify-content:center;overflow:auto;padding:8px">
-    <canvas id="pe-canvas" style="max-width:100%;cursor:crosshair;border-radius:4px"></canvas>
-  </div>
-</div>
-
-<style>
-.ed-tb{width:32px;height:32px;border:1px solid #2a2f45;border-radius:6px;background:#1e2336;color:#8b92b0;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
-.ed-tb:hover{background:#2a2f45;color:#e8ecf5}
-.ed-tb.active{background:rgba(79,142,247,.2);color:#4f8ef7;border-color:rgba(79,142,247,.4)}
-.foto-edit-btn{position:absolute;bottom:4px;right:4px;background:rgba(79,142,247,.9);color:#fff;border:none;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;cursor:pointer;opacity:0;transition:opacity .2s}
-.foto-wrap:hover .foto-edit-btn{opacity:1}
-</style>
-
-<!-- FIREBASE -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" async></script>
+</head>
+<body>
+<aside class="sb"><div class="sb-logo"><div class="sb-logo-icon">AE</div><div><div style="font-weight:700;font-size:.88rem;letter-spacing:.3px">Advanced Energy</div><div class="mono" style="font-size:.55rem;text-transform:uppercase;letter-spacing:2px;color:var(--text3)">Plenion</div></div></div><div class="sb-nav"><div class="sb-sec">Overzicht</div><div class="ni a" data-tab="dashboard" onclick="go(this)"><span class="ni-icon">📊</span><span style="flex:1">Dashboard</span></div><div class="sb-sec">Applicaties</div><div class="ni" data-tab="magazijn" onclick="go(this)"><span class="ni-icon">📦</span><span style="flex:1">Magazijn</span><span class="ni-badge" id="mag-badge">0</span></div><div class="ni" data-tab="bezoeksrapport" onclick="go(this)"><span class="ni-icon">📋</span><span style="flex:1">Bezoeksrapport</span><span class="ni-badge" id="br-badge" style="display:none">0</span></div><div class="ni" data-tab="projecten" onclick="go(this)"><span class="ni-icon">📁</span><span style="flex:1">Projecten</span><span class="ni-badge" id="pj-badge" style="display:none">0</span></div><div class="ni" data-tab="montage" onclick="go(this)"><span class="ni-icon">🔧</span><span style="flex:1">Montage</span><span class="ni-badge" id="mt-badge" style="display:none">0</span></div><div class="ni" data-tab="service" onclick="go(this)"><span class="ni-icon">🛠️</span><span style="flex:1">Service</span><span class="ni-badge" id="sv-badge" style="display:none">0</span></div><div class="ni" data-tab="onderhoud" onclick="go(this)"><span class="ni-icon">🔄</span><span style="flex:1">Onderhoud</span><span class="ni-badge" id="oh-badge" style="display:none">0</span></div><div class="sb-sec">Beheer</div><div class="ni" data-tab="instellingen" onclick="go(this)"><span class="ni-icon">⚙️</span><span style="flex:1">Instellingen</span></div></div><div class="sb-user"><div class="sb-avatar">AD</div><div><div style="font-size:.8rem;font-weight:600">Admin</div><div class="mono" style="font-size:.58rem;color:var(--success);text-transform:uppercase;letter-spacing:1px">Online</div></div></div></aside>
+<div class="mn"><header class="hd"><div class="hd-title" id="hd-t">📊 Dashboard <span class="hd-sub">— Overzicht</span></div><div class="live"><span class="live-dot"></span><span class="mono" style="font-size:.58rem;text-transform:uppercase;letter-spacing:2px;color:var(--success)">Live</span></div><button class="btn" onclick="location.reload()">↻ Vernieuwen</button></header>
+<div class="cnt">
+<!-- DASHBOARD --><div class="pnl a" id="p-dashboard"><div class="ds-grid" id="ds-cards"></div><h3 style="font-size:.9rem;font-weight:600;margin-bottom:14px;color:var(--text2)">Snelle links</h3><div class="ql-grid"><div class="ql-card" onclick="go(document.querySelector('[data-tab=magazijn]'))"><div class="ql-icon">📦</div><div class="ql-title">Magazijn</div><div class="ql-desc">Registraties & stock</div><div class="ql-count" id="ql-mag">0</div></div><div class="ql-card" onclick="go(document.querySelector('[data-tab=bezoeksrapport]'))"><div class="ql-icon">📋</div><div class="ql-title">Bezoeksrapport</div><div class="ql-desc">Ingezonden rapporten</div><div class="ql-count" id="ql-br">0</div></div><div class="ql-card" onclick="go(document.querySelector('[data-tab=projecten]'))"><div class="ql-icon">📁</div><div class="ql-title">Projecten</div><div class="ql-desc">Actieve projecten</div><div class="ql-count" id="ql-pj">0</div></div><div class="ql-card" onclick="go(document.querySelector('[data-tab=montage]'))"><div class="ql-icon">🔧</div><div class="ql-title">Montage</div><div class="ql-desc">Installaties</div><div class="ql-count" id="ql-mt">0</div></div><div class="ql-card" onclick="go(document.querySelector('[data-tab=service]'))"><div class="ql-icon">🛠️</div><div class="ql-title">Service</div><div class="ql-desc">Interventies</div><div class="ql-count" id="ql-sv">0</div></div><div class="ql-card" onclick="go(document.querySelector('[data-tab=onderhoud]'))"><div class="ql-icon">🔄</div><div class="ql-title">Onderhoud</div><div class="ql-desc">Contracten</div><div class="ql-count" id="ql-oh">0</div></div></div><h3 style="font-size:.9rem;font-weight:600;margin:24px 0 14px;color:var(--text2)">Laatste activiteit</h3><div id="ds-act" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px"><div style="color:var(--text3);font-size:.82rem">Laden...</div></div></div>
+<!-- MAGAZIJN --><div class="pnl" id="p-magazijn"><div class="cat-grid" id="cat-cards"></div><div class="fl"><div class="sr"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input id="mag-search" placeholder="Zoeken..." oninput="renderMag()"></div><select id="mag-filter" onchange="renderMag()"><option value="">Alle Categorieën</option><option value="paars">Spare part — Stock</option><option value="oranje">Spare part — Interventie</option><option value="geel">Niet volledig</option><option value="rood">Beschadigd / Retour lev.</option><option value="blauw">Retour van werf</option><option value="roze">Verbruikte spare parts</option></select><button class="btn-add" onclick="window.open('plenion-magazijn__9_.html','_blank')" title="Opent de magazijn-app (zelfde als op GSM)">📱 Open Magazijn App</button><div style="flex:1"></div><span style="font-size:.75rem;color:var(--text3)" id="mag-rc">0</span></div><div class="tw"><div class="ts"><table><thead><tr><th>#</th><th>Categorie</th><th>Omschrijving</th><th>Project</th><th>Ref.</th><th>Serial</th><th>Status</th><th>Datum</th><th>Foto's</th><th></th></tr></thead><tbody id="mag-tb"></tbody></table></div><div class="tf"><div id="mag-tc">0</div></div></div></div>
+<!-- BEZOEKSRAPPORT --><div class="pnl" id="p-bezoeksrapport"><div class="flow-bar"><div class="flow-step active">📋 Bezoeksrapport</div><span class="flow-arrow">→</span><div class="flow-step">✅ Klaar markeren</div><span class="flow-arrow">→</span><div class="flow-step">📁 Project aangemaakt</div><span class="flow-arrow">→</span><div class="flow-step">🔧 Montage / 🛠️ Service</div></div><div class="fl"><div class="sr"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input id="br-search" placeholder="Zoeken op klant, adres, type..." oninput="renderBR()"></div><select id="br-filter" onchange="renderBR()"><option value="">Alle types</option><option value="solar">Zon / Thuisbatterij</option><option value="airmo">Lucht/Lucht Mono</option><option value="airmu">Lucht/Lucht Multi</option><option value="airwater">Lucht/Water</option><option value="geo">Geothermie</option><option value="charge">Laadpaal</option></select><span style="font-size:.68rem;color:var(--text3);background:var(--surface2);padding:5px 12px;border-radius:var(--rs);border:1px solid var(--border)">📱 Rapporten worden via de GSM-app aangemaakt</span><div style="flex:1"></div><span style="font-size:.75rem;color:var(--text3)" id="br-rc">0</span></div><div class="tw"><div class="ts"><table><thead><tr><th>Klant</th><th>Adres</th><th>Types</th><th>Items</th><th>Foto's</th><th>Datum</th><th style="text-align:center">Acties</th></tr></thead><tbody id="br-tb"></tbody></table></div><div class="tf"><div id="br-tc">0</div></div></div></div>
+<!-- PROJECTEN --><div class="pnl" id="p-projecten"><div class="flow-bar"><div class="flow-step done">📋 Rapport ingediend</div><span class="flow-arrow">→</span><div class="flow-step done">✅ Klaar gemarkeerd</div><span class="flow-arrow">→</span><div class="flow-step active">📁 Project actief</div><span class="flow-arrow">→</span><div class="flow-step">🔧 Montage / 🛠️ Service</div></div><div class="fl"><div class="sr"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input id="pj-search" placeholder="Zoeken op klant, adres..." oninput="renderPJ()"></div><select id="pj-filter" onchange="renderPJ()"><option value="">Alle statussen</option><option value="nieuw">Nieuw</option><option value="gepland">Gepland</option><option value="bezig">Bezig</option><option value="afgerond">Afgerond</option></select><div style="flex:1"></div><span style="font-size:.75rem;color:var(--text3)" id="pj-rc">0</span></div><div class="tw"><div class="ts"><table><thead><tr><th>Klant</th><th>Adres</th><th>Types</th><th>Status</th><th>Project datum</th><th style="text-align:center">Doorsturen</th><th></th></tr></thead><tbody id="pj-tb"></tbody></table></div><div class="tf"><div id="pj-tc">0</div></div></div></div>
+<!-- MONTAGE --><div class="pnl" id="p-montage"><div class="fl"><div class="sr"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input id="mt-search" placeholder="Zoeken..." oninput="renderMT()"></div><select id="mt-filter" onchange="renderMT()"><option value="">Alle statussen</option><option value="gepland">Gepland</option><option value="bezig">Bezig</option><option value="afgerond">Afgerond</option><option value="wacht">Wacht op materiaal</option></select><button class="btn-add" onclick="openAdd('montage')">＋ Toevoegen</button><div style="flex:1"></div><span style="font-size:.75rem;color:var(--text3)" id="mt-rc">0</span></div><div class="tw"><div class="ts"><table><thead><tr><th>Klant</th><th>Adres</th><th>Type</th><th>Team</th><th>Status</th><th>Datum</th><th>Foto's</th><th></th></tr></thead><tbody id="mt-tb"></tbody></table></div><div class="tf"><div id="mt-tc">0</div></div></div></div>
+<!-- SERVICE --><div class="pnl" id="p-service"><div class="fl"><div class="sr"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input id="sv-search" placeholder="Zoeken..." oninput="renderSV()"></div><select id="sv-filter" onchange="renderSV()"><option value="">Alle statussen</option><option value="open">Open</option><option value="bezig">In behandeling</option><option value="wacht">Wacht</option><option value="afgerond">Afgerond</option></select><select id="sv-prio" onchange="renderSV()"><option value="">Alle prioriteiten</option><option value="hoog">Hoog</option><option value="normaal">Normaal</option><option value="laag">Laag</option></select><button class="btn-add" onclick="openAdd('service')">＋ Toevoegen</button><div style="flex:1"></div><span style="font-size:.75rem;color:var(--text3)" id="sv-rc">0</span></div><div class="tw"><div class="ts"><table><thead><tr><th>Klant</th><th>Adres</th><th>Probleem</th><th>Type</th><th>Prioriteit</th><th>Status</th><th>Datum</th><th>Foto's</th><th></th></tr></thead><tbody id="sv-tb"></tbody></table></div><div class="tf"><div id="sv-tc">0</div></div></div></div>
+<!-- ONDERHOUD --><div class="pnl" id="p-onderhoud"><div class="fl"><div class="sr"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input id="oh-search" placeholder="Zoeken..." oninput="renderOH()"></div><select id="oh-filter" onchange="renderOH()"><option value="">Alle statussen</option><option value="actief">Actief</option><option value="verlopen">Verlopen</option><option value="gepland">Gepland</option><option value="uitgevoerd">Uitgevoerd</option></select><button class="btn-add" onclick="openAdd('onderhoud')">＋ Toevoegen</button><div style="flex:1"></div><span style="font-size:.75rem;color:var(--text3)" id="oh-rc">0</span></div><div class="tw"><div class="ts"><table><thead><tr><th>Klant</th><th>Adres</th><th>Type</th><th>Contract</th><th>Laatste beurt</th><th>Volgende</th><th>Status</th><th>Foto's</th><th></th></tr></thead><tbody id="oh-tb"></tbody></table></div><div class="tf"><div id="oh-tc">0</div></div></div></div>
+<!-- INSTELLINGEN --><div class="pnl" id="p-instellingen"><div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:48px 40px;text-align:center"><div style="font-size:56px;margin-bottom:16px">⚙️</div><div style="font-size:1.2rem;font-weight:700;margin-bottom:8px">Instellingen</div><div style="color:var(--text2);font-size:.85rem;max-width:460px;margin:0 auto">Komt binnenkort.</div></div></div>
+</div></div>
+<!-- DETAIL MODAL --><div class="mbg" id="modal" onclick="closeModal()"><div class="mdl" onclick="event.stopPropagation()"><div class="mdl-h"><div><h3 style="font-size:1.1rem;font-weight:700;margin-bottom:6px" id="m-title"></h3><div id="m-cat"></div></div><button class="mdl-x" onclick="closeModal()">✕</button></div><div class="mdl-g" id="m-fields"></div><div id="m-photos"></div><div id="m-extra"></div></div></div>
+<!-- CONFIRM MODAL --><div class="confirm-bg" id="confirm-modal" onclick="closeConfirm()"><div class="confirm-box" onclick="event.stopPropagation()"><div class="confirm-icon">✅</div><div class="confirm-title">Rapport klaar markeren?</div><div class="confirm-sub" id="confirm-sub"></div><div class="confirm-btns"><button class="btn" onclick="closeConfirm()">Annuleren</button><button class="btn btn-s" id="confirm-ok" onclick="doKlaar()">✅ Ja, markeer klaar</button></div></div></div>
+<!-- ADD MODAL (simple forms for montage/service/onderhoud) --><div class="add-bg" id="add-modal" onclick="closeAdd()"><div class="add-box" onclick="event.stopPropagation()"><div class="add-title" id="add-title"></div><div id="add-form"></div><div class="add-actions"><button class="btn" onclick="closeAdd()">Annuleren</button><button class="btn-add" onclick="submitAdd()">＋ Toevoegen</button></div></div></div>
+<div class="toast" id="toast"></div>
 <script>
-firebase.initializeApp({
-  apiKey:"AIzaSyBKU-wCjV4Au4ngRG52Zmmxbzc3N3D8VBU",
-  authDomain:"advanced-intranet.firebaseapp.com",
-  projectId:"advanced-intranet",
-  storageBucket:"advanced-intranet.firebasestorage.app",
-  messagingSenderId:"309856938024",
-  appId:"1:309856938024:web:2108715f92c5dea2da2d1d"
-});
-const db=firebase.firestore();
-const storage=firebase.storage();
+firebase.initializeApp({apiKey:"AIzaSyBKU-wCjV4Au4ngRG52Zmmxbzc3N3D8VBU",authDomain:"advanced-intranet.firebaseapp.com",projectId:"advanced-intranet",storageBucket:"advanced-intranet.firebasestorage.app",messagingSenderId:"309856938024",appId:"1:309856938024:web:2108715f92c5dea2da2d1d"});
+var db=firebase.firestore(),storage=firebase.storage();
+var SEC={paars:{l:'Spare part — Stock',c:'#a78bfa'},oranje:{l:'Spare part — Interventie',c:'#f97316'},geel:{l:'Niet volledig',c:'#f7c948'},rood:{l:'Beschadigd / Retour lev.',c:'#ff5c5c'},blauw:{l:'Retour van werf',c:'#38b6ff'},roze:{l:'Verbruikte spare parts',c:'#f472b6'}};
+var PF=['photos','artikelPhotos','stickerPhotos','bonPhotos','schadePhotos','seriePhotos'];
+var PL={photos:'📦 Product',artikelPhotos:'🔍 Artikelnr',stickerPhotos:'🏷️ Sticker',bonPhotos:'📋 Leverbon',schadePhotos:'⚠️ Schade',seriePhotos:'🔢 Serienr'};
+var BL={solar:'☀️🔋 Zon / Thuisbatterij',airmo:'🌡️ Lucht/Lucht Mono',airmu:'🌡️ Lucht/Lucht Multi',airwater:'💧 Lucht/Water',geo:'🌍 Geothermie',charge:'⚡ Laadpaal'};
+var BC={solar:'#f7c948',airmo:'#ff8c42',airmu:'#ff8c42',airwater:'#38b6ff',geo:'#4caf50',charge:'#a78bfa'};
+var ST={open:{c:'var(--accent)',l:'Open'},nieuw:{c:'var(--accent)',l:'Nieuw'},bezig:{c:'var(--warn)',l:'In behandeling'},gepland:{c:'#38b6ff',l:'Gepland'},wacht:{c:'#a78bfa',l:'Wacht'},afgerond:{c:'var(--success)',l:'Afgerond'},actief:{c:'var(--success)',l:'Actief'},verlopen:{c:'var(--danger)',l:'Verlopen'},uitgevoerd:{c:'var(--accent)',l:'Uitgevoerd'}};
+var PR={hoog:{c:'var(--danger)',l:'🔴 Hoog'},normaal:{c:'var(--warn)',l:'🟡 Normaal'},laag:{c:'var(--text3)',l:'⚪ Laag'}};
+var IT={solar:'☀️ Zon',airmo:'🌡️ Airco Mono',airmu:'🌡️ Airco Multi',airwater:'💧 Lucht/Water',geo:'🌍 Geo',charge:'⚡ Laadpaal',batterij:'🔋 Batterij'};
+var IC={solar:'#f7c948',airmo:'#ff8c42',airmu:'#ff8c42',airwater:'#38b6ff',geo:'#4caf50',charge:'#a78bfa',batterij:'#f7c948'};
+var magItems=[],brItems=[],pjItems=[],mtItems=[],svItems=[],ohItems=[],catFilter='',pendingId='',addMod='';
+var titles={dashboard:'📊 Dashboard <span class="hd-sub">— Overzicht</span>',magazijn:'📦 Magazijn <span class="hd-sub">— Registraties</span>',bezoeksrapport:'📋 Bezoeksrapport <span class="hd-sub">— Rapporten</span>',projecten:'📁 Projecten <span class="hd-sub">— Actieve projecten</span>',montage:'🔧 Montage <span class="hd-sub">— Opdrachten</span>',service:'🛠️ Service <span class="hd-sub">— Interventies</span>',onderhoud:'🔄 Onderhoud <span class="hd-sub">— Contracten</span>',instellingen:'⚙️ Instellingen'};
+var EYE='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+var DLI='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+function fmt(d){if(!d)return'—';try{return new Date(d).toLocaleDateString('nl-BE',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}catch(e){return d}}
+function stB(s){var x=ST[s]||{c:'var(--text3)',l:s||'—'};return'<span class="sd"><span class="cd" style="background:'+x.c+'"></span>'+x.l+'</span>'}
+function prB(p){var x=PR[p]||{c:'var(--text3)',l:p||'—'};return'<span style="font-size:.72rem;font-weight:600;color:'+x.c+'">'+x.l+'</span>'}
+function itB(t){var b=t?t.split('-')[0]:t;var c=IC[b]||'#555e7d';var l=IT[b]||t||'—';return'<span class="tag" style="background:'+c+'1a;color:'+c+'">'+l+'</span>'}
+function tTags(types){return(types||[]).map(function(t){var b=t.split('-')[0];return'<span class="tag" style="background:'+(BC[b]||'#555e7d')+'1a;color:'+(BC[b]||'#555e7d')+'">'+(BL[b]||t)+'</span>'}).join('')}
+function phB(n,cl){if(!n)return'—';return'<span class="pb" style="background:'+(cl?'rgba(56,217,169,.12)':'rgba(139,146,176,.1)')+';color:'+(cl?'var(--success)':'var(--text2)')+'">📷 '+n+(cl?' ☁️':'')+'</span>'}
+function setBdg(id,n){var e=document.getElementById(id);if(!e)return;if(n>0){e.style.display='';e.textContent=n}else e.style.display='none'}
+function cntPh(d){var t=0,c=false;if(!d)return{t:0,c:false};Object.values(d).forEach(function(v){if(!v)return;var u=(v.storageUrls||[]).filter(function(x){return x&&x.startsWith('http')});var p=(v.photos||[]).filter(function(x){return typeof x==='string'&&x.startsWith('http')});t+=Math.max(u.length,p.length,v.photoCount||0);if(u.length||p.length)c=true});return{t:t,c:c}}
+function emR(cols,icon,title,sub){return'<tr><td colspan="'+cols+'" class="empty"><div class="empty-icon">'+icon+'</div><div class="empty-title">'+title+'</div><div class="empty-sub">'+sub+'</div></td></tr>'}
+function ldR(cols){return'<tr><td colspan="'+cols+'" style="text-align:center;padding:40px;color:var(--text2)">⏳ Laden...</td></tr>'}
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},3000)}
+function go(el){var tab=el.dataset.tab;document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('a')});el.classList.add('a');document.querySelectorAll('.pnl').forEach(function(p){p.classList.remove('a')});var p=document.getElementById('p-'+tab);if(p)p.classList.add('a');document.getElementById('hd-t').innerHTML=titles[tab]||tab;if(tab==='magazijn'){renderCat();renderMag()}if(tab==='bezoeksrapport')renderBR();if(tab==='projecten')renderPJ();if(tab==='montage')renderMT();if(tab==='service')renderSV();if(tab==='onderhoud')renderOH();if(tab==='dashboard')renderDash()}
+function closeModal(){document.getElementById('modal').classList.remove('show')}
+function closeConfirm(){document.getElementById('confirm-modal').classList.remove('show');pendingId=''}
+function closeAdd(){document.getElementById('add-modal').classList.remove('show');addMod=''}
 
-const SEC={
-  paars:{label:'Spare part — Stock',color:'#a78bfa',icon:'🟣'},
-  oranje:{label:'Spare part — Interventie',color:'#f97316',icon:'🟠'},
-  geel:{label:'Niet volledig',color:'#f7c948',icon:'🟡'},
-  rood:{label:'Beschadigd / Retour lev.',color:'#ff5c5c',icon:'🔴'},
-  blauw:{label:'Retour van werf',color:'#38b6ff',icon:'🔵'},
-  roze:{label:'Verbruikte spare parts',color:'#f472b6',icon:'🩷'}
-};
-const PL={photos:'📦 Product',artikelPhotos:'🔍 Artikelnr',stickerPhotos:'🏷️ Sticker',bonPhotos:'📋 Leverbon',schadePhotos:'⚠️ Schade',seriePhotos:'🔢 Serienr'};
-const PF=['photos','artikelPhotos','stickerPhotos','bonPhotos','schadePhotos','seriePhotos'];
+// ═══ DASHBOARD ═══
+function renderDash(){document.getElementById('ds-cards').innerHTML=[{l:'Magazijn',v:magItems.length,c:'var(--accent)',s:'Items',t:'magazijn'},{l:'Rapporten',v:brItems.length,c:'#f7c948',s:'Ingezonden',t:'bezoeksrapport'},{l:'Projecten',v:pjItems.length,c:'#38b6ff',s:'Actief',t:'projecten'},{l:'Montage',v:mtItems.length,c:'#f472b6',s:'Opdrachten',t:'montage'},{l:'Service',v:svItems.length,c:'#a78bfa',s:'Tickets',t:'service'},{l:'Onderhoud',v:ohItems.length,c:'var(--success)',s:'Contracten',t:'onderhoud'}].map(function(s){return'<div class="ds-card" onclick="go(document.querySelector(\'[data-tab='+s.t+']\'))"><div class="bar" style="background:'+s.c+'"></div><div class="ds-label">'+s.l+'</div><div class="ds-val" style="color:'+s.c+'">'+s.v+'</div><div class="ds-sub">'+s.s+'</div></div>'}).join('');document.getElementById('ql-mag').textContent=magItems.length;document.getElementById('ql-br').textContent=brItems.length;document.getElementById('ql-pj').textContent=pjItems.length;document.getElementById('ql-mt').textContent=mtItems.length;document.getElementById('ql-sv').textContent=svItems.length;document.getElementById('ql-oh').textContent=ohItems.length;document.getElementById('ds-act').innerHTML='<div style="color:var(--text3);font-size:.82rem">'+magItems.length+' magazijn items · '+brItems.length+' rapporten · '+pjItems.length+' projecten · '+mtItems.length+' montages · '+svItems.length+' tickets · '+ohItems.length+' contracten</div>'}
 
-let magItems=[];
-let catFilter='';
-const titles={dashboard:'📊 Dashboard <span class="hd-sub">— Overzicht</span>',magazijn:'📦 Magazijn <span class="hd-sub">— Alle registraties</span>',bezoeksrapport:'📋 Bezoeksrapport <span class="hd-sub">— Ingezonden rapporten</span>',daikin:'✅ Daikin Checklist <span class="hd-sub">— Inspecties</span>',instellingen:'⚙️ Instellingen <span class="hd-sub">— Configuratie</span>'};
+// ═══ MAGAZIJN ═══
+function renderCat(){document.getElementById('cat-cards').innerHTML=Object.entries(SEC).map(function(e){var k=e[0],cfg=e[1];var n=magItems.filter(function(i){return i.section===k}).length;var a=catFilter===k;return'<div class="cc'+(a?' a':'')+'" style="'+(a?'border-color:'+cfg.c+'88':'')+'" onclick="catFilter=catFilter===\''+k+'\'?\'\':\''+k+'\';document.getElementById(\'mag-filter\').value=catFilter;renderCat();renderMag()"><div class="cc-bar" style="background:'+cfg.c+'"></div><div class="cc-num" style="color:'+cfg.c+'">'+n+'</div><div class="cc-label">'+cfg.l+'</div></div>'}).join('')}
+function renderMag(){var s=document.getElementById('mag-search').value.toLowerCase(),f=document.getElementById('mag-filter').value||catFilter;var fl=magItems.filter(function(i){if(f&&i.section!==f)return false;if(s){var v=[i.description,i.projectNumber,i.reference,i.serial].map(function(x){return(x||'').toLowerCase()});if(!v.some(function(x){return x.includes(s)}))return false}return true});var tb=document.getElementById('mag-tb');if(!fl.length)tb.innerHTML=emR(10,'📦','Geen items','Klik ＋ Toevoegen om een item te registreren');else tb.innerHTML=fl.map(function(item){var sec=SEC[item.section]||{l:item.section,c:'#555e7d'};var tp=PF.reduce(function(a,f){return a+((item[f]||[]).length)},0);var sc=item.status==='afgehandeld'?'var(--success)':'var(--accent)';var st=item.status==='afgehandeld'?'Afgehandeld':'Open';return'<tr><td class="mono" style="font-size:.76rem;color:var(--text3)">'+item.id+'</td><td><span class="cb" style="background:'+sec.c+'1a;color:'+sec.c+'"><span class="cd" style="background:'+sec.c+'"></span>'+sec.l+'</span></td><td style="font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(item.description||'—')+'</td><td class="mono" style="font-size:.76rem;color:var(--text2)">'+(item.projectNumber||'—')+'</td><td style="font-size:.8rem;color:var(--text2)">'+(item.reference||'—')+'</td><td class="mono" style="font-size:.72rem;color:var(--text2)">'+(item.serial||'—')+'</td><td><span class="sd"><span class="cd" style="background:'+sc+'"></span>'+st+'</span></td><td class="mono" style="font-size:.7rem;color:var(--text3);white-space:nowrap">'+(item.timestamp||'—')+'</td><td>'+phB(tp,false)+'</td><td><button class="vb" onclick="openMagM('+item.id+')">'+EYE+'</button></td></tr>'}).join('');document.getElementById('mag-rc').textContent=fl.length+' items';document.getElementById('mag-tc').innerHTML='Toont '+fl.length+' van '+magItems.length}
+function openMagM(id){var item=magItems.find(function(i){return i.id===id});if(!item)return;var sec=SEC[item.section]||{l:'',c:'#555e7d'};document.getElementById('m-title').textContent='Item #'+item.id;document.getElementById('m-cat').innerHTML='<span class="cb" style="background:'+sec.c+'1a;color:'+sec.c+'">'+sec.l+'</span>';document.getElementById('m-fields').innerHTML=[['Omschrijving',item.description],['Project',item.projectNumber],['Referentie',item.reference],['Serial',item.serial],['Leverancier',item.supplierId],['Datum',item.timestamp],['Door',item.createdBy]].map(function(e){return'<div><div class="mdl-lb">'+e[0]+'</div><div class="mdl-v">'+(e[1]||'—')+'</div></div>'}).join('');document.getElementById('m-photos').innerHTML='';document.getElementById('m-extra').innerHTML='';document.getElementById('modal').classList.add('show')}
 
-// ══ NAVIGATION ══
-function go(el){
-  const tab=el.dataset.tab;
-  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('a'));
-  el.classList.add('a');
-  document.querySelectorAll('.pnl').forEach(p=>p.classList.remove('a'));
-  const p=document.getElementById('p-'+tab);
-  if(p)p.classList.add('a');
-  document.getElementById('hd-t').innerHTML=titles[tab]||tab;
-  if(tab==='magazijn')loadMagazijn();
-  if(tab==='bezoeksrapport')loadBezoeksrapporten();
-  if(tab==='dashboard')renderDashboard();
-}
-
-// ══ DASHBOARD ══
-function renderDashboard(){
-  const total=magItems.length;
-  const cats=Object.entries(SEC).map(([k,v])=>({key:k,...v,count:magItems.filter(i=>i.section===k).length}));
-  const open=magItems.filter(i=>!i.status||i.status==='open').length;
-  const done=magItems.filter(i=>i.status==='afgehandeld').length;
-  const withMail=magItems.filter(i=>i.emailSent).length;
-
-  document.getElementById('ds-cards').innerHTML=[
-    {label:'Totaal Items',value:total,color:'var(--accent)',sub:'In het magazijn'},
-    {label:'Open',value:open,color:'var(--warn)',sub:'Nog af te handelen'},
-    {label:'Mail Verstuurd',value:withMail,color:'#a78bfa',sub:'Wacht op leverancier'},
-    {label:'Afgehandeld',value:done,color:'var(--success)',sub:'Afgerond'}
-  ].map(s=>`<div class="ds-card"><div class="bar" style="background:${s.color}"></div><div class="ds-label">${s.label}</div><div class="ds-val" style="color:${s.color}">${s.value}</div><div class="ds-sub">${s.sub}</div></div>`).join('');
-
-  // Last 5 activities
-  const activities=[];
-  magItems.forEach(item=>{
-    if(item.audit){item.audit.forEach(a=>{activities.push({...a,itemId:item.id,desc:item.description});});}
-  });
-  activities.sort((a,b)=>(b.at||'').localeCompare(a.at||''));
-  const last5=activities.slice(0,5);
-  if(last5.length>0){
-    document.getElementById('ds-activity').innerHTML=last5.map(a=>`<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border)">
-      <span class="mono" style="font-size:.65rem;color:var(--text3);flex-shrink:0;min-width:130px">${a.ts||''}</span>
-      <span style="font-size:.82rem"><strong style="color:var(--text)">#${a.itemId}</strong> ${a.desc?'('+a.desc+')':''} — 👤 ${a.user}: ${a.action}${a.details?' — '+a.details:''}</span>
-    </div>`).join('');
-  }else{
-    document.getElementById('ds-activity').innerHTML='<div style="color:var(--text3);font-size:.82rem;padding:10px">Nog geen activiteit</div>';
-  }
-}
-
-// ══ LOAD MAGAZIJN ══
-async function loadMagazijn(){
-  document.getElementById('mag-tb').innerHTML='<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text2)">⏳ Data laden uit Firebase...</td></tr>';
+// ═══ BEZOEKSRAPPORT ═══
+function renderBR(){var s=(document.getElementById('br-search').value||'').toLowerCase(),f=document.getElementById('br-filter').value;var fl=brItems.filter(function(item){if(f&&!(item.completedTypes||[]).some(function(t){return t===f||t.startsWith(f+'-')}))return false;if(s){var v=[item.klantNaam||'',item.klantAdres||''].map(function(x){return x.toLowerCase()});if(!v.some(function(x){return x.includes(s)}))return false}return true});var tb=document.getElementById('br-tb');if(!fl.length)tb.innerHTML=emR(7,'📋','Geen rapporten','Klik ＋ Toevoegen om een rapport aan te maken');else tb.innerHTML=fl.map(function(item){var ph=cntPh(item._itemData);return'<tr><td style="font-weight:600">'+(item.klantNaam||'—')+'</td><td style="font-size:.8rem;color:var(--text2);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(item.klantAdres||'—')+'</td><td style="max-width:240px">'+tTags(item.completedTypes)+'</td><td class="mono" style="font-size:.76rem;color:var(--text2)">'+Object.keys(item._itemData||{}).length+'</td><td>'+phB(ph.t,ph.c)+'</td><td class="mono" style="font-size:.7rem;color:var(--text3);white-space:nowrap">'+fmt(item.updatedAt)+'</td><td style="white-space:nowrap;text-align:center"><div style="display:flex;align-items:center;gap:5px;justify-content:center"><button class="vb" onclick="openBRM(\''+item.id+'\')" title="Bekijken">'+EYE+'</button><button class="btn btn-s" onclick="askKlaar(\''+item.id+'\')" style="padding:5px 12px;font-size:.7rem;border-radius:6px">✅ Klaar</button></div></td></tr>'}).join('');document.getElementById('br-rc').textContent=fl.length+' rapporten';document.getElementById('br-tc').innerHTML='Toont '+fl.length+' van '+brItems.length}
+function openBRM(id){var item=brItems.find(function(i){return i.id===id});if(!item)return;document.getElementById('m-title').textContent=item.klantNaam||'Klant';document.getElementById('m-cat').innerHTML='<span style="font-size:.8rem;color:var(--text2)">'+(item.klantAdres||'')+'</span>';document.getElementById('m-fields').innerHTML=[['Klant',item.klantNaam],['Adres',item.klantAdres],['Aangemaakt',fmt(item.createdAt)],['Bijgewerkt',fmt(item.updatedAt)]].map(function(e){return'<div><div class="mdl-lb">'+e[0]+'</div><div class="mdl-v">'+(e[1]||'—')+'</div></div>'}).join('');document.getElementById('m-photos').innerHTML='';document.getElementById('m-extra').innerHTML=tTags(item.completedTypes);document.getElementById('modal').classList.add('show')}
+function askKlaar(id){var item=brItems.find(function(i){return i.id===id});if(!item)return;pendingId=id;document.getElementById('confirm-sub').innerHTML='<strong>'+(item.klantNaam||'Klant')+'</strong> — '+(item.klantAdres||'')+'<br><br>Dit rapport wordt verplaatst naar <strong>Projecten</strong>.';document.getElementById('confirm-modal').classList.add('show')}
+async function doKlaar(){if(!pendingId)return;var idx=brItems.findIndex(function(i){return i.id===pendingId});if(idx===-1)return;var item=brItems[idx];var now=new Date().toISOString();
   try{
-    const snap=await db.collection('magazijn').doc('items').get();
-    if(snap.exists&&snap.data().items){
-      magItems=JSON.parse(snap.data().items).filter(i=>!i.deleted);
-    }else{magItems=[];}
+    // Build clean project doc
+    var pjDoc={klantNaam:item.klantNaam||'',klantAdres:item.klantAdres||'',completedTypes:item.completedTypes||[],bronRapportId:item.id,bronType:'bezoekrapport',status:'nieuw',promotedAt:now,createdAt:item.createdAt||now,updatedAt:now};
+    if(item.itemData)pjDoc.itemData=item.itemData;
+    // Write to projecten
+    var ref=await db.collection('projecten').add(pjDoc);
+    // Delete from bezoekrapport
+    await db.collection('bezoekrapport').doc(item._docId||item.id).delete();
+    // Update local arrays
+    pjDoc.id=ref.id;pjDoc._docId=ref.id;pjDoc._itemData=item._itemData||{};
+    pjItems.unshift(pjDoc);brItems.splice(idx,1);
+    toast('✅ Project aangemaakt voor '+(item.klantNaam||'klant'));
+  }catch(e){console.error(e);toast('⚠️ Fout: '+e.message);closeConfirm();return}
+  closeConfirm();setBdg('br-badge',brItems.length);setBdg('pj-badge',pjItems.length);renderBR();renderPJ();renderDash()}
+
+// ═══ PROJECTEN ═══
+function renderPJ(){var s=(document.getElementById('pj-search').value||'').toLowerCase(),f=document.getElementById('pj-filter').value;var fl=pjItems.filter(function(item){if(f&&item.status!==f)return false;if(s){var v=[item.klantNaam||'',item.klantAdres||''].map(function(x){return x.toLowerCase()});if(!v.some(function(x){return x.includes(s)}))return false}return true});var tb=document.getElementById('pj-tb');if(!fl.length)tb.innerHTML=emR(7,'📁','Geen projecten','Markeer een rapport als "Klaar" om een project aan te maken');else tb.innerHTML=fl.map(function(item){return'<tr><td style="font-weight:600">'+(item.klantNaam||'—')+'</td><td style="font-size:.8rem;color:var(--text2);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(item.klantAdres||'—')+'</td><td style="max-width:200px">'+tTags(item.completedTypes)+'</td><td><select style="font-size:.72rem;padding:4px 22px 4px 6px;border-radius:6px;min-width:90px" onchange="chgPJSt(\''+item.id+'\',this.value)"><option value="nieuw"'+(item.status==='nieuw'?' selected':'')+'>Nieuw</option><option value="gepland"'+(item.status==='gepland'?' selected':'')+'>Gepland</option><option value="bezig"'+(item.status==='bezig'?' selected':'')+'>Bezig</option><option value="afgerond"'+(item.status==='afgerond'?' selected':'')+'>Afgerond</option></select></td><td class="mono" style="font-size:.7rem;color:var(--text3);white-space:nowrap">'+fmt(item.promotedAt||item.createdAt)+'</td><td style="text-align:center;white-space:nowrap"><button class="btn" style="padding:4px 10px;font-size:.68rem;margin-right:4px" onclick="sendTo(\'montage\',\''+item.id+'\')">🔧 Montage</button><button class="btn" style="padding:4px 10px;font-size:.68rem" onclick="sendTo(\'service\',\''+item.id+'\')">🛠️ Service</button></td><td><button class="vb" onclick="openPJM(\''+item.id+'\')">'+EYE+'</button></td></tr>'}).join('');document.getElementById('pj-rc').textContent=fl.length+' projecten';document.getElementById('pj-tc').innerHTML='Toont '+fl.length+' van '+pjItems.length}
+function openPJM(id){var item=pjItems.find(function(i){return i.id===id});if(!item)return;document.getElementById('m-title').textContent='📁 '+(item.klantNaam||'');document.getElementById('m-cat').innerHTML='<span style="font-size:.8rem;color:var(--text2)">'+(item.klantAdres||'')+'</span>';document.getElementById('m-fields').innerHTML=[['Klant',item.klantNaam],['Adres',item.klantAdres],['Status',(ST[item.status]||{}).l||''],['Project datum',fmt(item.promotedAt)]].map(function(e){return'<div><div class="mdl-lb">'+e[0]+'</div><div class="mdl-v">'+(e[1]||'—')+'</div></div>'}).join('');document.getElementById('m-photos').innerHTML='';document.getElementById('m-extra').innerHTML=tTags(item.completedTypes);document.getElementById('modal').classList.add('show')}
+
+// ═══ MONTAGE / SERVICE / ONDERHOUD ═══
+function renderMT(){var s=(document.getElementById('mt-search').value||'').toLowerCase(),f=document.getElementById('mt-filter').value;var fl=mtItems.filter(function(i){if(f&&i.status!==f)return false;if(s){var v=[i.klantNaam||'',i.klantAdres||'',i.team||''].map(function(x){return x.toLowerCase()});if(!v.some(function(x){return x.includes(s)}))return false}return true});var tb=document.getElementById('mt-tb');if(!fl.length)tb.innerHTML=emR(8,'🔧','Geen opdrachten','Klik ＋ Toevoegen of stuur door vanuit Projecten');else tb.innerHTML=fl.map(function(i){var ph=cntPh(i._itemData);return'<tr><td style="font-weight:600">'+(i.klantNaam||'—')+'</td><td style="font-size:.8rem;color:var(--text2)">'+(i.klantAdres||'—')+'</td><td>'+itB(i.installatieType)+'</td><td style="font-size:.8rem;color:var(--text2)">'+(i.team||'—')+'</td><td><select style="font-size:.72rem;padding:4px 22px 4px 6px;border-radius:6px;min-width:90px" onchange="chgSt(mtItems,\''+i.id+'\',this.value,\'mt\')"><option value="gepland"'+(i.status==='gepland'?' selected':'')+'>Gepland</option><option value="bezig"'+(i.status==='bezig'?' selected':'')+'>Bezig</option><option value="wacht"'+(i.status==='wacht'?' selected':'')+'>Wacht</option><option value="afgerond"'+(i.status==='afgerond'?' selected':'')+'>Afgerond</option></select></td><td class="mono" style="font-size:.7rem;color:var(--text3)">'+fmt(i.geplandeDatum||i.updatedAt)+'</td><td>'+phB(ph.t,ph.c)+'</td><td><button class="vb" onclick="openGenM(\'montage\',\''+i.id+'\')">'+EYE+'</button></td></tr>'}).join('');document.getElementById('mt-rc').textContent=fl.length;document.getElementById('mt-tc').textContent='Toont '+fl.length+' van '+mtItems.length}
+function renderSV(){var s=(document.getElementById('sv-search').value||'').toLowerCase(),f=document.getElementById('sv-filter').value,p=document.getElementById('sv-prio').value;var fl=svItems.filter(function(i){if(f&&i.status!==f)return false;if(p&&i.prioriteit!==p)return false;if(s){var v=[i.klantNaam||'',i.klantAdres||'',i.probleem||''].map(function(x){return x.toLowerCase()});if(!v.some(function(x){return x.includes(s)}))return false}return true});var tb=document.getElementById('sv-tb');if(!fl.length)tb.innerHTML=emR(9,'🛠️','Geen tickets','Klik ＋ Toevoegen of stuur door vanuit Projecten');else tb.innerHTML=fl.map(function(i){var ph=cntPh(i._itemData);return'<tr><td style="font-weight:600">'+(i.klantNaam||'—')+'</td><td style="font-size:.8rem;color:var(--text2)">'+(i.klantAdres||'—')+'</td><td style="font-size:.8rem">'+(i.probleem||'—')+'</td><td>'+itB(i.installatieType)+'</td><td>'+prB(i.prioriteit)+'</td><td><select style="font-size:.72rem;padding:4px 22px 4px 6px;border-radius:6px;min-width:90px" onchange="chgSt(svItems,\''+i.id+'\',this.value,\'sv\')"><option value="open"'+(i.status==='open'?' selected':'')+'>Open</option><option value="bezig"'+(i.status==='bezig'?' selected':'')+'>Bezig</option><option value="wacht"'+(i.status==='wacht'?' selected':'')+'>Wacht</option><option value="afgerond"'+(i.status==='afgerond'?' selected':'')+'>Afgerond</option></select></td><td class="mono" style="font-size:.7rem;color:var(--text3)">'+fmt(i.updatedAt)+'</td><td>'+phB(ph.t,ph.c)+'</td><td><button class="vb" onclick="openGenM(\'service\',\''+i.id+'\')">'+EYE+'</button></td></tr>'}).join('');document.getElementById('sv-rc').textContent=fl.length;document.getElementById('sv-tc').textContent='Toont '+fl.length+' van '+svItems.length}
+function renderOH(){var s=(document.getElementById('oh-search').value||'').toLowerCase(),f=document.getElementById('oh-filter').value;var fl=ohItems.filter(function(i){if(f&&i.status!==f)return false;if(s){var v=[i.klantNaam||'',i.klantAdres||''].map(function(x){return x.toLowerCase()});if(!v.some(function(x){return x.includes(s)}))return false}return true});var tb=document.getElementById('oh-tb');if(!fl.length)tb.innerHTML=emR(9,'🔄','Geen contracten','Klik ＋ Toevoegen');else tb.innerHTML=fl.map(function(i){var ph=cntPh(i._itemData);return'<tr><td style="font-weight:600">'+(i.klantNaam||'—')+'</td><td style="font-size:.8rem;color:var(--text2)">'+(i.klantAdres||'—')+'</td><td>'+itB(i.installatieType)+'</td><td class="mono" style="font-size:.76rem;color:var(--text2)">'+(i.contractNr||'—')+'</td><td class="mono" style="font-size:.7rem;color:var(--text3)">'+fmt(i.laatsteBeurt)+'</td><td class="mono" style="font-size:.7rem;color:var(--text3)">'+fmt(i.volgendeBeurt)+'</td><td><select style="font-size:.72rem;padding:4px 22px 4px 6px;border-radius:6px;min-width:90px" onchange="chgSt(ohItems,\''+i.id+'\',this.value,\'oh\')"><option value="actief"'+(i.status==='actief'?' selected':'')+'>Actief</option><option value="verlopen"'+(i.status==='verlopen'?' selected':'')+'>Verlopen</option><option value="gepland"'+(i.status==='gepland'?' selected':'')+'>Gepland</option><option value="uitgevoerd"'+(i.status==='uitgevoerd'?' selected':'')+'>Uitgevoerd</option></select></td><td>'+phB(ph.t,ph.c)+'</td><td><button class="vb" onclick="openGenM(\'onderhoud\',\''+i.id+'\')">'+EYE+'</button></td></tr>'}).join('');document.getElementById('oh-rc').textContent=fl.length;document.getElementById('oh-tc').textContent='Toont '+fl.length+' van '+ohItems.length}
+function openGenM(mod,id){var list={montage:mtItems,service:svItems,onderhoud:ohItems}[mod]||[];var item=list.find(function(i){return i.id===id});if(!item)return;document.getElementById('m-title').textContent=({montage:'🔧',service:'🛠️',onderhoud:'🔄'}[mod]||'')+' '+(item.klantNaam||'');document.getElementById('m-cat').innerHTML='<span style="font-size:.8rem;color:var(--text2)">'+(item.klantAdres||'')+'</span>';var f=[['Klant',item.klantNaam],['Adres',item.klantAdres]];if(item.installatieType)f.push(['Type',IT[item.installatieType]||item.installatieType]);if(item.team)f.push(['Team',item.team]);if(item.probleem)f.push(['Probleem',item.probleem]);if(item.prioriteit)f.push(['Prioriteit',(PR[item.prioriteit]||{}).l||'']);if(item.contractNr)f.push(['Contract',item.contractNr]);if(item.status)f.push(['Status',(ST[item.status]||{}).l||'']);document.getElementById('m-fields').innerHTML=f.map(function(e){return'<div><div class="mdl-lb">'+e[0]+'</div><div class="mdl-v">'+(e[1]||'—')+'</div></div>'}).join('');document.getElementById('m-photos').innerHTML='';document.getElementById('m-extra').innerHTML='';document.getElementById('modal').classList.add('show')}
+
+// ═══ ADD FORMS ═══
+// Doorsturen: Project → Montage of Service (pre-filled klantdata)
+async function sendTo(target,pjId){
+  var item=pjItems.find(function(i){return i.id===pjId});if(!item)return;
+  var now=new Date().toISOString();
+  var type=(item.completedTypes||[])[0]||'solar';
+  try{
+    if(target==='montage'){
+      var doc={klantNaam:item.klantNaam||'',klantAdres:item.klantAdres||'',installatieType:type,team:'',status:'gepland',geplandeDatum:now,updatedAt:now,bronProjectId:pjId};
+      var ref=await db.collection('montage').add(doc);
+      doc.id=ref.id;doc._docId=ref.id;doc._itemData=item._itemData||{};
+      mtItems.unshift(doc);setBdg('mt-badge',mtItems.length);renderMT();
+      toast('🔧 Montage aangemaakt voor '+(item.klantNaam||'klant'));
+    }else{
+      var doc={klantNaam:item.klantNaam||'',klantAdres:item.klantAdres||'',installatieType:type,probleem:'',prioriteit:'normaal',status:'open',updatedAt:now,bronProjectId:pjId};
+      var ref=await db.collection('service').add(doc);
+      doc.id=ref.id;doc._docId=ref.id;doc._itemData=item._itemData||{};
+      svItems.unshift(doc);setBdg('sv-badge',svItems.length);renderSV();
+      toast('🛠️ Service-ticket aangemaakt voor '+(item.klantNaam||'klant'));
+    }
+    // Update project status in Firestore
+    item.status='bezig';
+    await db.collection('projecten').doc(item._docId||item.id).update({status:'bezig',updatedAt:now});
+    renderPJ();renderDash();
+    go(document.querySelector('[data-tab='+target+']'));
+  }catch(e){console.error(e);toast('⚠️ Fout: '+e.message)}
+}
+// Status wijzigen: Projecten
+function chgPJSt(id,val){var item=pjItems.find(function(i){return i.id===id});if(item){item.status=val;item.updatedAt=new Date().toISOString();db.collection('projecten').doc(item._docId||item.id).update({status:val,updatedAt:item.updatedAt}).catch(function(e){console.error(e)});toast('📁 Status → '+(ST[val]||{}).l);renderDash()}}
+// Status wijzigen: generic (montage/service/onderhoud)
+var COL_MAP={mt:'montage',sv:'service',oh:'onderhoud'};
+function chgSt(list,id,val,prefix){var item=list.find(function(i){return i.id===id});if(item){item.status=val;item.updatedAt=new Date().toISOString();var col=COL_MAP[prefix];if(col)db.collection(col).doc(item._docId||item.id).update({status:val,updatedAt:item.updatedAt}).catch(function(e){console.error(e)});toast('✅ Status → '+(ST[val]||{}).l);renderDash()}}
+var typeOpts='<option value="solar">☀️ Zonnepanelen</option><option value="airmo">🌡️ Airco Mono</option><option value="airmu">🌡️ Airco Multi</option><option value="airwater">💧 Lucht/Water</option><option value="geo">🌍 Geothermie</option><option value="charge">⚡ Laadpaal</option><option value="batterij">🔋 Thuisbatterij</option>';
+var catOpts='<option value="paars">🟣 Spare part — Stock</option><option value="oranje">🟠 Spare part — Interventie</option><option value="geel">🟡 Niet volledig</option><option value="rood">🔴 Beschadigd / Retour lev.</option><option value="blauw">🔵 Retour van werf</option><option value="roze">🩷 Verbruikte spare parts</option>';
+var ADD_TITLES={magazijn:'📦 Magazijn',bezoeksrapport:'📋 Bezoeksrapport',montage:'🔧 Montage-opdracht toevoegen',service:'🛠️ Service-ticket toevoegen',onderhoud:'🔄 Onderhoudscontract toevoegen'};
+function togChk(el){el.classList.toggle('on');if(addMod==='bezoeksrapport')updateBRFields()}
+function gv(id){var e=document.getElementById(id);return e?e.value.trim():''}
+
+// Apps that have a full mobile version — open in new tab
+var APP_URLS={
+  bezoeksrapport:'bezoekrapport.html',
+  magazijn:'plenion-magazijn__9_.html'
+};
+function openAdd(mod){
+  // Bezoeksrapport & Magazijn: open the real mobile app
+  if(APP_URLS[mod]){window.open(APP_URLS[mod],'_blank');return}
+  // Other modules: simple form
+  addMod=mod;
+  document.getElementById('add-title').textContent=ADD_TITLES[mod]||'Toevoegen';
+  document.getElementById('add-form').innerHTML=buildForm(mod);
+  document.getElementById('add-modal').classList.add('show');
+}
+
+function buildForm(mod){
+  if(mod==='montage') return '<div class="fg-row"><div class="fg"><label>Klantnaam <span style="color:var(--danger)">*</span></label><input id="af-klant" placeholder="Jan Peeters"></div><div class="fg"><label>Adres <span style="color:var(--danger)">*</span></label><input id="af-adres" placeholder="Straat nr, postcode Stad"></div></div>'+
+    '<div class="fg-row"><div class="fg"><label>Type installatie <span style="color:var(--danger)">*</span></label><select id="af-type">'+typeOpts+'</select></div><div class="fg"><label>Team</label><select id="af-team"><option>Team Alpha</option><option>Team Bravo</option><option>Team Charlie</option></select></div></div>'+
+    '<div class="fg-row"><div class="fg"><label>Status</label><select id="af-status"><option value="gepland">Gepland</option><option value="bezig">Bezig</option></select></div><div class="fg"><label>Geplande datum</label><input id="af-datum" type="date"></div></div>'+
+    '<div class="fg"><label>Notities montage</label><textarea id="af-notes" placeholder="Bijzonderheden voor het team..."></textarea></div>';
+
+  if(mod==='service') return '<div class="fg-row"><div class="fg"><label>Klantnaam <span style="color:var(--danger)">*</span></label><input id="af-klant" placeholder="Jan Peeters"></div><div class="fg"><label>Adres <span style="color:var(--danger)">*</span></label><input id="af-adres" placeholder="Straat nr, postcode Stad"></div></div>'+
+    '<div class="fg"><label>Probleem omschrijving <span style="color:var(--danger)">*</span></label><textarea id="af-probleem" placeholder="Beschrijf het probleem zo gedetailleerd mogelijk..."></textarea></div>'+
+    '<div class="fg-row"><div class="fg"><label>Type installatie</label><select id="af-type">'+typeOpts+'</select></div><div class="fg"><label>Prioriteit</label><select id="af-prio"><option value="hoog">🔴 Hoog</option><option value="normaal" selected>🟡 Normaal</option><option value="laag">⚪ Laag</option></select></div></div>'+
+    '<div class="fg"><label>Foutcode (optioneel)</label><input id="af-fout" placeholder="Bijv. F31, E15..."></div>'+
+    '<div class="fg"><label>Notities</label><textarea id="af-notes" placeholder="Extra info voor de technieker..."></textarea></div>';
+
+  if(mod==='onderhoud') return '<div class="fg-row"><div class="fg"><label>Klantnaam <span style="color:var(--danger)">*</span></label><input id="af-klant" placeholder="Jan Peeters"></div><div class="fg"><label>Adres <span style="color:var(--danger)">*</span></label><input id="af-adres" placeholder="Straat nr, postcode Stad"></div></div>'+
+    '<div class="fg-row"><div class="fg"><label>Type installatie</label><select id="af-type">'+typeOpts+'</select></div><div class="fg"><label>Contractnummer</label><input id="af-contr" placeholder="OC-2026-..."></div></div>'+
+    '<div class="fg-row"><div class="fg"><label>Status</label><select id="af-status"><option value="actief">Actief</option><option value="gepland">Gepland</option></select></div><div class="fg"><label>Volgende beurt</label><input id="af-datum" type="date"></div></div>'+
+    '<div class="fg"><label>Notities</label><textarea id="af-notes" placeholder="Onderhoudsinstructies..."></textarea></div>';
+  return '';
+}
+
+async function submitAdd(){
+  var now=new Date().toISOString();
+  try{
+  if(addMod==='montage'){
+    if(!gv('af-klant')){toast('⚠️ Vul een klantnaam in');return}
+    var doc={klantNaam:gv('af-klant'),klantAdres:gv('af-adres'),installatieType:gv('af-type'),team:gv('af-team'),status:gv('af-status'),geplandeDatum:gv('af-datum')?new Date(gv('af-datum')).toISOString():now,updatedAt:now,notities:gv('af-notes')};
+    var ref=await db.collection('montage').add(doc);
+    doc.id=ref.id;doc._docId=ref.id;doc._itemData={};
+    mtItems.unshift(doc);setBdg('mt-badge',mtItems.length);renderMT();
+  }else if(addMod==='service'){
+    if(!gv('af-klant')){toast('⚠️ Vul een klantnaam in');return}
+    if(!gv('af-probleem')){toast('⚠️ Beschrijf het probleem');return}
+    var doc={klantNaam:gv('af-klant'),klantAdres:gv('af-adres'),probleem:gv('af-probleem'),installatieType:gv('af-type'),prioriteit:gv('af-prio'),status:'open',foutcode:gv('af-fout'),notities:gv('af-notes'),updatedAt:now};
+    var ref=await db.collection('service').add(doc);
+    doc.id=ref.id;doc._docId=ref.id;doc._itemData={};
+    svItems.unshift(doc);setBdg('sv-badge',svItems.length);renderSV();
+  }else if(addMod==='onderhoud'){
+    if(!gv('af-klant')){toast('⚠️ Vul een klantnaam in');return}
+    var doc={klantNaam:gv('af-klant'),klantAdres:gv('af-adres'),installatieType:gv('af-type'),contractNr:gv('af-contr'),status:gv('af-status'),volgendeBeurt:gv('af-datum')?new Date(gv('af-datum')).toISOString():'',laatsteBeurt:'',notities:gv('af-notes'),updatedAt:now};
+    var ref=await db.collection('onderhoud').add(doc);
+    doc.id=ref.id;doc._docId=ref.id;doc._itemData={};
+    ohItems.unshift(doc);setBdg('oh-badge',ohItems.length);renderOH();
+  }
+  toast('✅ Toegevoegd!');closeAdd();renderDash();
+  }catch(e){console.error(e);toast('⚠️ Fout: '+e.message)}
+}
+
+// ═══ FIREBASE DATA LOADING ═══
+async function loadAll(){
+  try{
+    // Magazijn
+    var magSnap=await db.collection('magazijn').orderBy('timestamp','desc').get();
+    magItems=[];magSnap.forEach(function(doc){var d=doc.data();d._docId=doc.id;magItems.push(d)});
+
+    // Bezoeksrapport
+    var brSnap=await db.collection('bezoekrapport').orderBy('updatedAt','desc').get();
+    brItems=[];brSnap.forEach(function(doc){
+      var d=doc.data();d.id=doc.id;d._docId=doc.id;
+      // Parse itemData JSON string if present
+      if(typeof d.itemData==='string'){try{d._itemData=JSON.parse(d.itemData)}catch(e){d._itemData={}}}
+      else d._itemData=d.itemData||{};
+      brItems.push(d);
+    });
+
+    // Projecten
+    var pjSnap=await db.collection('projecten').orderBy('promotedAt','desc').get();
+    pjItems=[];pjSnap.forEach(function(doc){
+      var d=doc.data();d.id=doc.id;d._docId=doc.id;
+      if(typeof d.itemData==='string'){try{d._itemData=JSON.parse(d.itemData)}catch(e){d._itemData={}}}
+      else d._itemData=d.itemData||{};
+      pjItems.push(d);
+    });
+
+    // Montage
+    var mtSnap=await db.collection('montage').orderBy('updatedAt','desc').get();
+    mtItems=[];mtSnap.forEach(function(doc){var d=doc.data();d.id=doc.id;d._docId=doc.id;d._itemData=d._itemData||{};mtItems.push(d)});
+
+    // Service
+    var svSnap=await db.collection('service').orderBy('updatedAt','desc').get();
+    svItems=[];svSnap.forEach(function(doc){var d=doc.data();d.id=doc.id;d._docId=doc.id;d._itemData=d._itemData||{};svItems.push(d)});
+
+    // Onderhoud
+    var ohSnap=await db.collection('onderhoud').orderBy('updatedAt','desc').get();
+    ohItems=[];ohSnap.forEach(function(doc){var d=doc.data();d.id=doc.id;d._docId=doc.id;d._itemData=d._itemData||{};ohItems.push(d)});
+
   }catch(e){
-    document.getElementById('mag-tb').innerHTML='<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--danger)">⚠️ Fout: '+e.message+'</td></tr>';
-    return;
+    console.error('Firebase load error:',e);
+    toast('⚠️ Fout bij laden: '+e.message);
   }
-  document.getElementById('mag-badge').textContent=magItems.length||'';
-  renderCards();
-  renderTable();
-  renderDashboard();
+  // Update badges & render
+  setBdg('mag-badge',magItems.length);setBdg('br-badge',brItems.length);setBdg('pj-badge',pjItems.length);setBdg('mt-badge',mtItems.length);setBdg('sv-badge',svItems.length);setBdg('oh-badge',ohItems.length);
+  renderDash();
 }
-
-// ══ CATEGORY CARDS ══
-function renderCards(){
-  const el=document.getElementById('cat-cards');
-  el.innerHTML=Object.entries(SEC).map(([key,cfg])=>{
-    const count=magItems.filter(i=>i.section===key).length;
-    const active=catFilter===key;
-    return `<div class="cc${active?' a':''}" style="${active?'border-color:'+cfg.color+'88':''}" onclick="catFilter=catFilter==='${key}'?'':'${key}';document.getElementById('mag-filter').value=catFilter;renderCards();renderTable()">
-      <div class="cc-bar" style="background:${cfg.color}"></div>
-      <div class="cc-num" style="color:${cfg.color}">${count}</div>
-      <div class="cc-label">${cfg.label}</div>
-    </div>`;
-  }).join('');
-}
-
-// ══ TABLE ══
-function renderTable(){
-  const search=document.getElementById('mag-search').value.toLowerCase();
-  const filter=document.getElementById('mag-filter').value||catFilter;
-  const filtered=magItems.filter(i=>{
-    if(filter&&i.section!==filter)return false;
-    if(search){const d=(i.description||'').toLowerCase(),p=(i.projectNumber||'').toLowerCase(),r=(i.reference||'').toLowerCase(),s=(i.serial||'').toLowerCase();
-      if(!d.includes(search)&&!p.includes(search)&&!r.includes(search)&&!s.includes(search))return false;}
-    return true;
-  });
-  const tb=document.getElementById('mag-tb');
-  if(!filtered.length){
-    tb.innerHTML='<tr><td colspan="10" class="empty"><div class="empty-icon">📦</div><div class="empty-title">Geen items gevonden</div><div class="empty-sub">Pas je filters aan of voeg items toe via de Magazijn app</div></td></tr>';
-  }else{
-    tb.innerHTML=filtered.map(item=>{
-      const sec=SEC[item.section]||{label:item.section,color:'#555e7d'};
-      const tp=PF.reduce((s,f)=>s+(item[f]?.length||0),0);
-      const hc=PF.some(f=>item[f]?.some(p=>p.storageUrl));
-      const sc=item.status==='afgehandeld'?'var(--success)':item.emailSent?'var(--warn)':'var(--accent)';
-      const st=item.status==='afgehandeld'?'Afgehandeld':item.emailSent?'Mail':'Open';
-      return `<tr>
-        <td class="mono" style="font-size:.76rem;color:var(--text3)">${item.id}</td>
-        <td><span class="cb" style="background:${sec.color}1a;color:${sec.color}"><span class="cd" style="background:${sec.color}"></span>${sec.label}</span></td>
-        <td style="font-weight:600;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item.description||'—'}</td>
-        <td class="mono" style="font-size:.76rem;color:var(--text2)">${item.projectNumber||'—'}</td>
-        <td style="font-size:.8rem;color:var(--text2)">${item.reference||'—'}</td>
-        <td class="mono" style="font-size:.72rem;color:var(--text2)">${item.serial||'—'}</td>
-        <td><span class="sd"><span class="cd" style="background:${sc}"></span>${st}</span></td>
-        <td class="mono" style="font-size:.7rem;color:var(--text3);white-space:nowrap">${item.timestamp||'—'}</td>
-        <td>${tp>0?`<span class="pb" style="background:${hc?'rgba(56,217,169,.12)':'rgba(139,146,176,.1)'};color:${hc?'var(--success)':'var(--text2)'}">📷 ${tp}${hc?' ☁️':''}</span>`:'—'}</td>
-        <td><button class="vb" onclick="openModal(${item.id})" title="Bekijken"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></td>
-      </tr>`;
-    }).join('');
-  }
-  document.getElementById('rc').textContent=filtered.length+' items';
-  document.getElementById('tc').innerHTML=`Toont <strong style="color:var(--text2)">${filtered.length}</strong> van <strong style="color:var(--text2)">${magItems.length}</strong> items`;
-}
-
-// ══ DETAIL MODAL ══
-function openModal(id){
-  const item=magItems.find(i=>i.id===id);if(!item)return;
-  const sec=SEC[item.section]||{label:item.section,color:'#555e7d'};
-  document.getElementById('m-title').textContent='Item #'+item.id;
-  document.getElementById('m-cat').innerHTML=`<span class="cb" style="background:${sec.color}1a;color:${sec.color}"><span class="cd" style="background:${sec.color}"></span>${sec.label}</span>`;
-  const sc=item.status==='afgehandeld'?'var(--success)':item.emailSent?'var(--warn)':'var(--accent)';
-  const st=item.status==='afgehandeld'?'✅ Afgehandeld':item.emailSent?'📧 Mail verstuurd':'Open';
-  document.getElementById('m-fields').innerHTML=[['Omschrijving',item.description],['Projectnummer',item.projectNumber],['Referentie',item.reference],['Serienummer',item.serial],['Leverancier',item.supplierId],['Geregistreerd',item.timestamp],['Door',item.createdBy]].map(([k,v])=>`<div><div class="mdl-lb">${k}</div><div class="mdl-v">${v||'—'}</div></div>`).join('')+
-    `<div><div class="mdl-lb">Status</div><div><span class="cb" style="background:${sc};color:#fff;opacity:.85;padding:4px 10px">${st}</span></div></div>`;
-
-  let ph='';
-  PF.forEach(f=>{
-    const photos=item[f];if(!photos||!photos.length)return;
-    ph+=`<div class="ps"><div class="ps-t">${PL[f]||f}</div><div class="pg">`;
-    photos.forEach(p=>{
-      ph+=p.storageUrl?`<div><img src="${p.storageUrl}" class="pt" onclick="window.open('${p.storageUrl}','_blank')"/><div class="pt-ts">${p.timestamp||''}</div></div>`
-        :`<div><div class="pp">Alleen lokaal</div><div class="pt-ts">${p.timestamp||''}</div></div>`;
-    });
-    ph+=`</div></div>`;
-  });
-  document.getElementById('m-photos').innerHTML=ph;
-
-  if(item.audit&&item.audit.length){
-    document.getElementById('m-audit').innerHTML=`<div class="ps-t" style="margin-top:12px">Activiteit</div><div class="al">${item.audit.map(a=>`<div class="ae"><span class="at">${a.ts||''}</span><span>👤 ${a.user}: ${a.action}${a.details?' — '+a.details:''}</span></div>`).join('')}</div>`;
-  }else{document.getElementById('m-audit').innerHTML='';}
-  document.getElementById('modal').classList.add('show');
-}
-function closeModal(){document.getElementById('modal').classList.remove('show');}
-
-// ══ BEZOEKSRAPPORT DATA ══
-let brItems=[];
-
-const BR_TYPE_LABELS={
-  solar:'☀️🔋 Zon / Thuisbatterij',
-  airmo:'🌡️ Lucht/Lucht Mono',
-  airmu:'🌡️ Lucht/Lucht Multi',
-  airwater:'💧 Lucht/Water',
-  geo:'🌍 Geothermie',
-  charge:'⚡ Laadpaal'
-};
-const BR_TYPE_COLORS={
-  solar:'#f7c948',airmo:'#ff8c42',airmu:'#ff8c42',airwater:'#38b6ff',geo:'#4caf50',charge:'#a78bfa'
-};
-
-async function loadBezoeksrapporten(){
-  document.getElementById('br-tb').innerHTML='<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text2)">⏳ Rapporten laden uit Firebase...</td></tr>';
-  try{
-    const snap=await db.collection('bezoekrapport').get();
-    brItems=[];
-    snap.forEach(doc=>{
-      const d=doc.data();
-      brItems.push({id:doc.id,...d,_itemData:d.itemData?JSON.parse(d.itemData):{}});
-    });
-    // Sorteer op datum (nieuwste eerst)
-    brItems.sort((a,b)=>(b.updatedAt||b.createdAt||'').localeCompare(a.updatedAt||a.createdAt||''));
-  }catch(e){
-    document.getElementById('br-tb').innerHTML='<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--danger)">⚠️ Fout: '+e.message+'</td></tr>';
-    return;
-  }
-  const badge=document.getElementById('br-badge');
-  if(brItems.length>0){badge.style.display='';badge.textContent=brItems.length;}
-  else{badge.style.display='none';}
-  renderBRTable();
-}
-
-function renderBRTable(){
-  const search=(document.getElementById('br-search').value||'').toLowerCase();
-  const filter=document.getElementById('br-filter').value;
-  const filtered=brItems.filter(item=>{
-    if(filter){
-      const types=item.completedTypes||[];
-      // Zoek ook in types die beginnen met de filter key (airmo-1, airmu-2 etc)
-      if(!types.some(t=>t===filter||t.startsWith(filter+'-'))) return false;
-    }
-    if(search){
-      const naam=(item.klantNaam||'').toLowerCase();
-      const adres=(item.klantAdres||'').toLowerCase();
-      const types=(item.completedTypes||[]).map(t=>BR_TYPE_LABELS[t]||t).join(' ').toLowerCase();
-      if(!naam.includes(search)&&!adres.includes(search)&&!types.includes(search)) return false;
-    }
-    return true;
-  });
-  const tb=document.getElementById('br-tb');
-  if(!filtered.length){
-    tb.innerHTML='<tr><td colspan="7" class="empty"><div class="empty-icon">📋</div><div class="empty-title">Geen rapporten gevonden</div><div class="empty-sub">Rapporten verschijnen hier zodra ze worden ingezonden via de mobiele app</div></td></tr>';
-  }else{
-    tb.innerHTML=filtered.map(item=>{
-      const types=(item.completedTypes||[]);
-      const typeTags=types.map(t=>{
-        const baseType=t.split('-')[0];
-        const color=BR_TYPE_COLORS[baseType]||'#555e7d';
-        const label=BR_TYPE_LABELS[baseType]||t;
-        return `<span class="tag" style="background:${color}1a;color:${color}">${label}</span>`;
-      }).join('');
-      // Tel items en foto's
-      const data=item._itemData||{};
-      const totalItems=Object.keys(data).length;
-      let totalPhotos=0;
-      let hasCloud=false;
-      Object.values(data).forEach(d=>{
-        const urls=(d.storageUrls||[]).filter(u=>u&&u.startsWith('http'));
-        const photos=(d.photos||[]).filter(p=>typeof p==='string'&&p.startsWith('http'));
-        const pc=d.photoCount||0;
-        // Tel het maximum van alle bronnen
-        totalPhotos+=Math.max(urls.length, photos.length, pc);
-        if(urls.length>0||photos.length>0) hasCloud=true;
-      });
-      const datum=item.updatedAt?new Date(item.updatedAt).toLocaleDateString('nl-BE',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
-      return `<tr>
-        <td style="font-weight:600">${item.klantNaam||'—'}</td>
-        <td style="font-size:.8rem;color:var(--text2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item.klantAdres||'—'}</td>
-        <td style="max-width:280px">${typeTags||'—'}</td>
-        <td class="mono" style="font-size:.76rem;color:var(--text2)">${totalItems}</td>
-        <td>${totalPhotos>0?`<span class="pb" style="background:${hasCloud?'rgba(56,217,169,.12)':'rgba(139,146,176,.1)'};color:${hasCloud?'var(--success)':'var(--text2)'}">📷 ${totalPhotos}${hasCloud?' ☁️':''}</span>`:'—'}</td>
-        <td class="mono" style="font-size:.7rem;color:var(--text3);white-space:nowrap">${datum}</td>
-        <td style="white-space:nowrap"><button class="vb" onclick="openBRModal('${item.id}')" title="Bekijken"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button> <button class="vb" onclick="generateBRPdf('${item.id}')" title="Download PDF" style="margin-left:4px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button></td>
-      </tr>`;
-    }).join('');
-  }
-  document.getElementById('br-rc').textContent=filtered.length+' rapporten';
-  document.getElementById('br-tc').innerHTML=`Toont <strong style="color:var(--text2)">${filtered.length}</strong> van <strong style="color:var(--text2)">${brItems.length}</strong> rapporten`;
-}
-
-function openBRModal(docId){
-  const item=brItems.find(i=>i.id===docId);
-  if(!item) return;
-  document.getElementById('br-m-title').textContent=item.klantNaam||'Onbekende klant';
-  document.getElementById('br-m-sub').textContent=item.klantAdres||'';
-
-  // Basis velden
-  const datum=item.updatedAt?new Date(item.updatedAt).toLocaleDateString('nl-BE',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
-  const created=item.createdAt?new Date(item.createdAt).toLocaleDateString('nl-BE',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
-  document.getElementById('br-m-fields').innerHTML=[
-    ['Klant',item.klantNaam],['Adres',item.klantAdres],['Aangemaakt',created],['Laatst bijgewerkt',datum]
-  ].map(([k,v])=>`<div><div class="mdl-lb">${k}</div><div class="mdl-v">${v||'—'}</div></div>`).join('');
-
-  // Types overzicht
-  const types=item.completedTypes||[];
-  document.getElementById('br-m-types').innerHTML=`<div class="ps"><div class="ps-t">Ingevulde checklists</div><div style="display:flex;gap:6px;flex-wrap:wrap">${types.map(t=>{
-    const baseType=t.split('-')[0];
-    const color=BR_TYPE_COLORS[baseType]||'#555e7d';
-    const label=BR_TYPE_LABELS[baseType]||t;
-    return `<span class="tag" style="background:${color}1a;color:${color};padding:4px 10px;font-size:.75rem">${label}</span>`;
-  }).join('')}</div></div>`;
-
-  // Items per type
-  const data=item._itemData||{};
-  let itemsHtml='';
-  Object.entries(data).forEach(([sk,d])=>{
-    if(!d) return;
-    const hasPhotos=(d.storageUrls||[]).some(u=>u&&u.startsWith('http'));
-    const hasNotes=d.notes&&d.notes.trim();
-    const hasPhotoCount=(d.photoCount||0)>0;
-    // Check of er extra velden zijn ingevuld
-    const hasFields=d.fixType||d.unitType||d.connType||d.phaseType||d.location||d.strings||d.mppTrackers||d.mountType||d.fuelType||d.buildYear||d.insulation||d.woningType||d.boilerTemp||d.totalSqm;
-    const hasAnyData=hasPhotos||hasNotes||hasPhotoCount||hasFields;
-    if(!hasAnyData) return;
-
-    itemsHtml+=`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:14px;margin-bottom:10px">`;
-    itemsHtml+=`<div style="font-weight:600;font-size:.85rem;margin-bottom:8px">${sk}</div>`;
-
-    // Foto's tonen (uit storageUrls of photos array)
-    let validUrls=(d.storageUrls||[]).filter(u=>u&&u.startsWith('http'));
-    // Fallback: sommige oude rapporten hebben URLs in photos array
-    if(validUrls.length===0){
-      validUrls=(d.photos||[]).filter(p=>typeof p==='string'&&p.startsWith('http'));
-    }
-    if(validUrls.length>0){
-      itemsHtml+=`<div class="pg" style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:6px">`;
-      validUrls.forEach((url,fi)=>{
-        const meta=(d.photoMeta&&d.photoMeta[fi])?d.photoMeta[fi]:null;
-        const origUrl=meta&&meta.originalUrl?meta.originalUrl:url;
-        const hasAnnotations=meta&&meta.annotations&&meta.annotations.length>0;
-        itemsHtml+=`<div class="foto-wrap" style="position:relative;width:90px;height:90px">`;
-        itemsHtml+=`<img src="${url}" class="pt" onclick="window.open('${url}','_blank')" style="width:90px;height:90px;border-radius:4px;object-fit:cover;cursor:pointer"/>`;
-        itemsHtml+=`<button class="foto-edit-btn" onclick="event.stopPropagation();peOpen('${item.id}','${sk}',${fi},'${origUrl.replace(/'/g,"\\'")}','${url.replace(/'/g,"\\'")}')">✏️ Bewerk</button>`;
-        if(hasAnnotations) itemsHtml+=`<div style="position:absolute;top:2px;left:2px;background:rgba(79,142,247,.85);color:#fff;border-radius:3px;padding:1px 4px;font-size:8px;font-weight:700">✏️ ${meta.annotations.length}</div>`;
-        itemsHtml+=`</div>`;
-      });
-      itemsHtml+=`</div>`;
-    } else if((d.photoCount||0)>0){
-      itemsHtml+=`<div style="font-size:.72rem;color:var(--warn);margin-bottom:6px">⏳ ${d.photoCount} foto('s) nog niet gesynchroniseerd</div>`;
-    }
-
-    // Notities
-    if(hasNotes){
-      itemsHtml+=`<div style="font-size:.82rem;color:var(--text2);white-space:pre-wrap;line-height:1.5">${d.notes}</div>`;
-    }
-
-    // Extra velden tonen
-    const extraFields=[];
-    if(d.fixType) extraFields.push(['Bevestiging',d.fixType]);
-    if(d.unitType) extraFields.push(['Binnenunit',d.unitType]);
-    if(d.connType) extraFields.push(['Aansluiting',d.connType]);
-    if(d.phaseType) extraFields.push(['Fase',d.phaseType]);
-    if(d.location) extraFields.push(['Locatie',d.location]);
-    if(d.strings) extraFields.push(['Strings',d.strings]);
-    if(d.mppTrackers) extraFields.push(['MPP Trackers',d.mppTrackers]);
-    if(d.mountType) extraFields.push(['Montage',d.mountType]);
-    if(d.fuelType) extraFields.push(['Brandstof',d.fuelType+(d.fuelAmount?' — '+d.fuelAmount+(d.fuelType==='gas'?' m³':' liter'):'')]);
-    if(d.buildYear) extraFields.push(['Bouwjaar',d.buildYear]);
-    if(d.insulation) extraFields.push(['Isolatie',d.insulation]);
-    if(d.woningType) extraFields.push(['Woning',d.woningType]);
-    if(d.boilerTemp) extraFields.push(['Keteltemp',d.boilerTemp+'°C']);
-    if(d.totalSqm) extraFields.push(['Opp.',d.totalSqm+' m²']);
-    if(d.boardType){
-      const bt=d.boardType;
-      const parts=[];
-      if(bt.moeilijk) parts.push('Moeilijk bord');
-      if(bt.extra) parts.push('Extra bord');
-      if(parts.length) extraFields.push(['Bord',parts.join(', ')]);
-    }
-    if(d.sqmRows&&d.sqmRows.length>0){
-      const rows=d.sqmRows.filter(r=>r.floor&&r.sqm);
-      if(rows.length) extraFields.push(['Vloerverw.',rows.map(r=>`${r.floor}: ${r.sqm} m²`).join(', ')]);
-    }
-    if(d.radRows&&d.radRows.length>0){
-      const rows=d.radRows.filter(r=>r.floor&&r.count);
-      if(rows.length) extraFields.push(['Radiatoren',rows.map(r=>`${r.floor}: ${r.count}×`).join(', ')]);
-    }
-
-    if(extraFields.length>0){
-      itemsHtml+=`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${extraFields.map(([k,v])=>`<span style="font-size:.68rem;background:rgba(79,142,247,.1);color:var(--accent);padding:3px 8px;border-radius:5px;font-weight:600">${k}: ${v}</span>`).join('')}</div>`;
-    }
-
-    itemsHtml+=`</div>`;
-  });
-  document.getElementById('br-m-items').innerHTML=itemsHtml||'<div style="color:var(--text3);font-size:.82rem">Geen items gevonden in dit rapport</div>';
-
-  document.getElementById('br-modal').classList.add('show');
-}
-
-function closeBRModal(){document.getElementById('br-modal').classList.remove('show');}
-
-// ══ PDF GENERATIE (Bezoeksrapport) ══
-async function generateBRPdf(docId){
-  const item=brItems.find(i=>i.id===docId);
-  if(!item) return;
-  if(!window.jspdf){alert('PDF library nog niet geladen. Probeer opnieuw.');return;}
-  const {jsPDF}=window.jspdf;
-  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
-  const pw=210,ph=297,ml=14,mr=14,cw=pw-ml-mr;
-  let y=14;
-
-  function checkSpace(needed){
-    if(y+needed>ph-18){doc.addPage();y=14;}
-  }
-
-  try{
-  // ── HEADER ──
-  doc.setFillColor(15,17,23);
-  doc.rect(0,0,pw,36,'F');
-  doc.setTextColor(232,236,245);
-  doc.setFontSize(18);doc.setFont('helvetica','bold');
-  doc.text('Bezoekrapport',ml,16);
-  doc.setFontSize(9);doc.setFont('helvetica','normal');
-  doc.setTextColor(139,146,176);
-  doc.text('Advanced Energy — Plenion',ml,23);
-  const datum=item.updatedAt?new Date(item.updatedAt).toLocaleDateString('nl-BE',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
-  doc.text(datum,pw-mr,16,{align:'right'});
-  y=42;
-
-  // ── KLANTGEGEVENS ──
-  doc.setFillColor(240,244,255);
-  doc.roundedRect(ml,y,cw,22,2,2,'F');
-  doc.setDrawColor(200,210,230);doc.setLineWidth(0.3);
-  doc.roundedRect(ml,y,cw,22,2,2,'S');
-  doc.setTextColor(40,40,40);
-  doc.setFontSize(8);doc.setFont('helvetica','bold');
-  doc.text('KLANT',ml+6,y+7);
-  doc.setFontSize(12);
-  doc.text(item.klantNaam||'—',ml+6,y+15);
-  doc.setFontSize(8);doc.setFont('helvetica','normal');
-  doc.text('ADRES',ml+cw/2,y+7);
-  doc.setFontSize(10);
-  doc.text(item.klantAdres||'—',ml+cw/2,y+15);
-  y+=28;
-
-  // ── TYPES OVERZICHT ──
-  const types=item.completedTypes||[];
-  if(types.length>0){
-    doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(100,100,100);
-    doc.text('INGEVULDE CHECKLISTS',ml,y+4);
-    y+=8;
-    doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(40,40,40);
-    types.forEach(t=>{
-      const baseType=t.split('-')[0];
-      const label=BR_TYPE_LABELS[baseType]||t;
-      doc.text('• '+label.replace(/[\u{2600}-\u{27BF}\u{1F300}-\u{1F9FF}]\u{FE0F}?/gu,'').trim(),ml+4,y+4);
-      y+=5;
-    });
-    y+=4;
-  }
-
-  // ── ITEMS ──
-  const data=item._itemData||{};
-  const entries=Object.entries(data).filter(([sk,d])=>{
-    if(!d) return false;
-    const hasPhotos=(d.storageUrls||[]).some(u=>u&&u.startsWith('http'));
-    const hasNotes=d.notes&&d.notes.trim();
-    const hasPhotoCount=(d.photoCount||0)>0;
-    const hasFields=d.fixType||d.unitType||d.connType||d.phaseType||d.location||d.strings||d.mppTrackers||d.mountType||d.fuelType||d.buildYear||d.insulation||d.woningType||d.boilerTemp||d.totalSqm;
-    return hasPhotos||hasNotes||hasPhotoCount||hasFields;
-  });
-
-  for(const [sk,d] of entries){
-    checkSpace(30);
-
-    // Item header
-    doc.setFillColor(230,235,245);
-    doc.roundedRect(ml,y,cw,8,1,1,'F');
-    doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(40,40,40);
-    doc.text(sk,ml+4,y+5.5);
-    y+=11;
-
-    // Extra velden
-    const fields=[];
-    if(d.fixType) fields.push('Bevestiging: '+d.fixType);
-    if(d.unitType) fields.push('Binnenunit: '+d.unitType);
-    if(d.connType) fields.push('Aansluiting: '+d.connType);
-    if(d.phaseType) fields.push('Fase: '+d.phaseType);
-    if(d.location) fields.push('Locatie: '+d.location);
-    if(d.strings) fields.push('Strings: '+d.strings);
-    if(d.mppTrackers) fields.push('MPP: '+d.mppTrackers);
-    if(d.mountType) fields.push('Montage: '+d.mountType);
-    if(d.fuelType) fields.push('Brandstof: '+d.fuelType+(d.fuelAmount?' — '+d.fuelAmount+(d.fuelType==='gas'?' m³':' L'):''));
-    if(d.buildYear) fields.push('Bouwjaar: '+d.buildYear);
-    if(d.insulation) fields.push('Isolatie: '+d.insulation);
-    if(d.woningType) fields.push('Woning: '+d.woningType);
-    if(d.boilerTemp) fields.push('Keteltemp: '+d.boilerTemp+'°C');
-    if(d.totalSqm) fields.push('Opp: '+d.totalSqm+' m²');
-    if(d.boardType){
-      const parts=[];
-      if(d.boardType.moeilijk) parts.push('Moeilijk bord');
-      if(d.boardType.extra) parts.push('Extra bord');
-      if(parts.length) fields.push('Bord: '+parts.join(', '));
-    }
-    if(d.sqmRows&&d.sqmRows.length>0){
-      const rows=d.sqmRows.filter(r=>r.floor&&r.sqm);
-      if(rows.length) fields.push('Vloerverw: '+rows.map(r=>r.floor+': '+r.sqm+' m²').join(', '));
-    }
-    if(d.radRows&&d.radRows.length>0){
-      const rows=d.radRows.filter(r=>r.floor&&r.count);
-      if(rows.length) fields.push('Radiatoren: '+rows.map(r=>r.floor+': '+r.count+'×').join(', '));
-    }
-
-    if(fields.length>0){
-      doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);
-      fields.forEach(f=>{
-        checkSpace(5);
-        doc.text(f,ml+4,y+3);
-        y+=4;
-      });
-      y+=2;
-    }
-
-    // Notities
-    if(d.notes&&d.notes.trim()){
-      checkSpace(12);
-      doc.setFillColor(248,248,248);
-      const lines=doc.splitTextToSize(d.notes.trim(),cw-16);
-      const noteH=lines.length*3.8+6;
-      doc.roundedRect(ml+4,y,cw-8,noteH,1,1,'F');
-      doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(40,40,40);
-      doc.text(lines,ml+8,y+5);
-      y+=noteH+3;
-    }
-
-    // Foto's laden vanuit storageUrls of photos array
-    let photoUrls=(d.storageUrls||[]).filter(u=>u&&u.startsWith('http'));
-    if(photoUrls.length===0){
-      photoUrls=(d.photos||[]).filter(p=>typeof p==='string'&&p.startsWith('http'));
-    }
-
-    if(photoUrls.length>0){
-      checkSpace(40);
-      const maxPerRow=3;
-      const gap=3;
-      const imgW=(cw-8-(maxPerRow-1)*gap)/maxPerRow;
-      const imgH=38;
-      let px=ml+4;
-
-      for(let i=0;i<photoUrls.length;i++){
-        if(i>0&&i%maxPerRow===0){
-          y+=imgH+gap;px=ml+4;
-          checkSpace(imgH+gap);
-        }
-        try{
-          const b64=await loadPhotoAsBase64(photoUrls[i]);
-          if(b64){doc.addImage(b64,'JPEG',px,y,imgW,imgH);}
-          else{throw new Error('no data');}
-        }catch(e){
-          doc.setFillColor(230,230,230);
-          doc.roundedRect(px,y,imgW,imgH,1,1,'F');
-          doc.setFontSize(7);doc.setTextColor(150,150,150);
-          doc.text('Foto niet beschikbaar',px+imgW/2,y+imgH/2,{align:'center'});
-        }
-        doc.setDrawColor(200,200,200);doc.rect(px,y,imgW,imgH);
-        px+=imgW+gap;
-      }
-      y+=imgH+4;
-    }
-
-    y+=4;
-  }
-
-  // ── FOOTER ──
-  const pageCount=doc.internal.getNumberOfPages();
-  for(let i=1;i<=pageCount;i++){
-    doc.setPage(i);
-    doc.setDrawColor(180,180,180);doc.setLineWidth(0.3);
-    doc.line(ml,ph-10,pw-mr,ph-10);
-    doc.setFontSize(7);doc.setFont('helvetica','normal');doc.setTextColor(120,120,120);
-    doc.text('Pagina '+i+' / '+pageCount,pw/2,ph-6,{align:'center'});
-    doc.text('Plenion Bezoekrapport',ml,ph-6);
-    doc.text(new Date().toLocaleDateString('nl-BE'),pw-mr,ph-6,{align:'right'});
-  }
-
-  const filename=item.klantNaam?'Bezoekrapport_'+item.klantNaam.replace(/[^a-zA-Z0-9]/g,'_')+'.pdf':'Bezoekrapport.pdf';
-  doc.save(filename);
-  }catch(err){
-    console.error('PDF generatie fout:',err);
-    alert('PDF generatie mislukt: '+err.message+'\n\nProbeer opnieuw of neem contact op.');
-  }
-}
-
-// ══ FOTO HELPER: laad foto als base64 via Firebase Storage SDK (omzeilt CORS) ══
-async function loadPhotoAsBase64(url){
-  try{
-    // Methode 1: Extract storage path uit URL en gebruik SDK
-    const match=url.match(/\/o\/(.+?)\?/);
-    if(match){
-      const path=decodeURIComponent(match[1]);
-      const dlUrl=await storage.ref(path).getDownloadURL();
-      const resp=await fetch(dlUrl);
-      const blob=await resp.blob();
-      return await new Promise((res,rej)=>{
-        const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(blob);
-      });
-    }
-  }catch(e){console.warn('Storage SDK load failed:',e);}
-  try{
-    // Methode 2: directe fetch
-    const resp=await fetch(url);
-    const blob=await resp.blob();
-    return await new Promise((res,rej)=>{
-      const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(blob);
-    });
-  }catch(e){console.warn('Direct fetch failed:',e);}
-  try{
-    // Methode 3: Image element
-    return await new Promise((res,rej)=>{
-      const img=new Image();img.crossOrigin='anonymous';
-      img.onload=()=>{const c=document.createElement('canvas');c.width=img.naturalWidth;c.height=img.naturalHeight;c.getContext('2d').drawImage(img,0,0);res(c.toDataURL('image/jpeg',0.85));};
-      img.onerror=rej;img.src=url;
-    });
-  }catch(e){console.warn('Image element failed:',e);}
-  return null;
-}
-
-// ══ FOTO EDITOR (Dashboard) ══
-const peCanvas=document.getElementById('pe-canvas');
-const peCtx=peCanvas.getContext('2d');
-let peBaseImg=null,peAnnotations=[],pePenPath=[];
-let peDrawing=false,peStartX=0,peStartY=0;
-let peCurTool='select',peColor='#ff3b30',peSize=3;
-let peSelectedIdx=-1,peTransformMode=null,peOrigAnnotation=null;
-let peDocId='',peSK='',pePhotoIdx=0,peOrigUrl='',peFlatUrl='';
-let peHistory=[];
-
-function peTool(t){
-  peCurTool=t;peSelectedIdx=-1;
-  document.querySelectorAll('.ed-tb').forEach(b=>b.classList.remove('active'));
-  const btn=document.getElementById('pe-tool-'+t);
-  if(btn)btn.classList.add('active');
-  document.getElementById('pe-del-btn').style.display='none';
-  peCanvas.style.cursor=t==='select'?'default':'crosshair';
-  peRedraw();
-}
-
-async function peOpen(docId,sk,photoIdx,origUrl,flatUrl){
-  peDocId=docId;peSK=sk;pePhotoIdx=photoIdx;peOrigUrl=origUrl;peFlatUrl=flatUrl;
-  peSelectedIdx=-1;peTransformMode=null;peHistory=[];
-  const item=brItems.find(i=>i.id===docId);
-  if(!item)return;
-  const data=item._itemData[sk]||{};
-  const meta=(data.photoMeta&&data.photoMeta[photoIdx])?data.photoMeta[photoIdx]:{};
-  peAnnotations=meta.annotations?JSON.parse(JSON.stringify(meta.annotations)):[];
-  
-  // Laad foto als base64 via Storage SDK
-  const imgSrc=origUrl||flatUrl;
-  const b64=await loadPhotoAsBase64(imgSrc);
-  if(!b64){alert('Foto kon niet geladen worden');return;}
-  
-  const img=new Image();
-  img.onload=()=>{
-    const maxW=window.innerWidth-32;
-    const maxH=window.innerHeight-120;
-    let w=img.naturalWidth,h=img.naturalHeight;
-    if(w>maxW){h=Math.round(h*maxW/w);w=maxW;}
-    if(h>maxH){w=Math.round(w*maxH/h);h=maxH;}
-    peCanvas.width=w;peCanvas.height=h;
-    peBaseImg=img;
-    peTool('select');
-    peRedraw();
-    document.getElementById('photo-editor').style.display='flex';
-  };
-  img.src=b64;
-}
-
-function peClose(){
-  document.getElementById('photo-editor').style.display='none';
-  peBaseImg=null;
-}
-
-function peRedraw(){
-  if(!peBaseImg)return;
-  peCtx.clearRect(0,0,peCanvas.width,peCanvas.height);
-  peCtx.drawImage(peBaseImg,0,0,peCanvas.width,peCanvas.height);
-  peAnnotations.forEach((a,i)=>{
-    pePaintAnnotation(a);
-    if(i===peSelectedIdx&&peCurTool==='select')peDrawSelBox(a);
-  });
-}
-
-function pePaintAnnotation(a){
-  peCtx.save();
-  if(a.rotation){
-    const b=peGetBounds(a);
-    if(b){peCtx.translate(b.x+b.w/2,b.y+b.h/2);peCtx.rotate(a.rotation);peCtx.translate(-(b.x+b.w/2),-(b.y+b.h/2));}
-  }
-  if(a.type==='arrow'||a.type==='line'){
-    peCtx.strokeStyle=a.color||peColor;peCtx.lineWidth=a.size||peSize;peCtx.lineCap='round';
-    peCtx.beginPath();peCtx.moveTo(a.x1,a.y1);peCtx.lineTo(a.x2,a.y2);peCtx.stroke();
-    if(a.type==='arrow'){
-      const angle=Math.atan2(a.y2-a.y1,a.x2-a.x1);const hl=12;
-      peCtx.beginPath();peCtx.moveTo(a.x2,a.y2);
-      peCtx.lineTo(a.x2-hl*Math.cos(angle-Math.PI/6),a.y2-hl*Math.sin(angle-Math.PI/6));
-      peCtx.moveTo(a.x2,a.y2);
-      peCtx.lineTo(a.x2-hl*Math.cos(angle+Math.PI/6),a.y2-hl*Math.sin(angle+Math.PI/6));
-      peCtx.stroke();
-    }
-  }else if(a.type==='rect'){
-    peCtx.strokeStyle=a.color||peColor;peCtx.lineWidth=a.size||peSize;
-    peCtx.strokeRect(a.x1,a.y1,a.x2-a.x1,a.y2-a.y1);
-  }else if(a.type==='circle'){
-    peCtx.strokeStyle=a.color||peColor;peCtx.lineWidth=a.size||peSize;
-    const cx=(a.x1+a.x2)/2,cy=(a.y1+a.y2)/2;
-    const rx=Math.abs(a.x2-a.x1)/2,ry=Math.abs(a.y2-a.y1)/2;
-    peCtx.beginPath();peCtx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);peCtx.stroke();
-  }else if(a.type==='pen'&&a.path){
-    peCtx.strokeStyle=a.color||peColor;peCtx.lineWidth=a.size||peSize;peCtx.lineCap='round';peCtx.lineJoin='round';
-    peCtx.beginPath();
-    a.path.forEach((p,i)=>{if(i===0)peCtx.moveTo(p.x,p.y);else peCtx.lineTo(p.x,p.y);});
-    peCtx.stroke();
-  }else if(a.type==='textbox'){
-    peCtx.fillStyle=a.color||peColor;
-    peCtx.font=(a.fontSize||16)+'px sans-serif';
-    peCtx.fillText(a.text||'',a.x+4,a.y+(a.fontSize||16));
-  }else if(a.type==='stamp'){
-    // Teken stempel als label
-    peCtx.fillStyle=a.color||'#4f8ef7';
-    peCtx.globalAlpha=0.8;
-    const s=a.scale||1,sw=80*s,sh=30*s;
-    peCtx.fillRect(a.x-sw/2,a.y-sh/2,sw,sh);
-    peCtx.globalAlpha=1;
-    peCtx.fillStyle='#fff';peCtx.font=`bold ${12*s}px sans-serif`;peCtx.textAlign='center';
-    peCtx.fillText(a.stamp||'Stempel',a.x,a.y+4*s);peCtx.textAlign='start';
-  }
-  peCtx.restore();
-}
-
-function peGetBounds(a){
-  if(a.type==='stamp'){const s=a.scale||1,w=80*s,h=30*s;return{x:a.x-w/2,y:a.y-h/2,w,h};}
-  if(a.type==='textbox')return{x:a.x,y:a.y,w:a.w||120,h:a.h||30};
-  if(['rect','circle','arrow','line'].includes(a.type))
-    return{x:Math.min(a.x1,a.x2),y:Math.min(a.y1,a.y2),w:Math.abs(a.x2-a.x1)||4,h:Math.abs(a.y2-a.y1)||4};
-  if(a.type==='pen'&&a.path&&a.path.length>0){
-    let mnX=Infinity,mnY=Infinity,mxX=-Infinity,mxY=-Infinity;
-    a.path.forEach(p=>{if(p.x<mnX)mnX=p.x;if(p.y<mnY)mnY=p.y;if(p.x>mxX)mxX=p.x;if(p.y>mxY)mxY=p.y;});
-    return{x:mnX,y:mnY,w:mxX-mnX||4,h:mxY-mnY||4};
-  }
-  return null;
-}
-
-function peDrawSelBox(a){
-  const b=peGetBounds(a);if(!b)return;
-  peCtx.save();peCtx.strokeStyle='#4f8ef7';peCtx.lineWidth=2;peCtx.setLineDash([5,5]);
-  peCtx.strokeRect(b.x,b.y,b.w,b.h);
-  peCtx.setLineDash([]);
-  [[b.x,b.y],[b.x+b.w,b.y],[b.x,b.y+b.h],[b.x+b.w,b.y+b.h]].forEach(([hx,hy])=>{
-    peCtx.fillStyle='#4f8ef7';peCtx.fillRect(hx-5,hy-5,10,10);
-  });
-  peCtx.restore();
-}
-
-function peHitTest(x,y){
-  for(let i=peAnnotations.length-1;i>=0;i--){
-    const b=peGetBounds(peAnnotations[i]);
-    if(b&&x>=b.x-5&&x<=b.x+b.w+5&&y>=b.y-5&&y<=b.y+b.h+5)return i;
-  }
-  return -1;
-}
-
-function peDeleteSelected(){
-  if(peSelectedIdx>=0){
-    peHistory.push(JSON.parse(JSON.stringify(peAnnotations)));
-    peAnnotations.splice(peSelectedIdx,1);peSelectedIdx=-1;
-    document.getElementById('pe-del-btn').style.display='none';
-    peRedraw();
-  }
-}
-
-function peUndo(){
-  if(peHistory.length>0){peAnnotations=peHistory.pop();peSelectedIdx=-1;peRedraw();}
-}
-
-// Canvas events
-peCanvas.addEventListener('pointerdown',e=>{
-  const rect=peCanvas.getBoundingClientRect();
-  const x=(e.clientX-rect.left)*(peCanvas.width/rect.width);
-  const y=(e.clientY-rect.top)*(peCanvas.height/rect.height);
-  peStartX=x;peStartY=y;peDrawing=true;
-
-  if(peCurTool==='select'){
-    const hit=peHitTest(x,y);
-    peSelectedIdx=hit;
-    document.getElementById('pe-del-btn').style.display=hit>=0?'flex':'none';
-    if(hit>=0){peOrigAnnotation=JSON.parse(JSON.stringify(peAnnotations[hit]));peTransformMode='move';}
-    peRedraw();return;
-  }
-  peHistory.push(JSON.parse(JSON.stringify(peAnnotations)));
-  if(peCurTool==='pen'){pePenPath=[{x,y}];}
-  else if(peCurTool==='textbox'){
-    const text=prompt('Tekst invoeren:','');
-    if(text){peAnnotations.push({type:'textbox',x,y,w:Math.max(80,text.length*10),h:24,text,color:peColor,fontSize:16});}
-    peDrawing=false;peRedraw();
-  }
-});
-
-peCanvas.addEventListener('pointermove',e=>{
-  if(!peDrawing)return;
-  const rect=peCanvas.getBoundingClientRect();
-  const x=(e.clientX-rect.left)*(peCanvas.width/rect.width);
-  const y=(e.clientY-rect.top)*(peCanvas.height/rect.height);
-
-  if(peCurTool==='select'&&peSelectedIdx>=0&&peTransformMode==='move'){
-    const dx=x-peStartX,dy=y-peStartY;
-    const a=peAnnotations[peSelectedIdx];
-    const o=peOrigAnnotation;
-    if(a.type==='stamp'||a.type==='textbox'){a.x=(o.x||0)+dx;a.y=(o.y||0)+dy;}
-    else if(a.x1!==undefined){a.x1=o.x1+dx;a.y1=o.y1+dy;a.x2=o.x2+dx;a.y2=o.y2+dy;}
-    else if(a.type==='pen'&&a.path){a.path=o.path.map(p=>({x:p.x+dx,y:p.y+dy}));}
-    peRedraw();return;
-  }
-  if(peCurTool==='pen'){pePenPath.push({x,y});peRedraw();peCtx.strokeStyle=peColor;peCtx.lineWidth=peSize;peCtx.lineCap='round';peCtx.lineJoin='round';peCtx.beginPath();pePenPath.forEach((p,i)=>{if(i===0)peCtx.moveTo(p.x,p.y);else peCtx.lineTo(p.x,p.y);});peCtx.stroke();}
-  else if(['arrow','line','rect','circle'].includes(peCurTool)){
-    peRedraw();
-    peCtx.strokeStyle=peColor;peCtx.lineWidth=peSize;peCtx.lineCap='round';
-    if(peCurTool==='rect')peCtx.strokeRect(peStartX,peStartY,x-peStartX,y-peStartY);
-    else if(peCurTool==='circle'){const cx=(peStartX+x)/2,cy=(peStartY+y)/2,rx=Math.abs(x-peStartX)/2,ry=Math.abs(y-peStartY)/2;peCtx.beginPath();peCtx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);peCtx.stroke();}
-    else{peCtx.beginPath();peCtx.moveTo(peStartX,peStartY);peCtx.lineTo(x,y);peCtx.stroke();if(peCurTool==='arrow'){const angle=Math.atan2(y-peStartY,x-peStartX);peCtx.beginPath();peCtx.moveTo(x,y);peCtx.lineTo(x-12*Math.cos(angle-Math.PI/6),y-12*Math.sin(angle-Math.PI/6));peCtx.moveTo(x,y);peCtx.lineTo(x-12*Math.cos(angle+Math.PI/6),y-12*Math.sin(angle+Math.PI/6));peCtx.stroke();}}
-  }
-});
-
-peCanvas.addEventListener('pointerup',e=>{
-  if(!peDrawing)return;peDrawing=false;
-  const rect=peCanvas.getBoundingClientRect();
-  const x=(e.clientX-rect.left)*(peCanvas.width/rect.width);
-  const y=(e.clientY-rect.top)*(peCanvas.height/rect.height);
-
-  if(peCurTool==='select'){peTransformMode=null;peOrigAnnotation=null;return;}
-  if(peCurTool==='pen'&&pePenPath.length>1){peAnnotations.push({type:'pen',path:[...pePenPath],color:peColor,size:peSize});pePenPath=[];}
-  else if(['arrow','line','rect','circle'].includes(peCurTool)){
-    if(Math.abs(x-peStartX)>3||Math.abs(y-peStartY)>3){
-      peAnnotations.push({type:peCurTool,x1:peStartX,y1:peStartY,x2:x,y2:y,color:peColor,size:peSize});
-    }
-  }
-  peRedraw();
-});
-
-async function peSave(){
-  if(!peDocId||!peSK)return;
-  const item=brItems.find(i=>i.id===peDocId);
-  if(!item)return;
-  const data=item._itemData[peSK];
-  if(!data)return;
-
-  // Update annotations in data
-  if(!data.photoMeta)data.photoMeta={};
-  if(!data.photoMeta[pePhotoIdx])data.photoMeta[pePhotoIdx]={};
-  data.photoMeta[pePhotoIdx].annotations=JSON.parse(JSON.stringify(peAnnotations));
-
-  // Flatten: render canvas naar nieuwe afbeelding en upload
-  peRedraw(); // Teken alles
-  const flatB64=peCanvas.toDataURL('image/jpeg',0.92);
-
-  try{
-    // Upload nieuwe platte versie
-    const ts=Date.now()+'_edited';
-    const safeSk=peSK.replace(/[^a-zA-Z0-9_-]/g,'_');
-    const path=`bezoekrapport/${peDocId}/${safeSk}/${ts}.jpg`;
-    const resp=await fetch(flatB64);
-    const blob=await resp.blob();
-    const snapshot=await storage.ref(path).put(blob,{contentType:'image/jpeg'});
-    const newUrl=await snapshot.ref.getDownloadURL();
-
-    // Update storageUrl
-    if(!data.storageUrls)data.storageUrls=[];
-    data.storageUrls[pePhotoIdx]=newUrl;
-
-    // Update Firestore
-    const cleanData={};
-    for(const [sk2,d2] of Object.entries(item._itemData)){
-      const cm={};
-      if(d2.photoMeta){for(const [idx2,m2] of Object.entries(d2.photoMeta)){cm[idx2]={annotations:m2.annotations||[],originalUrl:m2.originalUrl||null};}}
-      cleanData[sk2]={...d2,photoMeta:cm};
-      // Strip base64 photos
-      delete cleanData[sk2].photos;
-    }
-    await db.collection('bezoekrapport').doc(peDocId).update({
-      itemData:JSON.stringify(cleanData),
-      updatedAt:new Date().toISOString()
-    });
-
-    alert('Foto bijgewerkt!');
-    peClose();
-    // Herlaad modal
-    openBRModal(peDocId);
-  }catch(err){
-    console.error('Editor save fout:',err);
-    alert('Opslaan mislukt: '+err.message);
-  }
-}
-
-// ══ INIT ══
-loadMagazijn();
+loadAll();
 </script>
 </body>
 </html>
