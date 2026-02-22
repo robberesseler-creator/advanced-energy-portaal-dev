@@ -34,6 +34,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" async></script>
 </head>
 <body>
 <aside class="sb"><div class="sb-logo"><div class="sb-logo-icon">AE</div><div><div style="font-weight:700;font-size:.88rem;letter-spacing:.3px">Advanced Energy</div><div class="mono" style="font-size:.55rem;text-transform:uppercase;letter-spacing:2px;color:var(--text3)">Plenion</div></div></div><div class="sb-nav"><div class="sb-sec">Overzicht</div><div class="ni a" data-tab="dashboard" onclick="go(this)"><span class="ni-icon">📊</span><span style="flex:1">Dashboard</span></div><div class="sb-sec">Applicaties</div><div class="ni" data-tab="magazijn" onclick="go(this)"><span class="ni-icon">📦</span><span style="flex:1">Magazijn</span><span class="ni-badge" id="mag-badge">0</span></div><div class="ni" data-tab="bezoeksrapport" onclick="go(this)"><span class="ni-icon">📋</span><span style="flex:1">Bezoeksrapport</span><span class="ni-badge" id="br-badge" style="display:none">0</span></div><div class="ni" data-tab="projecten" onclick="go(this)"><span class="ni-icon">📁</span><span style="flex:1">Projecten</span><span class="ni-badge" id="pj-badge" style="display:none">0</span></div><div class="ni" data-tab="montage" onclick="go(this)"><span class="ni-icon">🔧</span><span style="flex:1">Montage</span><span class="ni-badge" id="mt-badge" style="display:none">0</span></div><div class="ni" data-tab="service" onclick="go(this)"><span class="ni-icon">🛠️</span><span style="flex:1">Service</span><span class="ni-badge" id="sv-badge" style="display:none">0</span></div><div class="ni" data-tab="onderhoud" onclick="go(this)"><span class="ni-icon">🔄</span><span style="flex:1">Onderhoud</span><span class="ni-badge" id="oh-badge" style="display:none">0</span></div><div class="sb-sec">Beheer</div><div class="ni" data-tab="instellingen" onclick="go(this)"><span class="ni-icon">⚙️</span><span style="flex:1">Instellingen</span></div></div><div class="sb-user"><div class="sb-avatar">AD</div><div><div style="font-size:.8rem;font-weight:600">Admin</div><div class="mono" style="font-size:.58rem;color:var(--success);text-transform:uppercase;letter-spacing:1px">Online</div></div></div></aside>
@@ -93,7 +94,7 @@ function renderMag(){var s=document.getElementById('mag-search').value.toLowerCa
 function openMagM(id){var item=magItems.find(function(i){return i.id===id});if(!item)return;var sec=SEC[item.section]||{l:'',c:'#555e7d'};document.getElementById('m-title').textContent='Item #'+item.id;document.getElementById('m-cat').innerHTML='<span class="cb" style="background:'+sec.c+'1a;color:'+sec.c+'">'+sec.l+'</span>';document.getElementById('m-fields').innerHTML=[['Omschrijving',item.description],['Project',item.projectNumber],['Referentie',item.reference],['Serial',item.serial],['Leverancier',item.supplierId],['Datum',item.timestamp],['Door',item.createdBy]].map(function(e){return'<div><div class="mdl-lb">'+e[0]+'</div><div class="mdl-v">'+(e[1]||'—')+'</div></div>'}).join('');document.getElementById('m-photos').innerHTML='';document.getElementById('m-extra').innerHTML='';document.getElementById('modal').classList.add('show')}
 
 // ═══ BEZOEKSRAPPORT ═══
-function renderBR(){var s=(document.getElementById('br-search').value||'').toLowerCase(),f=document.getElementById('br-filter').value;var fl=brItems.filter(function(item){if(f&&!(item.completedTypes||[]).some(function(t){return t===f||t.startsWith(f+'-')}))return false;if(s){var v=[item.klantNaam||'',item.klantAdres||''].map(function(x){return x.toLowerCase()});if(!v.some(function(x){return x.includes(s)}))return false}return true});var tb=document.getElementById('br-tb');if(!fl.length)tb.innerHTML=emR(7,'📋','Geen rapporten','Klik ＋ Toevoegen om een rapport aan te maken');else tb.innerHTML=fl.map(function(item){var ph=cntPh(item._itemData);return'<tr><td style="font-weight:600">'+(item.klantNaam||'—')+'</td><td style="font-size:.8rem;color:var(--text2);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(item.klantAdres||'—')+'</td><td style="max-width:240px">'+tTags(item.completedTypes)+'</td><td class="mono" style="font-size:.76rem;color:var(--text2)">'+Object.keys(item._itemData||{}).length+'</td><td>'+phB(ph.t,ph.c)+'</td><td class="mono" style="font-size:.7rem;color:var(--text3);white-space:nowrap">'+fmt(item.updatedAt)+'</td><td style="white-space:nowrap;text-align:center"><div style="display:flex;align-items:center;gap:5px;justify-content:center"><button class="vb" onclick="openBRM(\''+item.id+'\')" title="Bekijken">'+EYE+'</button><button class="btn btn-s" onclick="askKlaar(\''+item.id+'\')" style="padding:5px 12px;font-size:.7rem;border-radius:6px">✅ Klaar</button></div></td></tr>'}).join('');document.getElementById('br-rc').textContent=fl.length+' rapporten';document.getElementById('br-tc').innerHTML='Toont '+fl.length+' van '+brItems.length}
+function renderBR(){var s=(document.getElementById('br-search').value||'').toLowerCase(),f=document.getElementById('br-filter').value;var fl=brItems.filter(function(item){if(f&&!(item.completedTypes||[]).some(function(t){return t===f||t.startsWith(f+'-')}))return false;if(s){var v=[item.klantNaam||'',item.klantAdres||''].map(function(x){return x.toLowerCase()});if(!v.some(function(x){return x.includes(s)}))return false}return true});var tb=document.getElementById('br-tb');if(!fl.length)tb.innerHTML=emR(7,'📋','Geen rapporten','Klik ＋ Toevoegen om een rapport aan te maken');else tb.innerHTML=fl.map(function(item){var ph=cntPh(item._itemData);return'<tr><td style="font-weight:600">'+(item.klantNaam||'—')+'</td><td style="font-size:.8rem;color:var(--text2);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(item.klantAdres||'—')+'</td><td style="max-width:240px">'+tTags(item.completedTypes)+'</td><td class="mono" style="font-size:.76rem;color:var(--text2)">'+Object.keys(item._itemData||{}).length+'</td><td>'+phB(ph.t,ph.c)+'</td><td class="mono" style="font-size:.7rem;color:var(--text3);white-space:nowrap">'+fmt(item.updatedAt)+'</td><td style="white-space:nowrap;text-align:center"><div style="display:flex;align-items:center;gap:5px;justify-content:center"><button class="vb" onclick="openBRM(\''+item.id+'\')" title="Bekijken">'+EYE+'</button><button class="vb" onclick="dlPDF(\''+item.id+'\')" title="PDF downloaden">'+DLI+'</button><button class="btn btn-s" onclick="askKlaar(\''+item.id+'\')" style="padding:5px 12px;font-size:.7rem;border-radius:6px">✅ Klaar</button></div></td></tr>'}).join('');document.getElementById('br-rc').textContent=fl.length+' rapporten';document.getElementById('br-tc').innerHTML='Toont '+fl.length+' van '+brItems.length}
 function openBRM(id){var item=brItems.find(function(i){return i.id===id});if(!item)return;document.getElementById('m-title').textContent=item.klantNaam||'Klant';document.getElementById('m-cat').innerHTML='<span style="font-size:.8rem;color:var(--text2)">'+(item.klantAdres||'')+'</span>';document.getElementById('m-fields').innerHTML=[['Klant',item.klantNaam],['Adres',item.klantAdres],['Aangemaakt',fmt(item.createdAt)],['Bijgewerkt',fmt(item.updatedAt)]].map(function(e){return'<div><div class="mdl-lb">'+e[0]+'</div><div class="mdl-v">'+(e[1]||'—')+'</div></div>'}).join('');document.getElementById('m-photos').innerHTML='';document.getElementById('m-extra').innerHTML=tTags(item.completedTypes);document.getElementById('modal').classList.add('show')}
 function askKlaar(id){var item=brItems.find(function(i){return i.id===id});if(!item)return;pendingId=id;document.getElementById('confirm-sub').innerHTML='<strong>'+(item.klantNaam||'Klant')+'</strong> — '+(item.klantAdres||'')+'<br><br>Dit rapport wordt verplaatst naar <strong>Projecten</strong>.';document.getElementById('confirm-modal').classList.add('show')}
 async function doKlaar(){if(!pendingId)return;var idx=brItems.findIndex(function(i){return i.id===pendingId});if(idx===-1)return;var item=brItems[idx];var now=new Date().toISOString();
@@ -219,6 +220,78 @@ async function submitAdd(){
   }
   toast('✅ Toegevoegd!');closeAdd();renderDash();
   }catch(e){console.error(e);toast('⚠️ Fout: '+e.message)}
+}
+
+// ═══ PDF EXPORT ═══
+var ITEM_LABELS={woning:'Woning',dak:'Dak',traject:'Kabelroute DC',omvormer:'Omvormer','loc-bat':'Locatie thuisbatterij',internet:'Internet locatie','elek-bord':'Elektrisch bord',hoofdzek:'Zekering digitale meter',buitenunit:'Buitenunit',binnenunit:'Binnenunit','elek-aansl':'Elektrische aansluiting',beschrijving:'Beschrijving project','buitenunit-m':'Buitenunit','buitenunit-w':'Buitenunit','binnenunit-w':'Binnenunit','binnenunit-g':'Binnenunit','vloervw-w':'Vloerverwarming','vloervw-g':'Vloerverwarming','radiatoren-w':'Radiatoren','radiatoren-g':'Radiatoren','geo-info':'Geothermische info','wifi-voelers-g':'Wifi en voelers','loc-laadpunt':'Locatie laadpunt',kabelroute:'Kabelroute'};
+async function loadPhotoAsBase64(url){
+  try{
+    var match=url.match(/\/o\/(.+?)\?/);
+    if(match){var path=decodeURIComponent(match[1]);var dlUrl=await storage.ref(path).getDownloadURL();var resp=await fetch(dlUrl);var blob=await resp.blob();return await new Promise(function(res){var r=new FileReader();r.onload=function(){res(r.result)};r.readAsDataURL(blob)})}
+    var resp2=await fetch(url);var blob2=await resp2.blob();return await new Promise(function(res){var r=new FileReader();r.onload=function(){res(r.result)};r.readAsDataURL(blob2)})
+  }catch(e){console.warn('Photo load err:',e);return null}
+}
+async function dlPDF(id){
+  if(!window.jspdf){toast('⚠️ PDF library nog aan het laden, probeer opnieuw');return}
+  var item=brItems.find(function(i){return i.id===id});if(!item){toast('⚠️ Rapport niet gevonden');return}
+  toast('📄 PDF aan het genereren...');
+  try{
+    var jsPDF=window.jspdf.jsPDF;
+    var doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    var W=210,M=15,CW=W-2*M,y=20;
+    // Header
+    doc.setFillColor(15,17,23);doc.rect(0,0,W,40,'F');
+    doc.setTextColor(255);doc.setFontSize(18);doc.setFont(undefined,'bold');
+    doc.text('Advanced Energy — Bezoeksrapport',M,18);
+    doc.setFontSize(10);doc.setFont(undefined,'normal');
+    doc.text((item.klantNaam||'')+'  •  '+(item.klantAdres||''),M,28);
+    doc.text('Datum: '+fmt(item.updatedAt||item.createdAt),M,35);
+    y=50;
+    // Types
+    doc.setTextColor(0);doc.setFontSize(12);doc.setFont(undefined,'bold');
+    doc.text('Checklist types',M,y);y+=8;
+    doc.setFontSize(10);doc.setFont(undefined,'normal');
+    (item.completedTypes||[]).forEach(function(t){var b=t.split('-')[0];doc.text('• '+(BL[b]||t),M+4,y);y+=6});
+    y+=6;
+    // Items
+    var data=item._itemData||{};
+    var keys=Object.keys(data);
+    if(keys.length){
+      doc.setFontSize(12);doc.setFont(undefined,'bold');
+      doc.text('Checklist items',M,y);y+=8;
+      for(var ki=0;ki<keys.length;ki++){
+        var sk=keys[ki],d=data[sk];if(!d)continue;
+        var baseKey=sk.replace(/^(solar|airmo|airmu|airwater|geo|charge)_/,'');
+        var label=ITEM_LABELS[baseKey]||baseKey;
+        if(y>260){doc.addPage();y=20}
+        doc.setFontSize(10);doc.setFont(undefined,'bold');
+        doc.setFillColor(240,244,255);doc.rect(M,y-4,CW,8,'F');
+        doc.text(label,M+2,y+1);y+=10;
+        doc.setFont(undefined,'normal');doc.setFontSize(9);
+        // Technical fields
+        var fields=[['Notities',d.notes],['Locatie',d.location],['Strings',d.strings],['MPP trackers',d.mppTrackers],['Fase',d.phaseType],['Brandstof',d.fuelType],['Verbruik',d.fuelAmount],['Bouwjaar',d.buildYear],['Isolatie',d.insulation],['Type woning',d.woningType],['Opp.',d.totalSqm?d.totalSqm+' m²':''],['Keteltemp.',d.boilerTemp?d.boilerTemp+'°C':''],['Bevestiging',d.fixType],['Binnenunit',d.unitType],['Aansluiting',d.connType],['Montage',d.mountType],['Batterij',d.batType],['Foto\'s',d.photoCount?d.photoCount+' stuks':'']];
+        fields.forEach(function(f){if(f[1]){doc.text(f[0]+': '+f[1],M+4,y);y+=5;if(y>270){doc.addPage();y=20}}});
+        // Photos
+        var urls=d.storageUrls||[];
+        for(var pi=0;pi<urls.length;pi++){
+          if(!urls[pi]||!urls[pi].startsWith('http'))continue;
+          try{
+            var b64=await loadPhotoAsBase64(urls[pi]);
+            if(b64){if(y>200){doc.addPage();y=20}doc.addImage(b64,'JPEG',M,y,60,45);y+=50}
+          }catch(e){console.warn('Photo load:',e)}
+        }
+        y+=4;
+      }
+    }
+    // Footer
+    doc.setFontSize(8);doc.setTextColor(150);
+    var pages=doc.internal.getNumberOfPages();
+    for(var p=1;p<=pages;p++){doc.setPage(p);doc.text('Advanced Energy — Plenion  |  Pagina '+p+'/'+pages,M,290)}
+    // Download
+    var fn='Bezoeksrapport_'+(item.klantNaam||'klant').replace(/\s+/g,'_')+'_'+new Date().toISOString().slice(0,10)+'.pdf';
+    doc.save(fn);
+    toast('✅ PDF gedownload');
+  }catch(e){console.error('PDF error:',e);toast('⚠️ PDF fout: '+e.message)}
 }
 
 // ═══ FIREBASE DATA LOADING ═══
