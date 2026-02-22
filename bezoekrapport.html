@@ -3731,24 +3731,53 @@ async function syncPhotosToCloud(docId){
   for(const [sk,d] of Object.entries(itemData)){
     if(!d||!d.photos) continue;
     if(!d.storageUrls) d.storageUrls=[];
+    if(!d.photoMeta) d.photoMeta={};
     for(let i=0;i<d.photos.length;i++){
       const photo=d.photos[i];
       if(!photo||!photo.startsWith('data:')) continue;
       if(d.storageUrls[i]&&d.storageUrls[i].startsWith('http')) continue;
       try{
+        // Upload bewerkte (flattened) foto
         const blob=await fetch(photo).then(r=>r.blob());
-        const path=`bezoekrapport/${docId}/${sk}/${Date.now()}_${i}.jpg`;
+        const ts=Date.now();
+        const path=`bezoekrapport/${docId}/${sk}/${ts}_${i}.jpg`;
         const snap=await cloudStorage.ref(path).put(blob,{contentType:'image/jpeg'});
         const url=await snap.ref.getDownloadURL();
         d.storageUrls[i]=url;
+        // Upload originele foto (zonder annotations) als die bestaat
+        const meta=d.photoMeta[i];
+        if(meta&&meta.originalData&&meta.originalData.startsWith('data:')){
+          const origBlob=await fetch(meta.originalData).then(r=>r.blob());
+          const origPath=`bezoekrapport/${docId}/${sk}/originals/${ts}_${i}.jpg`;
+          const origSnap=await cloudStorage.ref(origPath).put(origBlob,{contentType:'image/jpeg'});
+          const origUrl=await origSnap.ref.getDownloadURL();
+          if(!d.photoMeta[i]) d.photoMeta[i]={};
+          d.photoMeta[i].originalUrl=origUrl;
+          delete d.photoMeta[i].originalData; // verwijder base64 uit geheugen
+        }
       }catch(e){console.warn('Upload failed:',sk,i,e);}
     }
   }
-  // Update Firestore with storage URLs
+  // Update Firestore with storage URLs (NOOIT base64 meesturen!)
   const cleanData={};
   Object.keys(itemData).forEach(sk=>{
     const d=itemData[sk];if(!d) return;
-    const copy={...d};delete copy.photos;delete copy.photoMeta;
+    const copy={};
+    Object.keys(d).forEach(k=>{
+      if(k==='photos') return; // skip base64 arrays
+      if(k==='photoMeta'){
+        // Alleen annotations + originalUrl, geen base64
+        copy.photoMeta={};
+        if(d.photoMeta){
+          Object.keys(d.photoMeta).forEach(idx=>{
+            const pm=d.photoMeta[idx];
+            copy.photoMeta[idx]={annotations:pm.annotations||[],originalUrl:pm.originalUrl||''};
+          });
+        }
+        return;
+      }
+      copy[k]=d[k];
+    });
     copy.photoCount=(d.photos||[]).length;
     copy.storageUrls=d.storageUrls||[];
     cleanData[sk]=copy;

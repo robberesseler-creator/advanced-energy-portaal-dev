@@ -225,11 +225,11 @@ async function submitAdd(){
 async function loadAll(){
   try{
     // Magazijn
-    var magSnap=await db.collection('magazijn').orderBy('timestamp','desc').get();
+    var magSnap=await db.collection('magazijn').get();
     magItems=[];magSnap.forEach(function(doc){var d=doc.data();d._docId=doc.id;magItems.push(d)});
 
     // Bezoeksrapport
-    var brSnap=await db.collection('bezoekrapport').orderBy('updatedAt','desc').get();
+    var brSnap=await db.collection('bezoekrapport').get();
     brItems=[];brSnap.forEach(function(doc){
       var d=doc.data();d.id=doc.id;d._docId=doc.id;
       // Parse itemData JSON string if present
@@ -239,7 +239,7 @@ async function loadAll(){
     });
 
     // Projecten
-    var pjSnap=await db.collection('projecten').orderBy('promotedAt','desc').get();
+    var pjSnap=await db.collection('projecten').get();
     pjItems=[];pjSnap.forEach(function(doc){
       var d=doc.data();d.id=doc.id;d._docId=doc.id;
       if(typeof d.itemData==='string'){try{d._itemData=JSON.parse(d.itemData)}catch(e){d._itemData={}}}
@@ -248,15 +248,15 @@ async function loadAll(){
     });
 
     // Montage
-    var mtSnap=await db.collection('montage').orderBy('updatedAt','desc').get();
+    var mtSnap=await db.collection('montage').get();
     mtItems=[];mtSnap.forEach(function(doc){var d=doc.data();d.id=doc.id;d._docId=doc.id;d._itemData=d._itemData||{};mtItems.push(d)});
 
     // Service
-    var svSnap=await db.collection('service').orderBy('updatedAt','desc').get();
+    var svSnap=await db.collection('service').get();
     svItems=[];svSnap.forEach(function(doc){var d=doc.data();d.id=doc.id;d._docId=doc.id;d._itemData=d._itemData||{};svItems.push(d)});
 
     // Onderhoud
-    var ohSnap=await db.collection('onderhoud').orderBy('updatedAt','desc').get();
+    var ohSnap=await db.collection('onderhoud').get();
     ohItems=[];ohSnap.forEach(function(doc){var d=doc.data();d.id=doc.id;d._docId=doc.id;d._itemData=d._itemData||{};ohItems.push(d)});
 
   }catch(e){
