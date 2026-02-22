@@ -18,7 +18,7 @@
     --border:#2a2f45; --border-hover:#3d4460;
     --accent:#4f8ef7; --accent2:#38d9a9; --accent3:#ff8c42;
     --text:#e8ecf5; --text2:#8b92b0; --text3:#555e7d;
-    --success:#38d9a9; --solar:#f7c948; --battery:#4f8ef7; --air:#ff8c42;
+    --success:#38d9a9; --solar:#f7c948; --battery:#4f8ef7; --air:#38b6ff;
     --radius:12px; --radius-sm:8px;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
@@ -30,7 +30,7 @@
     padding:10px 20px;background:#000;border-bottom:1px solid var(--border);
     position:sticky;top:0;z-index:100;}
   .logo{display:flex;align-items:center;gap:12px;}
-  .logo img{height:32px;width:32px;object-fit:contain;}
+  .logo img{height:36px;width:36px;object-fit:contain;image-rendering:auto;}
   .logo-text{display:flex;flex-direction:column;gap:1px;}
   .logo-title{font-size:17px;font-weight:700;letter-spacing:-.3px;color:#fff;}
   .logo-sub{font-size:11px;font-weight:400;color:rgba(255,255,255,.7);letter-spacing:.2px;}
@@ -59,16 +59,17 @@
   .tck{position:absolute;top:10px;right:10px;width:20px;height:20px;border-radius:50%;
     display:flex;align-items:center;justify-content:center;font-size:11px;opacity:0;transition:opacity .2s;}
   .tcard.completed .tck{opacity:1;background:var(--success);color:#0f2a22;}
+  .tcard.started .tck{opacity:1;background:var(--success);color:#0f2a22;}
   .ticon{font-size:32px;margin-bottom:10px;}
   .tname{font-size:14px;font-weight:600;}
   .tsoon{font-size:10px;color:var(--text3);margin-top:3px;}
   .tcard.solar{border-color:rgba(247,201,72,.55);} .tcard.solar .tc-bar{background:var(--solar);}
   .tcard.battery{border-color:rgba(79,142,247,.55);} .tcard.battery .tc-bar{background:var(--battery);}
-  .tcard.airmo{border-color:rgba(255,140,66,.55);} .tcard.airmo .tc-bar{background:var(--air);}
-  .tcard.airmu{border-color:rgba(255,140,66,.55);} .tcard.airmu .tc-bar{background:var(--air);}
-  .tcard.charge{border-color:rgba(167,139,250,.55);} .tcard.charge .tc-bar{background:#a78bfa;}
-  .tcard.airwater{border-color:rgba(56,182,255,.55);} .tcard.airwater .tc-bar{background:#38b6ff;}
-  .tcard.geo{border-color:rgba(76,175,80,.55);} .tcard.geo .tc-bar{background:#4caf50;}
+  .tcard.airmo{border-color:rgba(56,182,255,.55);} .tcard.airmo .tc-bar{background:var(--air);}
+  .tcard.airmu{border-color:rgba(56,182,255,.55);} .tcard.airmu .tc-bar{background:var(--air);}
+  .tcard.charge{border-color:rgba(76,175,80,.55);} .tcard.charge .tc-bar{background:#4caf50;}
+  .tcard.airwater{border-color:rgba(30,64,175,.55);} .tcard.airwater .tc-bar{background:#1e40af;}
+  .tcard.geo{border-color:rgba(30,64,175,.55);} .tcard.geo .tc-bar{background:#1e40af;}
   .tcard.completed{border-color:var(--success);} .tcard.completed .tc-bar{background:var(--success);}
 
   /* Score badges on hub cards */
@@ -106,10 +107,10 @@
     cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;}
   .rtab.solar.active{background:rgba(247,201,72,.15);border-color:var(--solar);color:var(--solar);}
   .rtab.battery.active{background:rgba(79,142,247,.15);border-color:var(--battery);color:var(--battery);}
-  .rtab.airmo.active,.rtab.airmu.active{background:rgba(255,140,66,.15);border-color:var(--air);color:var(--air);}
-  .rtab.charge.active{background:rgba(79,142,247,.15);border-color:#a78bfa;color:#a78bfa;}
-  .rtab.airwater.active{background:rgba(56,182,255,.15);border-color:#38b6ff;color:#38b6ff;}
-  .rtab.geo.active{background:rgba(76,175,80,.15);border-color:#4caf50;color:#4caf50;}
+  .rtab.airmo.active,.rtab.airmu.active{background:rgba(56,182,255,.15);border-color:var(--air);color:var(--air);}
+  .rtab.charge.active{background:rgba(76,175,80,.15);border-color:#4caf50;color:#4caf50;}
+  .rtab.airwater.active{background:rgba(30,64,175,.15);border-color:#1e40af;color:#3b82f6;}
+  .rtab.geo.active{background:rgba(30,64,175,.15);border-color:#1e40af;color:#3b82f6;}
 
   .progwrap{margin-bottom:24px;}
   .progmeta{display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:6px;}
@@ -395,7 +396,26 @@
 <main>
   <!-- STEP 1: HUB -->
   <div class="panel active" id="panel-1">
-    <div class="ptitle">Verslag plaatsbezoek</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <div class="ptitle" style="margin-bottom:0">Verslag plaatsbezoek</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button onclick="finalizeAllReports()" title="Opslaan en versturen" style="height:28px;border-radius:14px;border:1px solid rgba(56,217,169,.3);background:rgba(56,217,169,.1);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:0 12px;transition:all .15s;font-family:inherit;font-size:11px;font-weight:600;color:#38d9a9" onmouseover="this.style.background='rgba(56,217,169,.2)';this.style.borderColor='#38d9a9'" onmouseout="this.style.background='rgba(56,217,169,.1)';this.style.borderColor='rgba(56,217,169,.3)'"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#38d9a9" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22l-4-9-9-4z"/></svg>Versturen</button>
+        <div style="width:12px"></div>
+        <button onclick="showDeleteConfirm()" title="Plaatsbezoek verwijderen" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all .15s" onmouseover="this.style.borderColor='#ff5c5c';this.style.background='rgba(255,92,92,.12)'" onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--surface2)'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e8ecf5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg></button>
+      </div>
+    </div>
+
+    <!-- Delete confirmation modal -->
+    <div id="modal-delete-confirm" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:400px;width:90%;text-align:center;animation:slideUp .3s ease">
+        <div style="font-size:16px;font-weight:700;color:#ff5c5c;margin-bottom:16px">Plaatsbezoek verwijderen?</div>
+        <div style="font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.5">Alle checklists en ingevoerde data worden gewist. Reeds doorgestuurde data wordt uit de database verwijderd.</div>
+        <div style="display:flex;gap:10px;margin-top:16px">
+          <button onclick="closeDeleteConfirm()" style="flex:1;height:32px;border-radius:16px;border:1px solid rgba(232,236,245,.3);background:rgba(232,236,245,.1);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all .15s;font-family:inherit;font-size:11px;font-weight:600;color:#e8ecf5" onmouseover="this.style.background='rgba(232,236,245,.2)';this.style.borderColor='rgba(232,236,245,.5)'" onmouseout="this.style.background='rgba(232,236,245,.1)';this.style.borderColor='rgba(232,236,245,.3)'">Nee</button>
+          <button onclick="confirmDeleteAll()" style="flex:1;height:32px;border-radius:16px;border:1px solid rgba(255,92,92,.3);background:rgba(255,92,92,.1);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all .15s;font-family:inherit;font-size:11px;font-weight:600;color:#ff5c5c" onmouseover="this.style.background='rgba(255,92,92,.2)';this.style.borderColor='#ff5c5c'" onmouseout="this.style.background='rgba(255,92,92,.1)';this.style.borderColor='rgba(255,92,92,.3)'">Ja, verwijderen</button>
+        </div>
+      </div>
+    </div>
     <div class="psub">Klantgegevens <span style="color:#ff5c5c">*</span></div>
     <div style="display:flex;gap:10px;margin-bottom:20px">
       <input type="text" id="klant-naam" class="note" placeholder="Naam klant" style="min-height:auto;padding:10px 12px;flex:1" onfocus="this.style.borderColor=''" oninput="autoSave()">
@@ -423,8 +443,8 @@
     </div>
     <div class="clist" id="clist"></div>
     <div class="brow" style="margin-top:24px">
-      <button class="btn btn-s" onclick="goBackToHub()">← Terug</button>
-      <button class="btn btn-p" onclick="saveChecklistAndReturn()">✅ Bevestigen</button>
+      <button onclick="goBackToHub()" style="height:32px;border-radius:16px;border:1px solid rgba(232,236,245,.3);background:rgba(232,236,245,.1);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:0 14px;transition:all .15s;font-family:inherit;font-size:11px;font-weight:600;color:#e8ecf5" onmouseover="this.style.background='rgba(232,236,245,.2)';this.style.borderColor='rgba(232,236,245,.5)'" onmouseout="this.style.background='rgba(232,236,245,.1)';this.style.borderColor='rgba(232,236,245,.3)'">← Terug</button>
+      <button onclick="saveChecklistAndReturn()" style="height:32px;border-radius:16px;border:1px solid rgba(56,217,169,.3);background:rgba(56,217,169,.1);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:0 14px;transition:all .15s;font-family:inherit;font-size:11px;font-weight:600;color:#38d9a9" onmouseover="this.style.background='rgba(56,217,169,.2)';this.style.borderColor='#38d9a9'" onmouseout="this.style.background='rgba(56,217,169,.1)';this.style.borderColor='rgba(56,217,169,.3)'"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#38d9a9" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Checklist opslaan</button>
       <button class="btn btn-s" id="btn-extra-split" onclick="addExtraSplit()" style="display:none">+ Extra monosplit</button>
       <button class="btn btn-s" id="btn-extra-multi-split" onclick="addExtraMultiSplit()" style="display:none">+ Extra multisplit</button>
     </div>
@@ -470,11 +490,10 @@
   <div class="panel" id="panel-4">
     <div class="suc">
       <span class="suc-em">✅</span>
-      <div class="suc-t">Rapport opgeslagen!</div>
+      <div class="suc-t">Rapport verstuurd!</div>
       <div class="suc-s" id="suc-msg"></div>
       <button class="btn btn-p" onclick="generatePDF()" style="margin-bottom:10px">📄 Download PDF</button>
-      <button class="btn btn-s" onclick="backToHub()" style="margin-bottom:10px">← Terug</button>
-      <button class="btn btn-s" onclick="reset()">+ Nieuw rapport</button>
+      <button class="btn btn-g" onclick="startNewVisit()" style="margin-bottom:10px;width:100%;padding:14px">Nieuw plaatsbezoek starten</button>
     </div>
   </div>
 </main>
@@ -549,7 +568,7 @@ const STAMPS = {
 // ══════════════════════════
 // STATE
 // ══════════════════════════
-let selected=[], activeTab='', itemData={}, completedTypes=new Set(), deletedItems=new Set(), touchedItems=new Set(), extraSplitCount=0, extraMultiSplitCount=0;
+let selected=[], activeTab='', itemData={}, completedTypes=new Set(), deletedItems=new Set(), touchedItems=new Set(), touchedChecklists=new Set(), extraSplitCount=0, extraMultiSplitCount=0;
 
 // Always use shared key for shared items (data stored once)
 function getSK(type,item){
@@ -614,8 +633,19 @@ function openChecklist(type){
 }
 
 function goBackToHub(){
-  // I: Check for incomplete required fields and warn
-  if(activeTab && TYPES[activeTab]){
+  // If checklist was opened but not touched, remove from selected
+  if(activeTab && !touchedChecklists.has(activeTab) && !completedTypes.has(activeTab)){
+    const idx=selected.indexOf(activeTab);
+    if(idx>-1) selected.splice(idx,1);
+    // Clear any empty itemData created by opening
+    const items=itemsForTab(activeTab).filter(i=>!deletedItems.has(i.sk));
+    items.forEach(i=>{
+      const d=itemData[i.sk];
+      if(d && d.photos.length===0 && (!d.notes||d.notes.trim()==='')) delete itemData[i.sk];
+    });
+  }
+  // Check for incomplete required fields and warn
+  if(activeTab && touchedChecklists.has(activeTab) && TYPES[activeTab]){
     const items=itemsForTab(activeTab).filter(i=>!deletedItems.has(i.sk));
     const hasData=items.some(i=>{const d=itemData[i.sk];return d&&(d.photos.length>0||d.notes.trim()!=='');});
     if(hasData && !completedTypes.has(activeTab)){
@@ -651,7 +681,6 @@ function showPanel(id){
 
 function calculateScores(type){
   const items=TYPES[type].items;
-  // Filter out deleted items
   const activeItems=items.filter(item=>!deletedItems.has(getSK(type,item)));
   let photoScore=0, textScore=0;
   const total=activeItems.length;
@@ -664,8 +693,12 @@ function calculateScores(type){
     const sk=getSK(type,item);
     const d=itemData[sk]||{photos:[],notes:'',strings:'',mppTrackers:'',location:''};
     if(!item.noPhoto && d.photos.length>0) photoScore+=perPhotoItem;
-    if(d.notes.trim().length>=10) textScore+=perTextItem;
-    else if(d.notes.trim().length>0) textScore+=perTextItem*0.5;
+    const hasNotes=d.notes&&d.notes.trim().length>0;
+    const hasFields=d.parking||d.location||d.phaseType||d.fixType||d.unitType||
+      d.strings||d.mppTrackers||d.fuelType||d.connType||d.panelCount||
+      (d.dakTypes&&d.dakTypes.length>0)||d.dakZijdes||d.dakBedekking||d.platRichting;
+    if(hasNotes&&d.notes.trim().length>=10) textScore+=perTextItem;
+    else if(hasNotes||hasFields) textScore+=perTextItem*0.5;
   });
   return {photo:Math.round(photoScore),text:Math.round(textScore)};
 }
@@ -736,13 +769,24 @@ function updateHubCards(){
     if(!card||!scoresEl) return;
     if(completedTypes.has(type)){
       card.classList.add('completed');
+      card.classList.remove('started');
       const scores=calculateScores(type);
       scoresEl.innerHTML=`
         <span class="score-badge" data-tip="${scores.photo}% foto's">📷 <span class="score-val ${scoreColorClass(scores.photo)}">${scores.photo}%</span></span>
         <span class="score-badge" data-tip="${scores.text}% uitleg">📝 <span class="score-val ${scoreColorClass(scores.text)}">${scores.text}%</span></span>`;
     } else {
       card.classList.remove('completed');
-      scoresEl.innerHTML='';
+      // Check if this checklist was touched (user made a change)
+      if(touchedChecklists.has(type)){
+        card.classList.add('started');
+        const scores=calculateScores(type);
+        scoresEl.innerHTML=`
+          <span class="score-badge" data-tip="${scores.photo}% foto's">📷 <span class="score-val ${scoreColorClass(scores.photo)}">${scores.photo}%</span></span>
+          <span class="score-badge" data-tip="${scores.text}% uitleg">📝 <span class="score-val ${scoreColorClass(scores.text)}">${scores.text}%</span></span>`;
+      } else {
+        card.classList.remove('started');
+        scoresEl.innerHTML='';
+      }
     }
   });
   document.getElementById('hub-save-row').style.display=completedTypes.size>0?'block':'none';
@@ -769,6 +813,7 @@ function discardChecklist(){
   });
   // Remove from completed and selected
   completedTypes.delete(type);
+  touchedChecklists.delete(type);
   const idx=selected.indexOf(type);
   if(idx>-1) selected.splice(idx,1);
   // Reset solar label if needed
@@ -2065,11 +2110,13 @@ function deleteItem(sk){
   deletedItems.add(sk);
   const ci=document.getElementById('ci-'+sk);
   if(ci)ci.classList.remove('open');
+  markChecklistTouched();
   renderItems();updateProgress();autoSave();
 }
 
 function restoreItem(sk){
   deletedItems.delete(sk);
+  markChecklistTouched();
   renderItems();updateProgress();autoSave();
 }
 
@@ -2341,6 +2388,7 @@ function saveFuelType(sk,type,btn){
     itemData[sk].fuelAmount='';
   }
   hideToast(sk);
+  markChecklistTouched();
   renderItems();updateProgress();
   const ci=document.getElementById('ci-'+sk);
   if(ci) ci.classList.add('open');
@@ -2638,14 +2686,17 @@ function saveLocation(sk,loc,btn){
       if(b.textContent.toLowerCase()===itemData[sk].location) b.classList.add('active');
     });
   }
+  touchedItems.add(sk);markChecklistTouched();
+  updateProgress();autoSave();
 }
 
 function toggleBoardType(sk,type,btn){
   ensureData(sk);
   if(!itemData[sk].boardType) itemData[sk].boardType={};
-  // Toggle: both can be selected independently
   itemData[sk].boardType[type]=!itemData[sk].boardType[type];
   btn.classList.toggle('active',itemData[sk].boardType[type]);
+  touchedItems.add(sk);markChecklistTouched();
+  updateProgress();autoSave();
 }
 
 function toggleMeterType(sk,type,btn){
@@ -2655,6 +2706,8 @@ function toggleMeterType(sk,type,btn){
   if(idx===-1) itemData[sk].meterType.push(type);
   else itemData[sk].meterType.splice(idx,1);
   btn.classList.toggle('active',itemData[sk].meterType.includes(type));
+  touchedItems.add(sk);markChecklistTouched();
+  updateProgress();autoSave();
 }
 
 function savePhaseType(sk,type,btn){
@@ -2664,10 +2717,12 @@ function savePhaseType(sk,type,btn){
   } else {
     itemData[sk].phaseType=type;
   }
+  touchedItems.add(sk);markChecklistTouched();
   hideToast(sk);
   const parent=btn.parentElement;
   parent.querySelectorAll('.mount-btn').forEach(b=>b.classList.remove('active'));
   if(itemData[sk].phaseType) btn.classList.add('active');
+  updateProgress();autoSave();
 }
 
 function saveParking(sk,val,btn){
@@ -2677,10 +2732,12 @@ function saveParking(sk,val,btn){
   } else {
     itemData[sk].parking=val;
   }
+  touchedItems.add(sk);markChecklistTouched();
   hideToast(sk);
   const parent=btn.parentElement;
   parent.querySelectorAll('.loc-btn').forEach(b=>b.classList.remove('active'));
   if(itemData[sk].parking) btn.classList.add('active');
+  updateProgress();autoSave();
 }
 
 function toggleDakType(sk,type,btn){
@@ -2717,12 +2774,12 @@ function saveDakField(sk,field,value,btn){
 
 function saveMountType(sk,type,btn){
   ensureData(sk);
-  // Toggle: if same type clicked, deselect
   if(itemData[sk].mountType===type){
     itemData[sk].mountType='';
   } else {
     itemData[sk].mountType=type;
   }
+  touchedItems.add(sk);markChecklistTouched();
   const parent=btn.parentElement;
   parent.querySelectorAll('.mount-btn').forEach(b=>b.classList.remove('active'));
   if(itemData[sk].mountType){
@@ -2730,6 +2787,7 @@ function saveMountType(sk,type,btn){
       if(b.textContent.toLowerCase()===itemData[sk].mountType) b.classList.add('active');
     });
   }
+  updateProgress();autoSave();
 }
 
 function saveFixType(sk,type,btn){
@@ -2739,6 +2797,7 @@ function saveFixType(sk,type,btn){
   } else {
     itemData[sk].fixType=type;
   }
+  touchedItems.add(sk);markChecklistTouched();
   hideToast(sk);
   const parent=btn.parentElement;
   parent.querySelectorAll('.mount-btn').forEach(b=>b.classList.remove('active'));
@@ -2747,6 +2806,7 @@ function saveFixType(sk,type,btn){
       if(b.textContent.toLowerCase()===itemData[sk].fixType) b.classList.add('active');
     });
   }
+  updateProgress();autoSave();
 }
 
 function saveUnitType(sk,type,btn){
@@ -2756,6 +2816,7 @@ function saveUnitType(sk,type,btn){
   } else {
     itemData[sk].unitType=type;
   }
+  touchedItems.add(sk);markChecklistTouched();
   hideToast(sk);
   const parent=btn.parentElement;
   parent.querySelectorAll('.mount-btn').forEach(b=>b.classList.remove('active'));
@@ -2764,6 +2825,7 @@ function saveUnitType(sk,type,btn){
       if(b.textContent.toLowerCase()===itemData[sk].unitType) b.classList.add('active');
     });
   }
+  updateProgress();autoSave();
 }
 
 function saveConnType(sk,type,btn){
@@ -2773,16 +2835,19 @@ function saveConnType(sk,type,btn){
   } else {
     itemData[sk].connType=type;
   }
+  touchedItems.add(sk);markChecklistTouched();
   hideToast(sk);
   const parent=btn.parentElement;
   parent.querySelectorAll('.mount-btn').forEach(b=>b.classList.remove('active'));
   if(itemData[sk].connType){
     btn.classList.add('active');
   }
+  updateProgress();autoSave();
 }
 
 function refreshItem(sk){
   touchedItems.add(sk);
+  markChecklistTouched();
   renderItems();
   const ci=document.getElementById('ci-'+sk);
   if(ci && !ci.classList.contains('deleted')) ci.classList.add('open');
@@ -2791,17 +2856,14 @@ function refreshItem(sk){
 
 function updateProgress(){
   const items=itemsForTab(activeTab).filter(i=>!deletedItems.has(i.sk));
-  // Determine if this is the first checklist being filled (nothing completed yet)
-  const isFirstChecklist=completedTypes.size===0 && selected.length<=1;
   let totalChecks=0,doneChecks=0;
   items.forEach(i=>{
     const d=itemData[i.sk]||{photos:[],notes:''};
-    // Shared item with existing data from another checklist counts as done
-    const hasExistingData=i.isShared && !isFirstChecklist && (
-      (d.photos&&d.photos.length>0)||(d.notes&&d.notes.trim()!=='')||
-      d.parking||d.location||d.phaseType||d.strings||d.mppTrackers||d.fuelType
-    );
-    const effective=touchedItems.has(i.sk)||hasExistingData;
+    const hasAnyData=(d.photos&&d.photos.length>0)||(d.notes&&d.notes.trim()!=='')||
+      d.parking||d.location||d.phaseType||d.fixType||d.unitType||
+      d.strings||d.mppTrackers||d.fuelType||d.connType||d.panelCount||
+      (d.dakTypes&&d.dakTypes.length>0)||d.dakZijdes||d.dakBedekking||d.platRichting;
+    const effective=touchedItems.has(i.sk)||hasAnyData;
     if(!i.noPhoto){totalChecks++;if(effective&&d.photos.length>0)doneChecks++;}
     totalChecks++;if(effective&&d.notes&&d.notes.trim()!=='')doneChecks++;
     if(i.hasParking){totalChecks++;if(effective&&d.parking)doneChecks++;}
@@ -2876,9 +2938,9 @@ function updateProgress(){
   }
 }
 
-// ══════════════════════════
-// NAV helpers
-// ══════════════════════════
+function markChecklistTouched(){
+  if(activeTab) touchedChecklists.add(activeTab);
+}
 function goStep(n){
   if(n===1){goBackToHub();return;}
   if(n===2){showPanel('panel-2');renderChecklist();return;}
@@ -3660,10 +3722,49 @@ function finalizeAllReports(){
     return;
   }
   const types=[...completedTypes].map(t=>TYPES[t].label).join(', ');
-  document.getElementById('suc-msg').textContent=`Alle rapporten (${types}) zijn opgeslagen.`;
+  document.getElementById('suc-msg').textContent=`Checklists verstuurd: ${types}`;
   showPanel('panel-4');
   localStorage.removeItem('bzr-data');
   window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function startNewVisit(){
+  reset();
+  renderHubGrid();
+  updateHubCards();
+  showPanel('panel-1');
+  window.scrollTo({top:0,behavior:'smooth'});
+  const el=document.getElementById('global-toast');
+  if(el){el.textContent='Klaar voor een nieuw plaatsbezoek';el.className='toast-inline show';if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(()=>{el.classList.remove('show');},3000);}
+}
+
+function showDeleteConfirm(){
+  const modal=document.getElementById('modal-delete-confirm');
+  modal.style.display='flex';
+}
+function closeDeleteConfirm(){
+  document.getElementById('modal-delete-confirm').style.display='none';
+}
+async function confirmDeleteAll(){
+  closeDeleteConfirm();
+  // Delete from database if data was previously sent
+  const naam=document.getElementById('klant-naam').value.trim();
+  const adres=document.getElementById('klant-adres').value.trim();
+  if(naam||adres){
+    try{
+      // TODO: Add actual database delete call here when API is available
+      // e.g. await fetch('/api/delete-rapport', {method:'DELETE', body: JSON.stringify({klant:naam,adres:adres})});
+      console.log('Database delete requested for:',naam,adres);
+    }catch(e){
+      console.error('Database delete failed:',e);
+    }
+  }
+  // Reset everything locally
+  reset();
+  renderHubGrid();
+  updateHubCards();
+  const el=document.getElementById('global-toast');
+  if(el){el.textContent='Plaatsbezoek volledig verwijderd';el.className='toast-inline show';if(toastTimer)clearTimeout(toastTimer);toastTimer=setTimeout(()=>{el.classList.remove('show');},3000);}
 }
 
 function reset(){
@@ -3698,7 +3799,7 @@ function reset(){
   ];
   const multiName=document.querySelector('#hub-airmu .tname');
   if(multiName) multiName.textContent='Lucht/Lucht Multi';
-  selected=[];activeTab='';itemData={};completedTypes=new Set();deletedItems=new Set();touchedItems=new Set();
+  selected=[];activeTab='';itemData={};completedTypes=new Set();deletedItems=new Set();touchedItems=new Set();touchedChecklists=new Set();
   ['solar','airmo','airmu','airwater','geo','charge'].forEach(t=>{
     const card=document.getElementById('hub-'+t);
     if(card) card.classList.remove('completed');
@@ -3732,6 +3833,7 @@ function autoSave(){
     const state={
       itemData:lite,selected,completedTypes:[...completedTypes],deletedItems:[...deletedItems],
       touchedItems:[...touchedItems],
+      touchedChecklists:[...touchedChecklists],
       extraSplitCount,extraMultiSplitCount,
       klantNaam:document.getElementById('klant-naam').value,
       klantAdres:document.getElementById('klant-adres').value,
@@ -3758,6 +3860,7 @@ function restoreData(){
     if(s.completedTypes) s.completedTypes.forEach(t=>completedTypes.add(t));
     if(s.deletedItems) s.deletedItems.forEach(t=>deletedItems.add(t));
     if(s.touchedItems) s.touchedItems.forEach(t=>touchedItems.add(t));
+    if(s.touchedChecklists) s.touchedChecklists.forEach(t=>touchedChecklists.add(t));
     if(s.extraSplitCount) extraSplitCount=s.extraSplitCount;
     if(s.extraMultiSplitCount) extraMultiSplitCount=s.extraMultiSplitCount;
     if(s.klantNaam) document.getElementById('klant-naam').value=s.klantNaam;
