@@ -9,72 +9,6 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#000000">
 <title>Magazijn</title>
-
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
-<script>
-  firebase.initializeApp({
-    apiKey: "AIzaSyBKU-wCjV4Au4ngRG52Zmmxbzc3N3D8VBU",
-    authDomain: "advanced-intranet.firebaseapp.com",
-    projectId: "advanced-intranet",
-    storageBucket: "advanced-intranet.firebasestorage.app",
-    messagingSenderId: "309856938024",
-    appId: "1:309856938024:web:2108715f92c5dea2da2d1d"
-  });
-  const db = firebase.firestore();
-  const storage = firebase.storage();
-
-  // Upload foto naar Firebase Storage, retourneert download URL
-  async function uploadToStorage(dataUrl, path) {
-    try {
-      const response = await fetch(dataUrl);
-      const blob = await response.blob();
-      const ref = storage.ref().child(path);
-      await ref.put(blob);
-      const url = await ref.getDownloadURL();
-      console.log('✅ Foto geüpload:', path);
-      return url;
-    } catch(e) {
-      console.warn('⚠️ Foto upload error:', e);
-      return null;
-    }
-  }
-
-  // Sync alle foto's zonder storageUrl naar Firebase Storage
-  let syncRunning = false;
-  async function syncPhotosToCloud() {
-    if (syncRunning) return;
-    syncRunning = true;
-    const photoFields = ['photos','artikelPhotos','stickerPhotos','bonPhotos','schadePhotos','seriePhotos'];
-    let uploaded = 0;
-    for (const it of items) {
-      if (it.deleted) continue;
-      for (const field of photoFields) {
-        if (!it[field]) continue;
-        for (const photo of it[field]) {
-          if (photo.storageUrl || !photo.data) continue;
-          const path = 'magazijn/' + (it.uuid||it.id) + '/' + field + '/' + Date.now() + '_' + Math.random().toString(36).substr(2,4) + '.jpg';
-          const url = await uploadToStorage(photo.data, path);
-          if (url) {
-            photo.storageUrl = url;
-            photo.storagePath = path;
-            uploaded++;
-          }
-        }
-      }
-    }
-    syncRunning = false;
-    if (uploaded > 0) {
-      console.log('✅ ' + uploaded + ' foto(s) naar cloud geüpload');
-      showToast(uploaded + ' foto(\'s) geüpload naar cloud ☁️');
-      // Sla op naar ZOWEL localStorage als Firestore
-      saveData();
-    }
-  }
-</script>
-
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
   :root{
@@ -84,6 +18,7 @@
     /* Category colors */
     --cat-paars:#a78bfa;--cat-oranje:#f97316;--cat-geel:#f7c948;
     --cat-rood:#ff5c5c;--cat-blauw:#38b6ff;--cat-roze:#f472b6;--cat-wit:#e8ecf5;
+    --cat-groen:#2dd4bf;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
   html{height:100%;-webkit-text-size-adjust:100%;}
@@ -133,6 +68,10 @@
   .hub-card.cat-blauw .hc-icon{background:var(--cat-blauw);}
   .hub-card.cat-roze{border-color:rgba(244,114,182,.55);} .hub-card.cat-roze .hc-count{color:var(--cat-roze);}
   .hub-card.cat-roze .hc-icon{background:var(--cat-roze);}
+  .hub-card.cat-groen{border-color:rgba(45,212,191,.55);} .hub-card.cat-groen .hc-count{color:var(--cat-groen);}
+  .hub-card.cat-groen .hc-icon{background:var(--cat-groen);}
+  @keyframes pulseAlert{0%,100%{opacity:1}50%{opacity:.3}}
+  .gas-alert{animation:pulseAlert 1s ease-in-out infinite;}
 
   /* ══ SECTION VIEW ══ */
   .panel{display:none;animation:fadeUp .3s ease;} .panel.active{display:block;}
@@ -193,7 +132,7 @@
   .photoarea{border:2px dashed var(--border);border-radius:var(--radius-sm);padding:22px 16px;
     text-align:center;cursor:pointer;position:relative;margin-bottom:10px;}
   .photoarea:hover{border-color:var(--accent);background:rgba(79,142,247,.04);}
-  .photoarea input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+  .photoarea input{position:absolute;inset:0;opacity:0;width:100%;height:100%;pointer-events:none;}
 
   /* Supplier grid */
   .supplier-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px;margin-bottom:12px;}
@@ -418,6 +357,11 @@
         <div class="hc-top" onclick="openSection('roze')"><div class="hc-icon" style="background:var(--cat-roze)"></div><div class="hc-name">Verbruikte spare parts</div></div>
         <div style="text-align:center;margin-top:4px"><div id="hub-roze-total" style="font-size:24px;font-weight:700;font-family:'DM Mono',monospace;color:var(--cat-roze);cursor:pointer" onclick="openSection('roze')">0</div><div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;color:var(--text3)">totaal</div></div>
       </div>
+      <div class="hub-card cat-groen">
+        <div class="hc-top" onclick="openSection('groen')"><div class="hc-icon" style="background:var(--cat-groen)"></div><div class="hc-name">Gasmetingen R-32</div></div>
+        <div class="hc-dual"><div class="hc-c hc-c-ok" onclick="openSection('groen')"><div class="hc-c-num" id="hub-groen-gewogen" style="color:var(--success)">0</div><div class="hc-c-label">✓ gewogen</div></div><div class="hc-c hc-c-nok" onclick="openSection('groen')"><div class="hc-c-num" id="hub-groen-open" style="color:var(--danger)">0</div><div class="hc-c-label">✗ te wegen</div></div></div>
+        <div id="hub-groen-alert" style="text-align:center;margin-top:2px"></div>
+      </div>
     </div>
   </div>
 
@@ -436,7 +380,12 @@
       </div>
     </div>
     <div class="items" id="items-container"></div>
-    <button class="btn btn-add" onclick="addItem()" id="btn-add-item">+ Nieuw item toevoegen</button>
+    <div id="section-actions">
+      <button class="btn btn-add" onclick="addItem()" id="btn-add-item">+ Nieuw item toevoegen</button>
+      <div id="gas-actions" style="display:none;margin-top:12px">
+        <button class="btn btn-add" onclick="addGasBottle()" id="btn-add-gas" style="width:100%;border-color:rgba(45,212,191,.4);color:var(--cat-groen)">+ Nieuwe fles</button>
+      </div>
+    </div>
   </div>
 </main>
 
@@ -556,7 +505,8 @@ const SEC={
   'geel':{label:'Niet volledig',color:'#f7c948',cssClass:'cat-geel'},
   'rood':{label:'Beschadigd / Retour lev.',color:'#ff5c5c',cssClass:'cat-rood'},
   'blauw':{label:'Retour van werf',color:'#38b6ff',cssClass:'cat-blauw'},
-  'roze':{label:'Verbruikte spare parts',color:'#f472b6',cssClass:'cat-roze'}
+  'roze':{label:'Verbruikte spare parts',color:'#f472b6',cssClass:'cat-roze'},
+  'groen':{label:'Gasmetingen R-32',color:'#2dd4bf',cssClass:'cat-groen'}
 };
 
 // Color detection reference ranges (HSL)
@@ -581,17 +531,7 @@ let suppliers=JSON.parse(localStorage.getItem('mag-suppliers')||'null')||[
   {id:'pylontech',name:'Pylontech',logo:'',email:''},{id:'daikin',name:'Daikin',logo:'',email:''},
   {id:'renson',name:'Renson',logo:'',email:''},
 ];
-function saveSup(){localStorage.setItem('mag-suppliers',JSON.stringify(suppliers));
-  // === FIREBASE SYNC ===
-  try{
-    const supsForCloud=suppliers.map(s=>{const copy=Object.assign({},s);copy.logo='';return copy;});
-    db.collection('magazijn').doc('suppliers').set({
-      suppliers:JSON.stringify(supsForCloud),
-      lastUpdated:new Date().toISOString()
-    }).then(()=>{console.log('✅ Firebase: leveranciers opgeslagen');})
-      .catch(e=>{console.warn('⚠️ Firebase suppliers save error:',e);});
-  }catch(e){console.warn('Firebase sync error:',e);}
-}
+function saveSup(){localStorage.setItem('mag-suppliers',JSON.stringify(suppliers));}
 
 function deleteSupplier(sid){
   const sup=suppliers.find(s=>s.id===sid);if(!sup)return;
@@ -628,25 +568,38 @@ function changeMagazijnier(){
     document.getElementById('header-user').textContent=magazijnier;}
 }
 
-// ══ OCR (Tesseract.js) ══
-let tesseractLoaded=false;
-function loadTesseract(){
-  if(tesseractLoaded)return Promise.resolve();
-  return new Promise((res,rej)=>{
-    const s=document.createElement('script');
-    s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
-    s.onload=()=>{tesseractLoaded=true;res();};s.onerror=rej;document.head.appendChild(s);
+// ══ OCR (Anthropic API Vision) ══
+async function ocrViaAPI(imgDataUrl, prompt){
+  const match=imgDataUrl.match(/^data:(image\/\w+);base64,(.+)$/);
+  if(!match)throw new Error('Ongeldig afbeelding formaat');
+  const mediaType=match[1];
+  const base64Data=match[2];
+  
+  const response=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      model:'claude-sonnet-4-20250514',
+      max_tokens:200,
+      messages:[{role:'user',content:[
+        {type:'image',source:{type:'base64',media_type:mediaType,data:base64Data}},
+        {type:'text',text:prompt}
+      ]}]
+    })
   });
+  if(!response.ok){
+    const err=await response.text().catch(()=>'');
+    console.error('OCR API error:',response.status,err);
+    throw new Error('API fout ('+response.status+')');
+  }
+  const data=await response.json();
+  console.log('OCR API response:',data);
+  const text=data.content?.map(b=>b.text||'').join('')||'';
+  return text.trim();
 }
 
 function ocrFromImage(imgDataUrl){
-  return loadTesseract().then(()=>{
-    return Tesseract.recognize(imgDataUrl,'eng+nld',{})
-      .then(({data:{text}})=>{
-        const cleaned=text.replace(/[^a-zA-Z0-9\s\-\.\/]/g,'').trim();
-        return cleaned;
-      });
-  });
+  return ocrViaAPI(imgDataUrl,'Read all text visible in this image. Return only the raw text, nothing else.');
 }
 
 function ocrSerial(id,files){
@@ -654,32 +607,25 @@ function ocrSerial(id,files){
   const statusEl=document.getElementById('ocr-status-'+id);
   statusEl.style.display='block';statusEl.textContent='⏳ Foto wordt geanalyseerd...';
   const reader=new FileReader();
-  reader.onload=e=>{
-    loadTesseract().then(()=>{
-      Tesseract.recognize(e.target.result,'eng',{})
-      .then(({data:{text}})=>{
-        const cleaned=text.replace(/[^a-zA-Z0-9\s\-\.\/]/g,'').trim();
-        const parts=cleaned.split(/\s+/).filter(p=>p.length>=4);
-        const serial=parts.join(' ').substring(0,60);
-        if(serial){
-          const inp=document.getElementById('serial-'+id);
-          if(inp)inp.value=serial;
-          updateField(id,'serial',serial);
-          statusEl.textContent='✅ Serienummer herkend: '+serial;
-          showToast('Serienummer herkend');
-        } else {
-          statusEl.textContent='❌ Geen serienummer gevonden. Typ handmatig in.';
-          showToast('Geen tekst herkend','error');
-        }
-        setTimeout(()=>{statusEl.style.display='none';},5000);
-      }).catch(err=>{
-        statusEl.textContent='❌ OCR mislukt: '+err.message;
-        showToast('OCR mislukt','error');
-      });
-    }).catch(()=>{
-      statusEl.textContent='❌ Tesseract kon niet geladen worden (geen internet?)';
-      showToast('OCR niet beschikbaar','error');
-    });
+  reader.onload=async e=>{
+    try{
+      const text=await ocrViaAPI(e.target.result,'Read the serial number or article number visible on this label/product. Return ONLY the number, nothing else.');
+      const cleaned=text.replace(/[^a-zA-Z0-9\s\-\.\/]/g,'').trim();
+      if(cleaned){
+        const inp=document.getElementById('serial-'+id);
+        if(inp)inp.value=cleaned;
+        updateField(id,'serial',cleaned);
+        statusEl.textContent='✅ Serienummer herkend: '+cleaned;
+        showToast('Serienummer herkend');
+      } else {
+        statusEl.textContent='❌ Geen serienummer gevonden. Typ handmatig in.';
+        showToast('Geen tekst herkend','error');
+      }
+      setTimeout(()=>{statusEl.style.display='none';},5000);
+    }catch(err){
+      statusEl.textContent='❌ OCR mislukt: '+err.message;
+      showToast('OCR mislukt','error');
+    }
   };
   reader.readAsDataURL(files[0]);
 }
@@ -1062,7 +1008,6 @@ function wizFinishAddToExisting(){
   wizMatchedItem.stickerPhotos.push({data:wizStickerPhoto,timestamp:ts()+' — '+magazijnier});
   wizMatchedItem.lastModified=ts();wizMatchedItem.modifiedBy=magazijnier;
   saveData();
-  syncPhotosToCloud();
   closeWizard();
   openSection(wizMatchedItem.section);
   setTimeout(()=>{toggleItem(wizMatchedItem.id);},200);
@@ -1081,7 +1026,6 @@ function wizFinishWithCategoryChange(){
   wizMatchedItem.categoryHistory.push({from:oldSection,to:wizDetectedColor,at:ts(),by:magazijnier});
   wizMatchedItem.lastModified=ts();wizMatchedItem.modifiedBy=magazijnier;
   saveData();
-  syncPhotosToCloud();
   closeWizard();
   openSection(wizDetectedColor);
   setTimeout(()=>{toggleItem(wizMatchedItem.id);},200);
@@ -1096,7 +1040,6 @@ function wizFinishKeepCategory(){
   wizMatchedItem.stickerPhotos.push({data:wizStickerPhoto,timestamp:ts()+' — '+magazijnier});
   wizMatchedItem.lastModified=ts();wizMatchedItem.modifiedBy=magazijnier;
   saveData();
-  syncPhotosToCloud();
   closeWizard();
   openSection(wizMatchedItem.section);
   setTimeout(()=>{toggleItem(wizMatchedItem.id);},200);
@@ -1114,7 +1057,6 @@ function wizFinishCreateNew(){
     emailSent:false,open:true,deleted:false,timestamp:ts(),createdBy:magazijnier
   };
   items.push(item);saveData();
-  syncPhotosToCloud();
   closeWizard();
   openSection(wizDetectedColor);
   setTimeout(()=>{toggleItem(item.id);},200);
@@ -1269,6 +1211,11 @@ const CAT_REQS={
     optional:['artikelPhotos','seriePhotos','schadePhotos','bonPhotos','stickerPhotos'],
     labels:{photos:'Algemene productfoto',artikelPhotos:'Foto artikelnummer',seriePhotos:'Foto serienummer',schadePhotos:'Foto schade',bonPhotos:'Leverbon',stickerPhotos:'Stickerfoto'}
   },
+  'groen':{
+    need:['photos','gasCode'],
+    optional:[],
+    labels:{photos:'Foto etiket',gasCode:'Flesnummer (via OCR)'}
+  },
 };
 
 function classifyPhoto(dataUrl,section){
@@ -1351,7 +1298,7 @@ function classifyPhoto(dataUrl,section){
 function getMissing(item){
   const reqs=CAT_REQS[item.section];if(!reqs)return[];
   const missing=[];
-  const stringFields=['projectNumber','serial','artikelNr','description'];
+  const stringFields=['projectNumber','serial','artikelNr','description','gasCode'];
   reqs.need.forEach(f=>{
     if(stringFields.includes(f)){
       if(!(item[f]&&item[f].trim()))missing.push(reqs.labels[f]||f);
@@ -1545,6 +1492,7 @@ function updateHub(){
       if(totalEl)totalEl.textContent=active.length;
       return;
     }
+    if(s==='groen'){return;} // handled by updateGasHub
     const complete=active.filter(i=>getMissing(i).length===0);
     const incomplete=active.filter(i=>getMissing(i).length>0);
     const okEl=document.getElementById('hub-'+s+'-ok');
@@ -1589,9 +1537,11 @@ function renderItems(){
   const catInfo=SEC[activeSection]||{label:'?',color:'#888'};
   const titleColor=filterMode==='complete'?'var(--success)':filterMode==='incomplete'?'var(--danger)':catInfo.color;
   document.getElementById('sec-title').innerHTML=`<span onclick="filterMode='all';renderItems()" style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${catInfo.color};margin-right:8px;vertical-align:middle;border:2px solid rgba(255,255,255,.2);cursor:pointer" title="Toon alles"></span><span style="color:${titleColor}">${catInfo.label}</span>`;
-  // Hide add button for roze (auto-populated)
+  // Hide add button for roze (auto-populated), show gas buttons for groen
   const addBtn=document.getElementById('btn-add-item');
-  if(addBtn)addBtn.style.display=activeSection==='roze'?'none':'';
+  const gasActions=document.getElementById('gas-actions');
+  if(addBtn)addBtn.style.display=(activeSection==='roze'||activeSection==='groen')?'none':'';
+  if(gasActions)gasActions.style.display=activeSection==='groen'?'flex':'none';
 
   // Section header counters — clickable
   document.getElementById('sec-count').innerHTML=
@@ -1618,6 +1568,11 @@ function renderItems(){
         parts.push(item.roodTag?tagL[item.roodTag]:'⚠ Beschadigd');
       } else if(s==='roze'){
         parts.push(item.consumedBy||'(geen technieker)');
+      } else if(s==='groen'){
+        if(item.gasCode)parts.push(item.gasCode);
+        const lastW=item.gasWeighings?.length?item.gasWeighings[item.gasWeighings.length-1].weight:item.gasWeight;
+        if(lastW)parts.push(lastW+' kg');
+        if(!item.gasCode&&!lastW)parts.push('Nieuwe fles');
       }
       const joined=parts.filter(p=>p).join(' — ');
       return joined||'Nieuw item';
@@ -1635,6 +1590,8 @@ function renderItems(){
             ${item.emailSent?'<span class="status-badge">VERSTUURD</span>':''}
             ${item.status==='verbruikt'?'<span class="status-badge" style="background:rgba(244,114,182,.15);color:#f472b6;border-color:rgba(244,114,182,.3)">VERBRUIKT</span>':''}
             ${item.roodTag&&!item.roodCompleted?`<span class="status-badge" style="background:rgba(255,92,92,.12);color:var(--cat-rood);border-color:rgba(255,92,92,.3)">${{'retour-cn':'📋 CN aangevraagd','retour-vervanging':'🔄 Retour aangevraagd','wacht-wisselstuk':'⏳ Wacht wisselstuk'}[item.roodTag]||item.roodTag}</span>`:''}
+            ${item.section==='groen'&&item.gasRetourStatus?`<span class="status-badge" style="background:rgba(45,212,191,.12);color:var(--cat-groen);border-color:rgba(45,212,191,.3)">${item.gasRetourStatus==='aangevraagd'?'📋 Retour aangevraagd':'🚚 Verstuurd'}</span>`:''}
+            ${item.section==='groen'&&!item.gasRetourStatus&&isWeighedThisPeriod(item)?`<span class="status-badge" style="background:rgba(45,212,191,.12);color:var(--cat-groen);border-color:rgba(45,212,191,.3)">✓ GEWOGEN</span>`:''}
           </div>
         </div>
         ${ACTION_CFG[item.section]?`<button onclick="event.stopPropagation();itemAction(${item.id})" style="padding:4px 10px;font-size:10px;font-weight:700;border-radius:6px;border:1px solid var(--accent);background:rgba(79,142,247,.1);color:var(--accent);cursor:pointer;white-space:nowrap;transition:all .15s;flex-shrink:0" onmouseover="this.style.background='rgba(79,142,247,.25)'" onmouseout="this.style.background='rgba(79,142,247,.1)'">⚡ Actie</button>`:''}
@@ -1654,8 +1611,107 @@ function renderItems(){
         if(!badge)return '';
         return '<div style="padding:4px 16px 4px 54px;background:rgba(255,255,255,.02);border-top:1px solid rgba(255,255,255,.04)">'+badge+'</div>';
       })()}
-      ${(!itemIsEmpty(item)&&getMissing(item).length)?`<div style="padding:4px 16px 4px 54px;font-size:11px;color:var(--danger);background:rgba(255,92,92,.05);border-top:1px solid rgba(255,92,92,.1)">⚠ ${getMissing(item).join(' · ')}</div>`:''} 
+      ${(!itemIsEmpty(item)&&item.section==='groen')?
+        (()=>{
+          if(!item.gasCodeLocked)return '<div style="padding:4px 16px 4px 54px;font-size:11px;color:var(--warn);background:rgba(247,201,72,.05);border-top:1px solid rgba(247,201,72,.1)">⚠ Flesnummer bevestigen</div>';
+          if(!item.gasWeight)return '<div style="padding:4px 16px 4px 54px;font-size:11px;color:var(--warn);background:rgba(247,201,72,.05);border-top:1px solid rgba(247,201,72,.1)">⚠ Startgewicht ingeven</div>';
+          if(!isWeighedThisPeriod(item)&&!item.gasRetourStatus){const info=gasAlertInfo();if(info.isOverdue)return '<div style="padding:4px 16px 4px 54px;font-size:11px;color:var(--danger);background:rgba(255,92,92,.05);border-top:1px solid rgba(255,92,92,.1)">⚠ Weging over tijd — '+info.daysOver+'d te laat</div>';}
+          return '';
+        })()
+      :(!itemIsEmpty(item)&&getMissing(item).length)?`<div style="padding:4px 16px 4px 54px;font-size:11px;color:var(--danger);background:rgba(255,92,92,.05);border-top:1px solid rgba(255,92,92,.1)">⚠ ${getMissing(item).join(' · ')}</div>`:''} 
       <div class="item-body">
+        ${item.section==='groen'?`
+        <!-- GAS BOTTLE BODY -->
+        <label class="fl" style="margin-top:0">Foto's:</label>
+        <div class="thumbrow">
+          ${(item.photos||[]).map((p,pi)=>`<div class="twrap" onclick="document.getElementById('lb-img').src='${p.data}';document.getElementById('lightbox').classList.add('show')" style="cursor:pointer">
+            <img src="${p.data}"/>
+            ${!item.gasCodeLocked?`<button class="tdel" onclick="event.stopPropagation();removePhoto(${item.id},${pi},'photos')">×</button>`:''}
+            <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.75);color:var(--cat-groen);font-size:10px;font-weight:700;text-align:center;padding:2px 0">🏷️ Etiket</div>
+          </div>`).join('')}
+          ${(item.gasWeighings||[]).filter(w=>w.photo).map((w,wi)=>`<div class="twrap" onclick="document.getElementById('lb-img').src='${w.photo}';document.getElementById('lightbox').classList.add('show')" style="cursor:pointer">
+            <img src="${w.photo}"/>
+            <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.75);color:var(--warn);font-size:10px;font-weight:700;text-align:center;padding:2px 0">⚖️ Weging ${wi+1}</div>
+          </div>`).join('')}
+        </div>
+
+        ${!item.gasCodeLocked?`
+        <!-- STAP 1: Foto etiket + OCR -->
+        <div style="border:2px dashed rgba(45,212,191,.3);border-radius:var(--radius-sm);padding:14px;margin-bottom:10px;background:rgba(45,212,191,.03)"
+          onclick="this.querySelector('input[type=file]').click()"
+          ondragover="event.preventDefault();this.style.borderColor='var(--cat-groen)';this.style.background='rgba(45,212,191,.08)'"
+          ondragleave="this.style.borderColor='rgba(45,212,191,.3)';this.style.background='rgba(45,212,191,.03)'"
+          ondrop="event.preventDefault();this.style.borderColor='rgba(45,212,191,.3)';this.style.background='rgba(45,212,191,.03)';gasOcrCode(${item.id},event.dataTransfer.files)">
+          <input type="file" accept="image/*" capture="environment" onchange="gasOcrCode(${item.id},this.files)"/>
+          <div style="text-align:center;pointer-events:none">
+            <div style="font-size:13px;font-weight:600;color:var(--cat-groen);margin-bottom:4px">① Foto etiket</div>
+            <div style="font-size:24px;margin-bottom:4px">📷</div>
+            <div style="font-size:11px;color:var(--text3)">Neem een foto of sleep hierheen — OCR leest flesnummer</div>
+          </div>
+        </div>
+        <div id="gas-ocr-status-${item.id}" style="display:none;font-size:11px;padding:8px;border-radius:var(--radius-sm);margin-bottom:10px"></div>
+        `:''}
+
+        <label class="fl">Flesnummer: <span style="font-weight:400;color:var(--danger)">* verplicht</span></label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input class="input-field" id="gas-code-${item.id}" placeholder="Flesnummer..." value="${item.gasCode||''}" ${item.gasCodeLocked?'disabled style="flex:1;opacity:.7;background:rgba(45,212,191,.08);border-color:rgba(45,212,191,.3);font-family:\'DM Mono\',monospace;font-size:14px;font-weight:700"':'style="flex:1;font-family:\'DM Mono\',monospace;font-size:14px"'} oninput="updateField(${item.id},'gasCode',this.value)"/>
+          ${item.gasCodeLocked?`<span style="font-size:18px" title="Flesnummer vergrendeld">🔒</span>`:
+          `<button class="btn btn-s" onclick="gasLockCode(${item.id})" style="padding:8px 12px;white-space:nowrap;color:var(--cat-groen);border-color:rgba(45,212,191,.4)">✅ Bevestig</button>`}
+        </div>
+
+        ${item.gasCodeLocked?`
+        <!-- STAP 2: Weging -->
+        ${!isWeighedThisPeriod(item)||!item.gasWeight?`
+        <div style="border:2px solid rgba(247,201,72,.25);border-radius:var(--radius-sm);padding:14px;margin-top:14px;margin-bottom:10px;background:rgba(247,201,72,.03)">
+          <div style="font-size:13px;font-weight:600;color:var(--warn);margin-bottom:10px">${item.gasWeight?'⚖️ Nieuwe weging':'② Weging'}</div>
+          
+          <div style="border:2px dashed rgba(247,201,72,.2);border-radius:var(--radius-sm);padding:10px;margin-bottom:10px;background:rgba(247,201,72,.02);cursor:pointer"
+            onclick="this.querySelector('input[type=file]').click()"
+            ondragover="event.preventDefault();this.style.borderColor='var(--warn)';this.style.background='rgba(247,201,72,.08)'"
+            ondragleave="this.style.borderColor='rgba(247,201,72,.2)';this.style.background='rgba(247,201,72,.02)'"
+            ondrop="event.preventDefault();this.style.borderColor='rgba(247,201,72,.2)';this.style.background='rgba(247,201,72,.02)';gasInlineWeigh(${item.id},event.dataTransfer.files)">
+            <input type="file" accept="image/*" capture="environment" onchange="gasInlineWeigh(${item.id},this.files)"/>
+            <div style="text-align:center;pointer-events:none">
+              <div style="font-size:20px;margin-bottom:2px">📷</div>
+              <div style="font-size:11px;color:var(--text3)">Foto weegschaal (optioneel) — OCR leest gewicht</div>
+            </div>
+          </div>
+          <div id="gas-inline-weigh-preview-${item.id}" style="display:none;text-align:center;margin-bottom:8px"></div>
+          <div id="gas-inline-weigh-status-${item.id}" style="display:none;font-size:11px;padding:6px 8px;border-radius:var(--radius-sm);margin-bottom:8px"></div>
+          
+          <label class="fl" style="margin-top:0">Gewicht (kg):</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input class="input-field" id="gas-inline-weight-${item.id}" type="number" step="0.1" min="0" placeholder="Bijv. 44.5" style="flex:1;font-family:'DM Mono',monospace;font-size:16px"/>
+            <button class="btn btn-p" onclick="gasConfirmInlineWeight(${item.id})" style="padding:8px 14px;background:linear-gradient(135deg,var(--cat-groen),#14b8a6)">✅ Bevestig</button>
+          </div>
+        </div>
+        `:''}
+
+        ${item.gasWeighings&&item.gasWeighings.length?`
+        <label class="fl">Wegingen:</label>
+        <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:10px;margin-bottom:8px">
+          ${item.gasWeighings.slice().reverse().map((w,wi)=>`
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 0;${wi<item.gasWeighings.length-1?'border-bottom:1px solid rgba(255,255,255,.04)':''}">
+              <span style="font-size:18px;font-weight:700;font-family:'DM Mono',monospace;color:var(--cat-groen);min-width:65px">${w.weight} kg</span>
+              <span style="font-size:10px;color:var(--text3);flex:1">${w.at||''} — ${w.by||''}${w.initial?' (eerste weging)':''}</span>
+              ${w.photo?'<div style="width:36px;height:36px;border-radius:4px;overflow:hidden;border:1px solid var(--border);flex-shrink:0"><img src="'+w.photo+'" style="width:100%;height:100%;object-fit:cover"/></div>':''}
+              ${isWeighedThisPeriod(item)&&wi===0?'<span style="font-size:9px;padding:2px 6px;border-radius:10px;background:rgba(45,212,191,.15);color:var(--cat-groen);font-weight:700">✓ DEZE MAAND</span>':''}
+            </div>`).join('')}
+        </div>
+        `:''}
+        `:''}
+
+        ${item.gasRetourStatus?`<span class="status-badge" style="background:rgba(45,212,191,.12);color:var(--cat-groen);border-color:rgba(45,212,191,.3);margin-top:8px;display:inline-block">${item.gasRetourStatus==='aangevraagd'?'📋 Retour aangevraagd':'🚚 Verstuurd'}</span>`:''}
+
+        <div style="font-size:11px;color:var(--text3);margin-top:8px;padding:8px;background:var(--surface2);border-radius:var(--radius-sm)">
+          📋 ${item.timestamp} — <strong>${item.createdBy||'?'}</strong>
+          ${item.lastModified?` · Laatst gewijzigd: ${item.lastModified} — ${item.modifiedBy||''}`:''}
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-s" onclick="deleteItem(${item.id})" style="color:var(--danger);border-color:rgba(255,92,92,.3)">🗑 Verwijderen</button>
+        </div>
+        `:`
+        <!-- STANDARD BODY -->
         <label class="fl" style="margin-top:0">Foto's:</label>
         <div class="thumbrow">
           ${[...(item.photos||[]).map((p,pi)=>({p,pi,field:'photos',tag:'📦 Algemeen',tagColor:'var(--accent)'})),
@@ -1671,7 +1727,7 @@ function renderItems(){
             ${x.p.qualityOk===false?'<div style="position:absolute;top:0;left:0;right:0;background:rgba(255,92,92,.85);color:#fff;font-size:8px;font-weight:700;text-align:center;padding:1px 0">⚠️ ONSCHERP</div>':''}
           </div>`).join('')}
         </div>
-        <div class="photoarea">
+        <div class="photoarea" onclick="this.querySelector('input[type=file]').click()">
           <input type="file" accept="image/*" capture="environment" multiple onchange="smartAddPhoto(${item.id},this.files)"/>
           <div style="font-size:24px;margin-bottom:4px">📷</div>
           <div style="font-size:12px;color:var(--text2)">Foto toevoegen</div>
@@ -1772,6 +1828,7 @@ function renderItems(){
             `<button class="btn btn-s" style="opacity:.4;cursor:not-allowed;flex:1" disabled>📧 Mail pas beschikbaar na volledig invullen</button>`):''}
           <button class="btn btn-s" onclick="deleteItem(${item.id})" style="color:var(--danger);border-color:rgba(255,92,92,.3)">🗑 Verwijderen</button>
         </div>
+        `}
       </div>
     </div>`;
    }catch(err){console.error('Render item error:',err,item);return `<div class="item"><div class="item-head" style="color:var(--danger)">⚠ Render fout item #${item.id}</div></div>`;}
@@ -1815,6 +1872,11 @@ const ACTION_CFG={
     {type:'vrije-voorraad',label:'📦 Naar vrije voorraad',bg:''},
     {type:'retour-leverancier',label:'🔄 Retour naar leverancier',bg:''},
   ],
+  'groen':[
+    {type:'gas-nieuwe-meting',label:'⚖️ Nieuwe meting',bg:''},
+    {type:'gas-retour-aanvraag',label:'📋 Retour aangevraagd (lege fles)',bg:''},
+    {type:'gas-verstuurd',label:'🚚 Fles verstuurd naar leverancier',bg:''},
+  ],
 };
 
 function itemAction(id){
@@ -1834,6 +1896,18 @@ function itemAction(id){
     } else if(it.roodTag==='wacht-wisselstuk'){
       cfg=[{type:'wisselstuk-ontvangen',label:'✅ Wisselstuk ontvangen',bg:''},
            {type:'change-rood-tag',label:'🔄 Tag wijzigen',bg:''}];
+    }
+  }
+
+  // Groen: dynamic actions based on retour status
+  if(it.section==='groen'){
+    if(it.gasRetourStatus==='aangevraagd'){
+      cfg=[{type:'gas-verstuurd',label:'🚚 Fles verstuurd naar leverancier',bg:''}];
+    } else if(!it.gasRetourStatus){
+      cfg=[
+        {type:'gas-nieuwe-meting',label:'⚖️ Nieuwe meting',bg:''},
+        {type:'gas-retour-aanvraag',label:'📋 Retour aangevraagd (lege fles)',bg:''}
+      ];
     }
   }
 
@@ -1859,6 +1933,38 @@ function pickActionType(type){
   try{
   actionType=type;
   const it=items.find(i=>i.id==actionItemId);if(!it)return;
+
+  // Gas: nieuwe meting — close modal, open item with weigh section
+  if(type==='gas-nieuwe-meting'){
+    if(!it.gasCodeLocked){
+      closeModal('modal-action');
+      showToast('⚠ Bevestig eerst het flesnummer voordat je een meting kan doen','error');
+      it.open=true;renderItems();
+      setTimeout(()=>{const el=document.getElementById('gas-code-'+it.id);if(el)el.focus();},200);
+      return;
+    }
+    closeModal('modal-action');
+    it.open=true;
+    renderItems();
+    setTimeout(()=>{
+      const el=document.getElementById('item-'+it.id);
+      if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+      const inp=document.getElementById('gas-inline-weight-'+it.id);
+      if(inp)inp.focus();
+    },200);
+    return;
+  }
+
+  if(type==='gas-retour-aanvraag'||type==='gas-verstuurd'){
+    if(!it.gasCodeLocked){
+      closeModal('modal-action');
+      showToast('⚠ Bevestig eerst het flesnummer','error');
+      it.open=true;renderItems();
+      setTimeout(()=>{const el=document.getElementById('gas-code-'+it.id);if(el)el.focus();},200);
+      return;
+    }
+  }
+
   // Find action config — check static config first, then dynamic rood actions
   let ac=null;
   const cfg=ACTION_CFG[it.section];
@@ -2104,6 +2210,23 @@ function confirmAction(){
     it.categoryHistory.push({from:oldSec,to:'rood',at:ts(),by:magazijnier,reason:'Retour naar leverancier'});
     addAudit(it,'actie','→ Retour naar leverancier door '+magazijnier+(note?' — '+note:''));
     toastMsg='Verplaatst naar Beschadigd / Retour lev.';
+
+  } else if(actionType==='gas-retour-aanvraag'){
+    // Groen: lege fles — retour aangevraagd
+    it.gasRetourStatus='aangevraagd';
+    addAudit(it,'actie','Retour aangevraagd (lege fles) door '+magazijnier+(note?' — '+note:''));
+    toastMsg='Retour aangevraagd voor fles '+it.gasCode;
+
+  } else if(actionType==='gas-verstuurd'){
+    // Groen: fles verstuurd — archive
+    it.gasRetourStatus='verstuurd';
+    it.deleted=true;
+    it.deletedAt=ts();
+    it.deletedBy=magazijnier;
+    if(!it.categoryHistory)it.categoryHistory=[];
+    it.categoryHistory.push({from:'groen',to:'retour-verstuurd',at:ts(),by:magazijnier,reason:'Fles verstuurd naar leverancier'});
+    addAudit(it,'actie','Fles verstuurd naar leverancier — afgesloten door '+magazijnier+(note?' — '+note:''));
+    toastMsg='Fles '+it.gasCode+' verstuurd naar leverancier';
   }
 
   closeModal('modal-action');
@@ -2123,6 +2246,7 @@ function updateField(id,f,v){const it=items.find(i=>i.id==id);if(it){it[f]=v;it.
     else if(s==='geel'||s==='blauw')parts.push(it.projectNumber||(sn?'(geen project)':''));
     else if(s==='rood'){const tl={'retour-cn':'CN aangevraagd','retour-vervanging':'Retour aangevraagd','wacht-wisselstuk':'Wacht wisselstuk'};parts.push(it.roodTag?tl[it.roodTag]:'⚠ Beschadigd');}
     else if(s==='roze')parts.push(it.consumedBy||'(geen technieker)');
+    else if(s==='groen'){if(it.gasCode)parts.push(it.gasCode);const lw=it.gasWeighings?.length?it.gasWeighings[it.gasWeighings.length-1].weight:it.gasWeight;if(lw)parts.push(lw+' kg');if(!it.gasCode&&!lw)parts.push('Nieuwe fles');}
     el.textContent=parts.filter(p=>p).join(' — ')||'Nieuw item';
   }}saveData();}
 function itemIsEmpty(it){
@@ -2130,6 +2254,7 @@ function itemIsEmpty(it){
     !(it.projectNumber&&it.projectNumber.trim())&&
     !(it.reference&&it.reference.trim())&&
     !(it.serial&&it.serial.trim())&&
+    !(it.gasCode&&it.gasCode.trim())&&
     !it.supplierId&&
     !(it.photos||[]).length&&!(it.artikelPhotos||[]).length&&
     !(it.seriePhotos||[]).length&&!(it.schadePhotos||[]).length&&
@@ -2219,8 +2344,6 @@ function addPhotos(id,files,field){
       processPhoto(e.target.result).then(dataUrl=>{
         it[field].push({data:dataUrl,timestamp:ts()+' — '+magazijnier});
         renderItems();saveData();
-        // Upload foto's naar cloud op achtergrond
-        syncPhotosToCloud();
       });
     };reader.readAsDataURL(file);
   });
@@ -2443,31 +2566,7 @@ function cleanEmptyItems(){
     nextId=maxId+1;
   }
 }
-function saveData(){cleanEmptyItems();localStorage.setItem('mag-items',JSON.stringify(items));localStorage.setItem('mag-nextId',nextId);
-  // === FIREBASE SYNC ===
-  try{
-    // Items opslaan zonder foto data (base64 te groot), maar WEL met storageUrls
-    const itemsForCloud=items.map(i=>{
-      const copy=Object.assign({},i);
-      ['photos','artikelPhotos','stickerPhotos','bonPhotos','schadePhotos','seriePhotos'].forEach(f=>{
-        if(copy[f]){copy[f]=copy[f].map(p=>({
-          storageUrl:p.storageUrl||'',
-          storagePath:p.storagePath||'',
-          timestamp:p.timestamp||'',
-          editedAt:p.editedAt||''
-        }));}
-      });
-      return copy;
-    });
-    db.collection('magazijn').doc('items').set({
-      items:JSON.stringify(itemsForCloud),
-      nextId:nextId,
-      lastUpdated:new Date().toISOString(),
-      updatedBy:magazijnier||'onbekend'
-    }).then(()=>{console.log('✅ Firebase: items opgeslagen');})
-      .catch(e=>{console.warn('⚠️ Firebase save error:',e);});
-  }catch(e){console.warn('Firebase sync error:',e);}
-}
+function saveData(){cleanEmptyItems();localStorage.setItem('mag-items',JSON.stringify(items));localStorage.setItem('mag-nextId',nextId);}
 function loadData(){const s=localStorage.getItem('mag-items');if(s){items=JSON.parse(s);items.forEach(i=>{i.open=false;if(!i.audit)i.audit=[];if(!i.status)i.status='open';if(!i.uuid)i.uuid=genUUID();});
   // Dedup: remove items with duplicate uuid, keep first
   const seen=new Set();const before=items.length;
@@ -2490,28 +2589,330 @@ function exportData(){
   const blob=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);a.download='magazijn-'+new Date().toISOString().slice(0,10)+'.json';a.click();showToast('Geëxporteerd (incl. archief)');}
 
-loadData();updateHub();initUser();
-
-// === FIREBASE: Sync bestaande foto's naar cloud (achtergrond, 5 sec na laden) ===
-setTimeout(()=>{syncPhotosToCloud();}, 5000);
-
-// === FIREBASE: Laad data van cloud als localStorage leeg is ===
-(function loadFromFirebase(){
-  if(items.length>0)return; // localStorage heeft al data, skip
-  db.collection('magazijn').doc('items').get().then(doc=>{
-    if(doc.exists&&doc.data().items){
-      const cloudItems=JSON.parse(doc.data().items);
-      if(cloudItems.length>0&&items.length===0){
-        items=cloudItems;items.forEach(i=>{i.open=false;if(!i.audit)i.audit=[];if(!i.status)i.status='open';if(!i.uuid)i.uuid=genUUID();});
-        nextId=doc.data().nextId||1;
-        localStorage.setItem('mag-items',JSON.stringify(items));
-        localStorage.setItem('mag-nextId',nextId);
-        updateHub();showToast('Data geladen vanuit cloud ☁️');
-        console.log('✅ Firebase: '+cloudItems.length+' items geladen');
-      }
+// ══ GAS METINGEN R-32 ══
+function getFirstFriday(year,month){
+  const d=new Date(year,month,1);
+  while(d.getDay()!==5)d.setDate(d.getDate()+1);
+  return d;
+}
+function getNextWeighDate(){
+  const now=new Date();
+  let ff=getFirstFriday(now.getFullYear(),now.getMonth());
+  if(now>ff){ff=getFirstFriday(now.getFullYear(),now.getMonth()+1);}
+  return ff;
+}
+function getCurrentWeighPeriod(){
+  // The current weigh period = first friday of this month
+  const now=new Date();
+  return getFirstFriday(now.getFullYear(),now.getMonth());
+}
+function isWeighedThisPeriod(item){
+  if(!item.gasWeighings||!item.gasWeighings.length)return false;
+  const period=getCurrentWeighPeriod();
+  const periodKey=period.getFullYear()+'-'+(period.getMonth()+1);
+  return item.gasWeighings.some(w=>{
+    const d=new Date(w.date);
+    const wKey=d.getFullYear()+'-'+(d.getMonth()+1);
+    return wKey===periodKey;
+  });
+}
+function gasAlertInfo(){
+  const gasItems=items.filter(i=>i.section==='groen'&&!i.deleted&&!i.gasRetourStatus);
+  const unweighed=gasItems.filter(i=>!isWeighedThisPeriod(i));
+  const ff=getCurrentWeighPeriod();
+  const now=new Date();
+  const diffMs=now-ff;
+  const daysOver=Math.floor(diffMs/(1000*60*60*24));
+  const nextFf=getNextWeighDate();
+  const daysUntil=Math.ceil((nextFf-now)/(1000*60*60*24));
+  const isOverdue=now>=ff&&unweighed.length>0;
+  return{total:gasItems.length,weighed:gasItems.length-unweighed.length,unweighed:unweighed.length,isOverdue,daysOver:Math.max(0,daysOver),daysUntil,nextDate:nextFf};
+}
+function updateGasHub(){
+  const info=gasAlertInfo();
+  const gewEl=document.getElementById('hub-groen-gewogen');
+  const openEl=document.getElementById('hub-groen-open');
+  const alertEl=document.getElementById('hub-groen-alert');
+  if(gewEl)gewEl.textContent=info.weighed;
+  if(openEl)openEl.textContent=info.unweighed;
+  if(alertEl){
+    if(info.isOverdue){
+      alertEl.innerHTML=`<div class="gas-alert" style="font-size:18px">⚠️</div><div style="font-size:9px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:.3px">${info.unweighed} fles${info.unweighed>1?'sen':''}<br>${info.daysOver}d over tijd</div>`;
+    } else if(info.total>0){
+      alertEl.innerHTML=`<div style="font-size:14px">📅</div><div style="font-size:9px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.3px">nog ${info.daysUntil}d</div>`;
+    } else {
+      alertEl.innerHTML='';
     }
-  }).catch(e=>{console.warn('Firebase load error:',e);});
-})();
+  }
+}
+
+// Gas: add new bottle
+function addGasBottle(){
+  const it={
+    id:nextId++,uuid:genUUID(),section:'groen',
+    description:'',gasCode:'',gasCodeLocked:false,
+    gasWeight:null,gasWeighings:[],gasRetourStatus:null,
+    photos:[],artikelPhotos:[],seriePhotos:[],stickerPhotos:[],schadePhotos:[],bonPhotos:[],
+    supplierId:'',projectNumber:'',reference:'',serial:'',
+    status:'open',actions:[],categoryHistory:[],audit:[],
+    timestamp:ts(),createdBy:magazijnier,lastModified:'',modifiedBy:'',
+    deleted:false,emailSent:false,open:true
+  };
+  items.push(it);saveData();
+  openSection('groen');
+  showToast('Nieuwe fles toegevoegd — scan etiket');
+}
+
+// Gas: weigh existing bottle (scan etiket → match → weigh)
+function startGasWeighing(){
+  // Open modal to scan bottle label
+  const modal=document.getElementById('modal-action');
+  const gasItems=items.filter(i=>i.section==='groen'&&!i.deleted&&!i.gasRetourStatus);
+  const unweighed=gasItems.filter(i=>!isWeighedThisPeriod(i));
+  document.getElementById('action-modal-title').innerHTML='<span style="color:var(--cat-groen)">⚖️ Fles wegen</span>';
+  document.getElementById('action-item-info').innerHTML=`<strong>${unweighed.length}</strong> van ${gasItems.length} flessen nog te wegen deze maand`;
+  document.getElementById('action-step1').style.display='block';
+  document.getElementById('action-step2').style.display='none';
+  document.getElementById('action-cancel1').style.display='';
+  const btnWrap=document.getElementById('action-buttons');
+  btnWrap.innerHTML=`
+    <div style="text-align:center;padding:12px">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:12px">Scan het etiket van de fles</div>
+      <div style="position:relative;display:inline-block">
+        <input type="file" accept="image/*" capture="environment" onchange="gasOcrScanBottle(this.files)" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%"/>
+        <button class="btn btn-p" style="pointer-events:none;padding:14px 28px;font-size:14px">📷 Scan etiket</button>
+      </div>
+      <div style="margin-top:14px;font-size:11px;color:var(--text3)">Of selecteer handmatig:</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;max-height:200px;overflow-y:auto">
+        ${unweighed.map(i=>`<button onclick="gasWeighBottle(${i.id})" style="width:100%;padding:10px 12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;text-align:left;font-family:'DM Sans',sans-serif;transition:all .15s" onmouseover="this.style.borderColor='var(--cat-groen)';this.style.color='var(--cat-groen)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text)'">${i.gasCode||'Fles #'+i.id} — ${i.gasWeight?i.gasWeight+' kg':'?'}</button>`).join('')}
+      </div>
+    </div>`;
+  modal.classList.add('show');
+}
+
+async function gasOcrScanBottle(files){
+  if(!files||!files[0])return;
+  const dataUrl=await new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.readAsDataURL(files[0]);});
+  showToast('Etiket analyseren...');
+  try{
+    const text=await ocrViaAPI(dataUrl,'This is a photo of a gas bottle label. Read the bottle number (flesnummer) visible. Return ONLY the number/code, nothing else.');
+    const code=text.replace(/[^a-zA-Z0-9\-\.\/]/g,'').trim().substring(0,40);
+    if(code){
+      const match=items.find(i=>i.section==='groen'&&!i.deleted&&i.gasCode&&i.gasCode.toLowerCase()===code.toLowerCase());
+      if(match){
+        closeModal('modal-action');
+        gasWeighBottle(match.id);
+        showToast('Fles herkend: '+match.gasCode);
+      } else {
+        showToast('Fles "'+code+'" niet gevonden — selecteer handmatig','error');
+      }
+    } else {
+      showToast('Geen code herkend — selecteer handmatig','error');
+    }
+  }catch(e){showToast('OCR mislukt — selecteer handmatig','error');}
+}
+
+function gasWeighBottle(id){
+  closeModal('modal-action');
+  const it=items.find(i=>i.id==id);if(!it)return;
+  // Open weigh modal
+  const modal=document.getElementById('modal-action');
+  document.getElementById('action-modal-title').innerHTML=`<span style="color:var(--cat-groen)">⚖️ ${it.gasCode||'Fles #'+id} wegen</span>`;
+  document.getElementById('action-item-info').innerHTML=`Laatste gewicht: <strong>${it.gasWeighings?.length?it.gasWeighings[it.gasWeighings.length-1].weight+' kg':it.gasWeight?it.gasWeight+' kg':'—'}</strong>`;
+  document.getElementById('action-step1').style.display='none';
+  document.getElementById('action-cancel1').style.display='none';
+  document.getElementById('action-step2').style.display='block';
+  document.getElementById('action-step2').innerHTML=`
+    <div style="font-size:13px;color:var(--text2);margin-bottom:12px">Neem een foto van de weegschaal</div>
+    <div style="position:relative;text-align:center;margin-bottom:14px">
+      <input type="file" accept="image/*" capture="environment" id="gas-weigh-photo" onchange="gasOcrWeight(${id},this.files)" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%"/>
+      <button class="btn btn-s" style="pointer-events:none;padding:14px 28px;font-size:14px;width:100%">📷 Foto weegschaal</button>
+    </div>
+    <div id="gas-weigh-preview" style="display:none;margin-bottom:12px;text-align:center"></div>
+    <label class="fl" style="margin-top:0">Gewicht (kg):</label>
+    <input class="input-field" id="gas-weight-input" type="number" step="0.1" min="0" placeholder="Bijv. 12.4" style="font-family:'DM Mono',monospace;font-size:16px"/>
+    <div id="gas-weight-ocr-status" style="display:none;font-size:11px;margin-top:6px;padding:6px 8px;border-radius:var(--radius-sm)"></div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn btn-p" onclick="gasConfirmWeight(${id})" style="flex:1;padding:12px;background:linear-gradient(135deg,var(--cat-groen),#14b8a6)">✅ Gewicht bevestigen</button>
+      <button class="btn btn-s" onclick="closeModal('modal-action')" style="padding:12px">Annuleer</button>
+    </div>`;
+  modal.classList.add('show');
+  setTimeout(()=>document.getElementById('gas-weight-input')?.focus(),200);
+}
+
+async function gasOcrWeight(id,files){
+  if(!files||!files[0])return;
+  const dataUrl=await new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.readAsDataURL(files[0]);});
+  const preview=document.getElementById('gas-weigh-preview');
+  if(preview){preview.style.display='block';preview.innerHTML=`<img src="${dataUrl}" style="max-width:200px;max-height:150px;border-radius:var(--radius-sm);border:2px solid var(--border)"/>`;}
+  const it=items.find(i=>i.id==id);
+  if(it){if(!it._pendingWeighPhoto)it._pendingWeighPhoto=dataUrl;}
+  const statusEl=document.getElementById('gas-weight-ocr-status');
+  if(statusEl){statusEl.style.display='block';statusEl.style.background='rgba(79,142,247,.1)';statusEl.style.color='var(--accent)';statusEl.textContent='⏳ Gewicht lezen via OCR...';}
+  try{
+    const text=await ocrViaAPI(dataUrl,'This is a photo of a weighing scale showing the weight of a gas bottle. Read the weight displayed on the scale. Return ONLY the numeric value in kg (e.g. "12.4"), nothing else. Use a dot as decimal separator.');
+    const weight=parseFloat(text.replace(',','.').replace(/[^0-9.]/g,''));
+    if(weight>0&&weight<200){
+      document.getElementById('gas-weight-input').value=weight;
+      if(statusEl){statusEl.style.background='rgba(45,212,191,.1)';statusEl.style.color='var(--cat-groen)';statusEl.textContent='✅ Gewicht herkend: '+weight+' kg — controleer en bevestig';}
+    } else {
+      if(statusEl){statusEl.style.background='rgba(255,92,92,.1)';statusEl.style.color='var(--danger)';statusEl.textContent='⚠ Gewicht niet herkend. Vul handmatig in.';}
+    }
+  }catch(e){
+    if(statusEl){statusEl.style.background='rgba(255,92,92,.1)';statusEl.style.color='var(--danger)';statusEl.textContent='⚠ OCR mislukt. Vul handmatig in.';}
+  }
+}
+
+function gasConfirmWeight(id){
+  const it=items.find(i=>i.id==id);if(!it)return;
+  const weightStr=document.getElementById('gas-weight-input').value;
+  const weight=parseFloat(weightStr);
+  if(!weight||weight<=0){showToast('Vul een geldig gewicht in','error');return;}
+  if(!it.gasWeighings)it.gasWeighings=[];
+  const entry={date:new Date().toISOString(),weight:weight,by:magazijnier,at:ts()};
+  if(it._pendingWeighPhoto){entry.photo=it._pendingWeighPhoto;delete it._pendingWeighPhoto;}
+  it.gasWeighings.push(entry);
+  it.lastModified=ts();it.modifiedBy=magazijnier;
+  addAudit(it,'weging','Gewicht: '+weight+' kg door '+magazijnier);
+  closeModal('modal-action');
+  saveData();renderItems();updateHub();updateGasHub();
+  showToast('Weging opgeslagen: '+it.gasCode+' — '+weight+' kg');
+}
+
+async function gasInlineWeigh(id,files){
+  if(!files||!files[0])return;
+  const it=items.find(i=>i.id==id);if(!it)return;
+  const dataUrl=await new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.readAsDataURL(files[0]);});
+  
+  // Store pending photo
+  it._pendingWeighPhoto=dataUrl;
+  
+  // Show preview
+  const preview=document.getElementById('gas-inline-weigh-preview-'+id);
+  if(preview){preview.style.display='block';preview.innerHTML=`<img src="${dataUrl}" style="max-width:200px;max-height:150px;border-radius:var(--radius-sm);border:2px solid var(--border)"/>`;}
+  
+  // Show confirm area
+  const confirmArea=document.getElementById('gas-inline-weigh-confirm-'+id);
+  if(confirmArea)confirmArea.style.display='block';
+  
+  // OCR
+  const statusEl=document.getElementById('gas-inline-weigh-status-'+id);
+  if(statusEl){statusEl.style.display='block';statusEl.style.background='rgba(79,142,247,.1)';statusEl.style.color='var(--accent)';statusEl.textContent='⏳ Gewicht lezen via OCR...';}
+  
+  try{
+    const text=await ocrViaAPI(dataUrl,'This is a photo of a digital weighing scale. The display shows a number which is the weight in kg. Read ONLY the number shown on the display. Return just the number, for example: 44.5');
+    console.log('OCR weight result:',text);
+    const cleaned=text.replace(',','.').replace(/[^0-9.]/g,'');
+    const weight=parseFloat(cleaned);
+    if(weight>0&&weight<500){
+      const inp=document.getElementById('gas-inline-weight-'+id);
+      if(inp)inp.value=weight;
+      if(statusEl){statusEl.style.background='rgba(45,212,191,.1)';statusEl.style.color='var(--cat-groen)';statusEl.textContent='✅ Gewicht herkend: '+weight+' kg — controleer en bevestig';}
+    } else {
+      if(statusEl){statusEl.style.background='rgba(255,92,92,.1)';statusEl.style.color='var(--danger)';statusEl.textContent='⚠ Gewicht niet herkend ('+cleaned+'). Vul handmatig in.';}
+    }
+  }catch(e){
+    console.error('Weight OCR error:',e);
+    if(statusEl){statusEl.style.background='rgba(255,92,92,.1)';statusEl.style.color='var(--danger)';statusEl.textContent='⚠ OCR mislukt: '+(e.message||'onbekende fout')+'. Vul handmatig in.';}
+  }
+  
+  // Focus weight input
+  setTimeout(()=>document.getElementById('gas-inline-weight-'+id)?.focus(),200);
+}
+
+function gasConfirmInlineWeight(id){
+  const it=items.find(i=>i.id==id);if(!it)return;
+  const inp=document.getElementById('gas-inline-weight-'+id);
+  const weight=parseFloat(inp?.value);
+  if(!weight||weight<=0){showToast('Vul een geldig gewicht in','error');return;}
+  if(!it.gasWeighings)it.gasWeighings=[];
+  const isFirst=!it.gasWeight;
+  const entry={date:new Date().toISOString(),weight:weight,by:magazijnier,at:ts()};
+  if(isFirst)entry.initial=true;
+  if(it._pendingWeighPhoto){entry.photo=it._pendingWeighPhoto;delete it._pendingWeighPhoto;}
+  it.gasWeighings.push(entry);
+  if(!it.gasWeight)it.gasWeight=weight;
+  it.lastModified=ts();it.modifiedBy=magazijnier;
+  it.open=true;
+  addAudit(it,'weging',(isFirst?'Initieel gewicht':'Gewicht')+': '+weight+' kg door '+magazijnier);
+  saveData();renderItems();updateHub();updateGasHub();
+  showToast('Weging opgeslagen: '+it.gasCode+' — '+weight+' kg');
+}
+
+// Gas: OCR for new bottle code
+async function gasOcrCode(id,files){
+  if(!files||!files[0])return;
+  const it=items.find(i=>i.id==id);if(!it||it.gasCodeLocked)return;
+  const dataUrl=await new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.readAsDataURL(files[0]);});
+  if(!it.photos)it.photos=[];
+  it.photos.push({data:dataUrl,timestamp:ts()+' — '+magazijnier});
+  it.open=true;
+  saveData();renderItems();
+  
+  const statusEl=document.getElementById('gas-ocr-status-'+id);
+  if(statusEl){statusEl.style.display='block';statusEl.style.background='rgba(79,142,247,.1)';statusEl.style.color='var(--accent)';statusEl.textContent='⏳ Flesnummer lezen via OCR...';}
+  
+  let code='';
+  try{
+    const text=await ocrViaAPI(dataUrl,'This is a photo of a gas bottle label/sticker. Read the bottle number or identifier visible. It could be a short number like "24" or a longer code. Return ONLY the number/code, nothing else.');
+    console.log('Gas OCR etiket result:',text);
+    code=text.replace(/[^a-zA-Z0-9\-\.\/\s]/g,'').trim().substring(0,40);
+  }catch(e){
+    console.error('Gas OCR etiket error:',e);
+    const st2=document.getElementById('gas-ocr-status-'+id);
+    if(st2){st2.style.display='block';st2.style.background='rgba(255,92,92,.1)';st2.style.color='var(--danger)';
+      st2.textContent='⚠ OCR fout: '+(e.message||'onbekend')+'. Vul handmatig in.';}
+    showToast('OCR fout — vul handmatig in','error');
+    return;
+  }
+  
+  if(code){
+    it.gasCode=code;
+    it.open=true;
+    saveData();renderItems();
+    showToast('Flesnummer herkend: '+code);
+    const st2=document.getElementById('gas-ocr-status-'+id);
+    if(st2){st2.style.display='block';st2.style.background='rgba(45,212,191,.1)';st2.style.color='var(--cat-groen)';
+      st2.innerHTML=`✅ Herkend: <strong>${code}</strong> — controleer en bevestig met ✅ knop`;}
+  } else {
+    it.open=true;
+    renderItems();
+    const st2=document.getElementById('gas-ocr-status-'+id);
+    if(st2){st2.style.display='block';st2.style.background='rgba(255,92,92,.1)';st2.style.color='var(--danger)';
+      st2.textContent='⚠ Flesnummer niet herkend. Vul handmatig in.';}
+    showToast('Flesnummer niet herkend — vul handmatig in','error');
+  }
+}
+function gasSetCode(id,code){
+  const it=items.find(i=>i.id==id);if(!it)return;
+  it.gasCode=code;
+  const inp=document.getElementById('gas-code-'+id);if(inp)inp.value=code;
+  saveData();renderItems();
+  showToast('Code ingesteld: '+code);
+}
+function gasLockCode(id){
+  const it=items.find(i=>i.id==id);if(!it)return;
+  if(!it.gasCode){showToast('Vul eerst een code in','error');return;}
+  it.gasCodeLocked=true;
+  addAudit(it,'code_vergrendeld','Flesnummer vergrendeld: '+it.gasCode+' door '+magazijnier);
+  saveData();renderItems();
+  showToast('Code vergrendeld: '+it.gasCode);
+}
+function gasInitialWeight(id){
+  const it=items.find(i=>i.id==id);if(!it)return;
+  const inp=document.getElementById('gas-init-weight-'+id);
+  const weight=parseFloat(inp?.value);
+  if(!weight||weight<=0){showToast('Vul een geldig gewicht in','error');return;}
+  it.gasWeight=weight;
+  if(!it.gasWeighings)it.gasWeighings=[];
+  it.gasWeighings.push({date:new Date().toISOString(),weight:weight,by:magazijnier,at:ts(),initial:true});
+  addAudit(it,'weging','Initieel gewicht: '+weight+' kg door '+magazijnier);
+  it.lastModified=ts();it.modifiedBy=magazijnier;
+  saveData();renderItems();updateHub();updateGasHub();
+  showToast('Initieel gewicht opgeslagen: '+weight+' kg');
+}
+
+loadData();updateHub();updateGasHub();initUser();
 </script>
 </body>
 </html>
