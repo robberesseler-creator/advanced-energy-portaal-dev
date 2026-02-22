@@ -50,7 +50,7 @@
 <!-- INSTELLINGEN --><div class="pnl" id="p-instellingen"><div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:48px 40px;text-align:center"><div style="font-size:56px;margin-bottom:16px">⚙️</div><div style="font-size:1.2rem;font-weight:700;margin-bottom:8px">Instellingen</div><div style="color:var(--text2);font-size:.85rem;max-width:460px;margin:0 auto">Komt binnenkort.</div></div></div>
 </div></div>
 <!-- DETAIL MODAL --><div class="mbg" id="modal" onclick="closeModal()"><div class="mdl" onclick="event.stopPropagation()"><div class="mdl-h"><div><h3 style="font-size:1.1rem;font-weight:700;margin-bottom:6px" id="m-title"></h3><div id="m-cat"></div></div><button class="mdl-x" onclick="closeModal()">✕</button></div><div class="mdl-g" id="m-fields"></div><div id="m-photos"></div><div id="m-extra"></div></div></div>
-<!-- CONFIRM MODAL --><div class="confirm-bg" id="confirm-modal" onclick="closeConfirm()"><div class="confirm-box" onclick="event.stopPropagation()"><div class="confirm-icon">✅</div><div class="confirm-title">Rapport klaar markeren?</div><div class="confirm-sub" id="confirm-sub"></div><div class="confirm-btns"><button class="btn" onclick="closeConfirm()">Annuleren</button><button class="btn btn-s" id="confirm-ok" onclick="doKlaar()">✅ Ja, markeer klaar</button></div></div></div>
+<!-- CONFIRM MODAL (generic: klaar + delete) --><div class="confirm-bg" id="confirm-modal" onclick="closeConfirm()"><div class="confirm-box" onclick="event.stopPropagation()"><div class="confirm-icon" id="confirm-icon">✅</div><div class="confirm-title" id="confirm-title">Bevestigen</div><div class="confirm-sub" id="confirm-sub"></div><div class="confirm-btns"><button class="btn" onclick="closeConfirm()">Annuleren</button><button class="btn btn-s" id="confirm-ok">Bevestigen</button></div></div></div>
 <!-- ADD MODAL (simple forms for montage/service/onderhoud) --><div class="add-bg" id="add-modal" onclick="closeAdd()"><div class="add-box" onclick="event.stopPropagation()"><div class="add-title" id="add-title"></div><div id="add-form"></div><div class="add-actions"><button class="btn" onclick="closeAdd()">Annuleren</button><button class="btn-add" onclick="submitAdd()">＋ Toevoegen</button></div></div></div>
 <div class="toast" id="toast"></div>
 <script>
@@ -94,9 +94,59 @@ function renderMag(){var s=document.getElementById('mag-search').value.toLowerCa
 function openMagM(id){var item=magItems.find(function(i){return i.id===id});if(!item)return;var sec=SEC[item.section]||{l:'',c:'#555e7d'};document.getElementById('m-title').textContent='Item #'+item.id;document.getElementById('m-cat').innerHTML='<span class="cb" style="background:'+sec.c+'1a;color:'+sec.c+'">'+sec.l+'</span>';document.getElementById('m-fields').innerHTML=[['Omschrijving',item.description],['Project',item.projectNumber],['Referentie',item.reference],['Serial',item.serial],['Leverancier',item.supplierId],['Datum',item.timestamp],['Door',item.createdBy]].map(function(e){return'<div><div class="mdl-lb">'+e[0]+'</div><div class="mdl-v">'+(e[1]||'—')+'</div></div>'}).join('');document.getElementById('m-photos').innerHTML='';document.getElementById('m-extra').innerHTML='';document.getElementById('modal').classList.add('show')}
 
 // ═══ BEZOEKSRAPPORT ═══
-function renderBR(){var s=(document.getElementById('br-search').value||'').toLowerCase(),f=document.getElementById('br-filter').value;var fl=brItems.filter(function(item){if(f&&!(item.completedTypes||[]).some(function(t){return t===f||t.startsWith(f+'-')}))return false;if(s){var v=[item.klantNaam||'',item.klantAdres||''].map(function(x){return x.toLowerCase()});if(!v.some(function(x){return x.includes(s)}))return false}return true});var tb=document.getElementById('br-tb');if(!fl.length)tb.innerHTML=emR(7,'📋','Geen rapporten','Klik ＋ Toevoegen om een rapport aan te maken');else tb.innerHTML=fl.map(function(item){var ph=cntPh(item._itemData);return'<tr><td style="font-weight:600">'+(item.klantNaam||'—')+'</td><td style="font-size:.8rem;color:var(--text2);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(item.klantAdres||'—')+'</td><td style="max-width:240px">'+tTags(item.completedTypes)+'</td><td class="mono" style="font-size:.76rem;color:var(--text2)">'+Object.keys(item._itemData||{}).length+'</td><td>'+phB(ph.t,ph.c)+'</td><td class="mono" style="font-size:.7rem;color:var(--text3);white-space:nowrap">'+fmt(item.updatedAt)+'</td><td style="white-space:nowrap;text-align:center"><div style="display:flex;align-items:center;gap:5px;justify-content:center"><button class="vb" onclick="openBRM(\''+item.id+'\')" title="Bekijken">'+EYE+'</button><button class="vb" onclick="dlPDF(\''+item.id+'\')" title="PDF downloaden">'+DLI+'</button><button class="btn btn-s" onclick="askKlaar(\''+item.id+'\')" style="padding:5px 12px;font-size:.7rem;border-radius:6px">✅ Klaar</button></div></td></tr>'}).join('');document.getElementById('br-rc').textContent=fl.length+' rapporten';document.getElementById('br-tc').innerHTML='Toont '+fl.length+' van '+brItems.length}
-function openBRM(id){var item=brItems.find(function(i){return i.id===id});if(!item)return;document.getElementById('m-title').textContent=item.klantNaam||'Klant';document.getElementById('m-cat').innerHTML='<span style="font-size:.8rem;color:var(--text2)">'+(item.klantAdres||'')+'</span>';document.getElementById('m-fields').innerHTML=[['Klant',item.klantNaam],['Adres',item.klantAdres],['Aangemaakt',fmt(item.createdAt)],['Bijgewerkt',fmt(item.updatedAt)]].map(function(e){return'<div><div class="mdl-lb">'+e[0]+'</div><div class="mdl-v">'+(e[1]||'—')+'</div></div>'}).join('');document.getElementById('m-photos').innerHTML='';document.getElementById('m-extra').innerHTML=tTags(item.completedTypes);document.getElementById('modal').classList.add('show')}
-function askKlaar(id){var item=brItems.find(function(i){return i.id===id});if(!item)return;pendingId=id;document.getElementById('confirm-sub').innerHTML='<strong>'+(item.klantNaam||'Klant')+'</strong> — '+(item.klantAdres||'')+'<br><br>Dit rapport wordt verplaatst naar <strong>Projecten</strong>.';document.getElementById('confirm-modal').classList.add('show')}
+function renderBR(){var s=(document.getElementById('br-search').value||'').toLowerCase(),f=document.getElementById('br-filter').value;var fl=brItems.filter(function(item){if(f&&!(item.completedTypes||[]).some(function(t){return t===f||t.startsWith(f+'-')}))return false;if(s){var v=[item.klantNaam||'',item.klantAdres||''].map(function(x){return x.toLowerCase()});if(!v.some(function(x){return x.includes(s)}))return false}return true});var tb=document.getElementById('br-tb');if(!fl.length)tb.innerHTML=emR(7,'📋','Geen rapporten','Klik ＋ Toevoegen om een rapport aan te maken');else tb.innerHTML=fl.map(function(item){var ph=cntPh(item._itemData);return'<tr><td style="font-weight:600">'+(item.klantNaam||'—')+'</td><td style="font-size:.8rem;color:var(--text2);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(item.klantAdres||'—')+'</td><td style="max-width:240px">'+tTags(item.completedTypes)+'</td><td class="mono" style="font-size:.76rem;color:var(--text2)">'+Object.keys(item._itemData||{}).length+'</td><td>'+phB(ph.t,ph.c)+'</td><td class="mono" style="font-size:.7rem;color:var(--text3);white-space:nowrap">'+fmt(item.updatedAt)+'</td><td style="white-space:nowrap;text-align:center"><div style="display:flex;align-items:center;gap:5px;justify-content:center"><button class="vb" onclick="openBRM(\''+item.id+'\')" title="Bekijken">'+EYE+'</button><button class="vb" onclick="dlPDF(\''+item.id+'\')" title="PDF downloaden">'+DLI+'</button><button class="btn btn-s" onclick="askKlaar(\''+item.id+'\')" style="padding:5px 12px;font-size:.7rem;border-radius:6px">✅ Klaar</button><button class=\"vb\" onclick=\"askDelete(\\''+item.id+'\\')\" title=\"Verwijderen\" style=\"color:var(--danger)\">🗑️</button></div></td></tr>'}).join('');document.getElementById('br-rc').textContent=fl.length+' rapporten';document.getElementById('br-tc').innerHTML='Toont '+fl.length+' van '+brItems.length}
+function openBRM(id){var item=brItems.find(function(i){return i.id===id});if(!item)return;document.getElementById('m-title').textContent=item.klantNaam||'Klant';document.getElementById('m-cat').innerHTML='<span style="font-size:.8rem;color:var(--text2)">'+(item.klantAdres||'')+'</span>';document.getElementById('m-fields').innerHTML=[['Klant',item.klantNaam],['Adres',item.klantAdres],['Aangemaakt',fmt(item.createdAt)],['Bijgewerkt',fmt(item.updatedAt)]].map(function(e){return'<div><div class="mdl-lb">'+e[0]+'</div><div class="mdl-v">'+(e[1]||'—')+'</div></div>'}).join('');
+  // Show item details
+  var data=item._itemData||{};var extraHtml=tTags(item.completedTypes);
+  var keys=Object.keys(data);
+  if(keys.length){
+    extraHtml+='<div style="margin-top:16px">';
+    keys.forEach(function(sk){
+      var d=data[sk];if(!d)return;
+      extraHtml+='<div style="margin-bottom:12px;padding:10px;background:var(--surface2);border-radius:var(--rs);border:1px solid var(--border)"><div style="font-weight:600;font-size:.82rem;margin-bottom:6px">'+sk+'</div>';
+      if(d.notes)extraHtml+='<div style="font-size:.78rem;color:var(--text2)">'+d.notes+'</div>';
+      var fields=[['Locatie',d.location],['Strings',d.strings],['MPP',d.mppTrackers],['Fase',d.phaseType],['Brandstof',d.fuelType],['Verbruik',d.fuelAmount],['Bouwjaar',d.buildYear],['Woning',d.woningType],['Isolatie',d.insulation],['Opp.',d.totalSqm?d.totalSqm+' m²':''],['Bevestiging',d.fixType],['Unit',d.unitType],['Aansluiting',d.connType]];
+      var fHtml=fields.filter(function(f){return f[1]}).map(function(f){return'<span style="font-size:.72rem;color:var(--text3);margin-right:10px">'+f[0]+': <span style="color:var(--text2)">'+f[1]+'</span></span>'}).join('');
+      if(fHtml)extraHtml+='<div style="margin-top:4px">'+fHtml+'</div>';
+      extraHtml+='</div>';
+    });
+    extraHtml+='</div>';
+  }
+  document.getElementById('m-extra').innerHTML=extraHtml;
+  // Load photos
+  var photosDiv=document.getElementById('m-photos');photosDiv.innerHTML='';
+  var allUrls=[];
+  keys.forEach(function(sk){var d=data[sk];if(d&&d.storageUrls){d.storageUrls.forEach(function(u){if(u&&u.startsWith('http'))allUrls.push({sk:sk,url:u})})}});
+  if(allUrls.length){
+    photosDiv.innerHTML='<div class="ps"><div class="ps-t">Foto\'s ('+allUrls.length+')</div><div class="pg" id="m-photo-grid"></div></div>';
+    var grid=document.getElementById('m-photo-grid');
+    allUrls.forEach(function(p){
+      var img=document.createElement('img');img.className='pt';img.alt=p.sk;img.style.background='var(--surface2)';
+      img.src=p.url;
+      img.onerror=function(){this.style.display='none'};
+      grid.appendChild(img);
+    });
+  }
+  document.getElementById('modal').classList.add('show')}
+function askKlaar(id){var item=brItems.find(function(i){return i.id===id});if(!item)return;pendingId=id;
+  document.getElementById('confirm-icon').textContent='✅';
+  document.getElementById('confirm-title').textContent='Rapport klaar markeren?';
+  document.getElementById('confirm-sub').innerHTML='<strong>'+(item.klantNaam||'Klant')+'</strong> — '+(item.klantAdres||'')+'<br><br>Dit rapport wordt verplaatst naar <strong>Projecten</strong>.';
+  var btn=document.getElementById('confirm-ok');btn.textContent='✅ Ja, markeer klaar';btn.onclick=doKlaar;btn.style.background='';btn.className='btn btn-s';
+  document.getElementById('confirm-modal').classList.add('show')}
+function askDelete(id){var item=brItems.find(function(i){return i.id===id});if(!item)return;pendingId=id;
+  document.getElementById('confirm-icon').textContent='🗑️';
+  document.getElementById('confirm-title').textContent='Rapport verwijderen?';
+  document.getElementById('confirm-sub').innerHTML='<strong>'+(item.klantNaam||'Klant')+'</strong> — '+(item.klantAdres||'')+'<br><br>Dit rapport wordt <strong>definitief verwijderd</strong>. Dit kan niet ongedaan worden.';
+  var btn=document.getElementById('confirm-ok');btn.textContent='🗑️ Ja, verwijder';btn.onclick=doDelete;btn.style.background='var(--danger)';btn.className='btn btn-s';
+  document.getElementById('confirm-modal').classList.add('show')}
+async function doDelete(){if(!pendingId)return;var idx=brItems.findIndex(function(i){return i.id===pendingId});if(idx===-1)return;var item=brItems[idx];
+  try{
+    await db.collection('bezoekrapport').doc(item._docId||item.id).delete();
+    brItems.splice(idx,1);
+    toast('🗑️ Rapport verwijderd: '+(item.klantNaam||''));
+  }catch(e){console.error(e);toast('⚠️ Fout: '+e.message);closeConfirm();return}
+  closeConfirm();setBdg('br-badge',brItems.length);renderBR();renderDash()}
 async function doKlaar(){if(!pendingId)return;var idx=brItems.findIndex(function(i){return i.id===pendingId});if(idx===-1)return;var item=brItems[idx];var now=new Date().toISOString();
   try{
     // Build clean project doc
@@ -296,20 +346,22 @@ async function dlPDF(id){
 
 // ═══ FIREBASE DATA LOADING ═══
 async function loadAll(){
+  console.log('🔄 loadAll() gestart...');
   try{
     // Magazijn
     var magSnap=await db.collection('magazijn').get();
     magItems=[];magSnap.forEach(function(doc){var d=doc.data();d._docId=doc.id;magItems.push(d)});
+    console.log('📦 Magazijn:',magItems.length,'items');
 
     // Bezoeksrapport
     var brSnap=await db.collection('bezoekrapport').get();
     brItems=[];brSnap.forEach(function(doc){
       var d=doc.data();d.id=doc.id;d._docId=doc.id;
-      // Parse itemData JSON string if present
       if(typeof d.itemData==='string'){try{d._itemData=JSON.parse(d.itemData)}catch(e){d._itemData={}}}
       else d._itemData=d.itemData||{};
       brItems.push(d);
     });
+    console.log('📋 Bezoeksrapport:',brItems.length,'items');
 
     // Projecten
     var pjSnap=await db.collection('projecten').get();
@@ -319,21 +371,26 @@ async function loadAll(){
       else d._itemData=d.itemData||{};
       pjItems.push(d);
     });
+    console.log('📁 Projecten:',pjItems.length,'items');
 
     // Montage
     var mtSnap=await db.collection('montage').get();
     mtItems=[];mtSnap.forEach(function(doc){var d=doc.data();d.id=doc.id;d._docId=doc.id;d._itemData=d._itemData||{};mtItems.push(d)});
+    console.log('🔧 Montage:',mtItems.length,'items');
 
     // Service
     var svSnap=await db.collection('service').get();
     svItems=[];svSnap.forEach(function(doc){var d=doc.data();d.id=doc.id;d._docId=doc.id;d._itemData=d._itemData||{};svItems.push(d)});
+    console.log('🛠️ Service:',svItems.length,'items');
 
     // Onderhoud
     var ohSnap=await db.collection('onderhoud').get();
     ohItems=[];ohSnap.forEach(function(doc){var d=doc.data();d.id=doc.id;d._docId=doc.id;d._itemData=d._itemData||{};ohItems.push(d)});
+    console.log('🔄 Onderhoud:',ohItems.length,'items');
 
+    console.log('✅ loadAll() klaar!');
   }catch(e){
-    console.error('Firebase load error:',e);
+    console.error('❌ Firebase load error:',e);
     toast('⚠️ Fout bij laden: '+e.message);
   }
   // Update badges & render
