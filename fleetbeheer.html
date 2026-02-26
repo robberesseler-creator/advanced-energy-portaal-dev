@@ -2513,6 +2513,7 @@ const isInIframe=window.self!==window.top;
 function detectShell(){
   if(isInIframe){
     const rb=document.querySelector('.role-bar');if(rb)rb.style.display='none';
+    const main=document.querySelector('.main');if(main)main.style.paddingTop='0';
   }
 }
 
