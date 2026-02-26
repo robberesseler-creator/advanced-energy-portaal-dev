@@ -7,6 +7,20 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Personeelbeheer — Advanced Energy</title>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+if(!firebase.apps.length)firebase.initializeApp({
+  apiKey:"AIzaSyBKU-wCjV4Au4ngRG52Zmmxbzc3N3D8VBU",
+  authDomain:"advanced-intranet.firebaseapp.com",
+  projectId:"advanced-intranet",
+  storageBucket:"advanced-intranet.firebasestorage.app",
+  messagingSenderId:"309856938024",
+  appId:"1:309856938024:web:2108715f92c5dea2da2d1d"
+});
+const fsDb=firebase.firestore();
+</script>
 <style>
 /* ═══ CSS STYLES ═══ */
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
@@ -890,6 +904,7 @@ function uid(){return Date.now().toString(36)+'_'+Math.random().toString(36).sub
 
 function autoSave(){
   try{
+    // Lokale backup (snel, voor UX)
     localStorage.setItem('vb_departments',JSON.stringify(departments));
     localStorage.setItem('vb_people',JSON.stringify(people));
     localStorage.setItem('vb_leaveTypes',JSON.stringify(leaveTypes));
@@ -904,26 +919,70 @@ function autoSave(){
     localStorage.setItem('vb_werkgeverskost',JSON.stringify(werkgeverskostData));
     localStorage.setItem('vb_uurkostParams',JSON.stringify(uurkostParams));
     localStorage.setItem('vb_verlofregels',JSON.stringify(verlofregels));
+    // Firestore sync (async op achtergrond)
+    fsDb.collection('platform').doc('personeelbeheer').set({
+      departments:JSON.stringify(departments),
+      people:JSON.stringify(people),
+      leaveTypes:JSON.stringify(leaveTypes),
+      schedules:JSON.stringify(schedules),
+      requests:JSON.stringify(requests),
+      candidates:JSON.stringify(candidates),
+      channels:JSON.stringify(channels),
+      settings:JSON.stringify(settings),
+      baremaData:JSON.stringify(baremaData),
+      ancienniteitData:JSON.stringify(ancienniteitData),
+      salaryReasonTypes:JSON.stringify(salaryReasonTypes),
+      werkgeverskostData:JSON.stringify(werkgeverskostData),
+      uurkostParams:JSON.stringify(uurkostParams),
+      verlofregels:JSON.stringify(verlofregels),
+      updatedAt:new Date().toISOString()
+    }).then(()=>console.log('✅ Personeelbeheer → Firestore'))
+      .catch(e=>console.error('Firestore save error',e));
   }catch(e){showToast('Opslag fout: '+e.message,'error');}
 }
 
-function restore(){
+async function restore(){
+  let fromFirestore=false;
   try{
-    const d=localStorage.getItem('vb_departments');if(d)departments=JSON.parse(d);
-    const p=localStorage.getItem('vb_people');if(p)people=JSON.parse(p);
-    const t=localStorage.getItem('vb_leaveTypes');if(t)leaveTypes=JSON.parse(t);
-    const s=localStorage.getItem('vb_schedules');if(s)schedules=JSON.parse(s);
-    const r=localStorage.getItem('vb_requests');if(r)requests=JSON.parse(r);
-    const ca=localStorage.getItem('vb_candidates');if(ca)candidates=JSON.parse(ca);
-    const ch=localStorage.getItem('vb_channels');if(ch)channels=JSON.parse(ch);
-    const st=localStorage.getItem('vb_settings');if(st)Object.assign(settings,JSON.parse(st));
-    const ba=localStorage.getItem('vb_barema');if(ba)baremaData=JSON.parse(ba);
-    const anc=localStorage.getItem('vb_ancienniteit');if(anc)ancienniteitData=JSON.parse(anc);
-    const sr=localStorage.getItem('vb_salaryReasons');if(sr)salaryReasonTypes=JSON.parse(sr);
-    const wk=localStorage.getItem('vb_werkgeverskost');if(wk)werkgeverskostData=JSON.parse(wk);
-    const up=localStorage.getItem('vb_uurkostParams');if(up)uurkostParams=JSON.parse(up);
-    const vr=localStorage.getItem('vb_verlofregels');if(vr)verlofregels=JSON.parse(vr);
-  }catch(e){console.error('Restore error:',e);}
+    const doc=await fsDb.collection('platform').doc('personeelbeheer').get();
+    if(doc.exists){
+      const data=doc.data();
+      if(data.departments)departments=JSON.parse(data.departments);
+      if(data.people)people=JSON.parse(data.people);
+      if(data.leaveTypes)leaveTypes=JSON.parse(data.leaveTypes);
+      if(data.schedules)schedules=JSON.parse(data.schedules);
+      if(data.requests)requests=JSON.parse(data.requests);
+      if(data.candidates)candidates=JSON.parse(data.candidates);
+      if(data.channels)channels=JSON.parse(data.channels);
+      if(data.settings)Object.assign(settings,JSON.parse(data.settings));
+      if(data.baremaData)baremaData=JSON.parse(data.baremaData);
+      if(data.ancienniteitData)ancienniteitData=JSON.parse(data.ancienniteitData);
+      if(data.salaryReasonTypes)salaryReasonTypes=JSON.parse(data.salaryReasonTypes);
+      if(data.werkgeverskostData)werkgeverskostData=JSON.parse(data.werkgeverskostData);
+      if(data.uurkostParams)uurkostParams=JSON.parse(data.uurkostParams);
+      if(data.verlofregels)verlofregels=JSON.parse(data.verlofregels);
+      fromFirestore=true;
+      console.log('✅ Personeelbeheer geladen van Firestore');
+    }
+  }catch(e){console.warn('Firestore read failed, fallback localStorage',e);}
+  if(!fromFirestore){
+    try{
+      const d=localStorage.getItem('vb_departments');if(d)departments=JSON.parse(d);
+      const p=localStorage.getItem('vb_people');if(p)people=JSON.parse(p);
+      const t=localStorage.getItem('vb_leaveTypes');if(t)leaveTypes=JSON.parse(t);
+      const s=localStorage.getItem('vb_schedules');if(s)schedules=JSON.parse(s);
+      const r=localStorage.getItem('vb_requests');if(r)requests=JSON.parse(r);
+      const ca=localStorage.getItem('vb_candidates');if(ca)candidates=JSON.parse(ca);
+      const ch=localStorage.getItem('vb_channels');if(ch)channels=JSON.parse(ch);
+      const st=localStorage.getItem('vb_settings');if(st)Object.assign(settings,JSON.parse(st));
+      const ba=localStorage.getItem('vb_barema');if(ba)baremaData=JSON.parse(ba);
+      const anc=localStorage.getItem('vb_ancienniteit');if(anc)ancienniteitData=JSON.parse(anc);
+      const sr=localStorage.getItem('vb_salaryReasons');if(sr)salaryReasonTypes=JSON.parse(sr);
+      const wk=localStorage.getItem('vb_werkgeverskost');if(wk)werkgeverskostData=JSON.parse(wk);
+      const up=localStorage.getItem('vb_uurkostParams');if(up)uurkostParams=JSON.parse(up);
+      const vr=localStorage.getItem('vb_verlofregels');if(vr)verlofregels=JSON.parse(vr);
+    }catch(e){console.error('Restore error:',e);}
+  }
   if(leaveTypes.length===0){leaveTypes=[...DEFAULT_TYPES];}
   else{
     // Add missing default types (upgrade path)
@@ -4515,13 +4574,16 @@ async function resetData(){
   localStorage.removeItem('vb_werkgeverskost');
   localStorage.removeItem('vb_uurkostParams');
   localStorage.removeItem('vb_verlofregels');
+  // Wis ook Firestore
+  try{await fsDb.collection('platform').doc('personeelbeheer').delete();}catch(e){}
   location.reload();
 }
 
-restore();
+(async function initApp(){
+await restore();
 
 // Force fresh data load once (version flag prevents repeat resets)
-const SEED_VERSION='v16.1';
+const SEED_VERSION='v16.1-firebase';
 if(localStorage.getItem('vb_seed_version')!==SEED_VERSION){
   localStorage.removeItem('vb_departments');
   localStorage.removeItem('vb_people');
@@ -4745,6 +4807,7 @@ function isAdmin(){return shellPermissions.role==='admin';}
 
 detectShell();
 renderDashboard();
+})(); // end async initApp
 </script>
 </body>
 </html>

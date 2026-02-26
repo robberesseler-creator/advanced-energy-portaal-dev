@@ -7,6 +7,20 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Fleetbeheer — Advanced Energy</title>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+if(!firebase.apps.length)firebase.initializeApp({
+  apiKey:"AIzaSyBKU-wCjV4Au4ngRG52Zmmxbzc3N3D8VBU",
+  authDomain:"advanced-intranet.firebaseapp.com",
+  projectId:"advanced-intranet",
+  storageBucket:"advanced-intranet.firebasestorage.app",
+  messagingSenderId:"309856938024",
+  appId:"1:309856938024:web:2108715f92c5dea2da2d1d"
+});
+const fsDb=firebase.firestore();
+</script>
 <style>
 /* ═══ CSS STYLES ═══ */
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
@@ -636,43 +650,79 @@ function autoSave(){
     localStorage.setItem('fb_documents',JSON.stringify(documents));
     localStorage.setItem('fb_mutations',JSON.stringify(mutations));
     localStorage.setItem('fb_settings',JSON.stringify(settings));
+    // Firestore sync
+    fsDb.collection('platform').doc('fleetbeheer').set({
+      vehicles:JSON.stringify(vehicles),
+      vehicleTypes:JSON.stringify(vehicleTypes),
+      damageTypes:JSON.stringify(damageTypes),
+      fineTypes:JSON.stringify(fineTypes),
+      damages:JSON.stringify(damages),
+      fines:JSON.stringify(fines),
+      documents:JSON.stringify(documents),
+      mutations:JSON.stringify(mutations),
+      settings:JSON.stringify(settings),
+      updatedAt:new Date().toISOString()
+    }).then(()=>console.log('✅ Fleetbeheer → Firestore'))
+      .catch(e=>console.error('Firestore save error',e));
   }catch(e){console.error('autoSave error',e);}
 }
 
-function restore(){
+async function restore(){
+  let fromFirestore=false;
   try{
-    const v=localStorage.getItem('fb_vehicles');if(v)vehicles=JSON.parse(v);
-    const vt=localStorage.getItem('fb_vehicleTypes');if(vt)vehicleTypes=JSON.parse(vt);
-    const dt=localStorage.getItem('fb_damageTypes');if(dt)damageTypes=JSON.parse(dt);
-    const ft=localStorage.getItem('fb_fineTypes');if(ft)fineTypes=JSON.parse(ft);
-    const d=localStorage.getItem('fb_damages');if(d)damages=JSON.parse(d);
-    const f=localStorage.getItem('fb_fines');if(f)fines=JSON.parse(f);
-    const doc=localStorage.getItem('fb_documents');if(doc)documents=JSON.parse(doc);
-    const m=localStorage.getItem('fb_mutations');if(m)mutations=JSON.parse(m);
-    const s=localStorage.getItem('fb_settings');if(s)Object.assign(settings,JSON.parse(s));
-  }catch(e){console.error('restore error',e);}
+    const doc=await fsDb.collection('platform').doc('fleetbeheer').get();
+    if(doc.exists){
+      const data=doc.data();
+      if(data.vehicles)vehicles=JSON.parse(data.vehicles);
+      if(data.vehicleTypes)vehicleTypes=JSON.parse(data.vehicleTypes);
+      if(data.damageTypes)damageTypes=JSON.parse(data.damageTypes);
+      if(data.fineTypes)fineTypes=JSON.parse(data.fineTypes);
+      if(data.damages)damages=JSON.parse(data.damages);
+      if(data.fines)fines=JSON.parse(data.fines);
+      if(data.documents)documents=JSON.parse(data.documents);
+      if(data.mutations)mutations=JSON.parse(data.mutations);
+      if(data.settings)Object.assign(settings,JSON.parse(data.settings));
+      fromFirestore=true;
+      console.log('✅ Fleetbeheer geladen van Firestore');
+    }
+  }catch(e){console.warn('Firestore read failed, fallback localStorage',e);}
+  if(!fromFirestore){
+    try{
+      const v=localStorage.getItem('fb_vehicles');if(v)vehicles=JSON.parse(v);
+      const vt=localStorage.getItem('fb_vehicleTypes');if(vt)vehicleTypes=JSON.parse(vt);
+      const dt=localStorage.getItem('fb_damageTypes');if(dt)damageTypes=JSON.parse(dt);
+      const ft=localStorage.getItem('fb_fineTypes');if(ft)fineTypes=JSON.parse(ft);
+      const d=localStorage.getItem('fb_damages');if(d)damages=JSON.parse(d);
+      const f=localStorage.getItem('fb_fines');if(f)fines=JSON.parse(f);
+      const doc=localStorage.getItem('fb_documents');if(doc)documents=JSON.parse(doc);
+      const m=localStorage.getItem('fb_mutations');if(m)mutations=JSON.parse(m);
+      const s=localStorage.getItem('fb_settings');if(s)Object.assign(settings,JSON.parse(s));
+    }catch(e){console.error('restore error',e);}
+  }
   // Defaults bij eerste gebruik
   if(!vehicleTypes.length)vehicleTypes=[...DEFAULT_VEHICLE_TYPES];
   if(!damageTypes.length)damageTypes=[...DEFAULT_DAMAGE_TYPES];
   if(!fineTypes.length)fineTypes=[...DEFAULT_FINE_TYPES];
 }
 
-function resetData(){
+async function resetData(){
   if(!confirm('Alle fleetbeheer-data resetten naar standaardwaarden? Dit kan niet ongedaan worden.'))return;
   ['fb_vehicles','fb_vehicleTypes','fb_damageTypes','fb_fineTypes','fb_damages','fb_fines','fb_documents','fb_mutations','fb_settings'].forEach(k=>localStorage.removeItem(k));
   vehicles=[];vehicleTypes=[];damageTypes=[];fineTypes=[];damages=[];fines=[];documents=[];mutations=[];
   settings={alertDays:30};
-  restore();
+  await restore();
+  // Wis ook Firestore
+  fsDb.collection('platform').doc('fleetbeheer').delete().catch(e=>console.warn(e));
   autoSave();
   showPage('dashboard');
   showToast('Data gereset naar standaardwaarden','success');
 }
 
-// Personeelbeheer koppeling (read-only)
+// Personeelbeheer koppeling (read from Firestore, fallback localStorage)
 function getPeople(){
   try{
     const p=localStorage.getItem('vb_people');
-    if(p)return JSON.parse(p).filter(x=>x.status!=='archived');
+    if(p)return JSON.parse(p).filter(x=>x.status!=='archived'&&!x.archived);
   }catch(e){}
   return [];
 }
@@ -682,6 +732,18 @@ function getDepartments(){
     if(d)return JSON.parse(d);
   }catch(e){}
   return [];
+}
+// Async: Haal people/departments van Firestore en cache lokaal
+async function syncPeopleFromFirestore(){
+  try{
+    const doc=await fsDb.collection('platform').doc('personeelbeheer').get();
+    if(doc.exists){
+      const data=doc.data();
+      if(data.people)localStorage.setItem('vb_people',data.people);
+      if(data.departments)localStorage.setItem('vb_departments',data.departments);
+      console.log('✅ People/Departments synced from Firestore');
+    }
+  }catch(e){console.warn('People sync failed',e);}
 }
 function getPersonName(id){
   const people=getPeople();
@@ -2433,8 +2495,9 @@ function loadDemoData(){
   autoSave();
 }
 
-function init(){
-  restore();
+async function init(){
+  await restore();
+  await syncPeopleFromFirestore();
   loadDemoData();
   autoSave();
   updateDocBadge();

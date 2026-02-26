@@ -7,6 +7,20 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Contractbeheer — Advanced Energy</title>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+if(!firebase.apps.length)firebase.initializeApp({
+  apiKey:"AIzaSyBKU-wCjV4Au4ngRG52Zmmxbzc3N3D8VBU",
+  authDomain:"advanced-intranet.firebaseapp.com",
+  projectId:"advanced-intranet",
+  storageBucket:"advanced-intranet.firebasestorage.app",
+  messagingSenderId:"309856938024",
+  appId:"1:309856938024:web:2108715f92c5dea2da2d1d"
+});
+const fsDb=firebase.firestore();
+</script>
 <style>
 /* ═══ CSS STYLES ═══ */
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
@@ -444,29 +458,58 @@ function autoSave(){
     localStorage.setItem('cb_tasks',JSON.stringify(tasks));
     localStorage.setItem('cb_reminderSettings',JSON.stringify(reminderSettings));
     localStorage.setItem('cb_mutations',JSON.stringify(mutations));
+    // Firestore sync
+    fsDb.collection('platform').doc('contractbeheer').set({
+      contracts:JSON.stringify(contracts),
+      contractTypes:JSON.stringify(contractTypes),
+      relations:JSON.stringify(relations),
+      tasks:JSON.stringify(tasks),
+      reminderSettings:JSON.stringify(reminderSettings),
+      mutations:JSON.stringify(mutations),
+      updatedAt:new Date().toISOString()
+    }).then(()=>console.log('✅ Contractbeheer → Firestore'))
+      .catch(e=>console.error('Firestore save error',e));
   }catch(e){console.error('autoSave error',e);}
 }
 
-function restore(){
+async function restore(){
+  let fromFirestore=false;
   try{
-    const c=localStorage.getItem('cb_contracts');if(c)contracts=JSON.parse(c);
-    const ct=localStorage.getItem('cb_contractTypes');if(ct)contractTypes=JSON.parse(ct);
-    const r=localStorage.getItem('cb_relations');if(r)relations=JSON.parse(r);
-    const t=localStorage.getItem('cb_tasks');if(t)tasks=JSON.parse(t);
-    const rs=localStorage.getItem('cb_reminderSettings');if(rs)Object.assign(reminderSettings,JSON.parse(rs));
-    const m=localStorage.getItem('cb_mutations');if(m)mutations=JSON.parse(m);
-  }catch(e){console.error('restore error',e);}
+    const doc=await fsDb.collection('platform').doc('contractbeheer').get();
+    if(doc.exists){
+      const data=doc.data();
+      if(data.contracts)contracts=JSON.parse(data.contracts);
+      if(data.contractTypes)contractTypes=JSON.parse(data.contractTypes);
+      if(data.relations)relations=JSON.parse(data.relations);
+      if(data.tasks)tasks=JSON.parse(data.tasks);
+      if(data.reminderSettings)Object.assign(reminderSettings,JSON.parse(data.reminderSettings));
+      if(data.mutations)mutations=JSON.parse(data.mutations);
+      fromFirestore=true;
+      console.log('✅ Contractbeheer geladen van Firestore');
+    }
+  }catch(e){console.warn('Firestore read failed, fallback localStorage',e);}
+  if(!fromFirestore){
+    try{
+      const c=localStorage.getItem('cb_contracts');if(c)contracts=JSON.parse(c);
+      const ct=localStorage.getItem('cb_contractTypes');if(ct)contractTypes=JSON.parse(ct);
+      const r=localStorage.getItem('cb_relations');if(r)relations=JSON.parse(r);
+      const t=localStorage.getItem('cb_tasks');if(t)tasks=JSON.parse(t);
+      const rs=localStorage.getItem('cb_reminderSettings');if(rs)Object.assign(reminderSettings,JSON.parse(rs));
+      const m=localStorage.getItem('cb_mutations');if(m)mutations=JSON.parse(m);
+    }catch(e){console.error('restore error',e);}
+  }
   // Defaults bij eerste gebruik
   if(!contractTypes.length)contractTypes=[...DEFAULT_CONTRACT_TYPES];
   if(!reminderSettings.days)reminderSettings={...DEFAULT_REMINDER_SETTINGS};
 }
 
-function resetData(){
+async function resetData(){
   if(!confirm('Alle contractbeheer-data resetten naar standaardwaarden? Dit kan niet ongedaan worden.'))return;
   ['cb_contracts','cb_contractTypes','cb_relations','cb_tasks','cb_reminderSettings','cb_mutations'].forEach(k=>localStorage.removeItem(k));
   contracts=[];contractTypes=[];relations=[];tasks=[];mutations=[];
   reminderSettings={};
-  restore();
+  await restore();
+  fsDb.collection('platform').doc('contractbeheer').delete().catch(e=>console.warn(e));
   autoSave();
   showPage('dashboard');
   showToast('Data gereset naar standaardwaarden','success');
@@ -510,7 +553,7 @@ function addMutation(type,entity,entityId,description){
 function getContractType(typeId){return contractTypes.find(t=>t.id===typeId)||{name:'Onbekend',color:'#64748b',icon:'📋'};}
 function getRelation(relId){return relations.find(r=>r.id===relId)||{name:'Onbekend'};}
 
-// Cross-app koppelingen (read-only via localStorage)
+// Cross-app koppelingen (read via localStorage, synced from Firestore)
 function getDepartments(){
   try{const d=localStorage.getItem('vb_departments');if(d)return JSON.parse(d);}catch(e){}
   return [];
@@ -537,6 +580,25 @@ function getVehicleLabel(id){
   if(!id)return'-';
   const v=getVehicles().find(x=>x.id===id);
   return v?(v.brand+' '+v.model+' ('+v.plate+')'):'Onbekend voertuig';
+}
+// Async: Sync cross-module data from Firestore
+async function syncCrossModuleData(){
+  try{
+    const [pbDoc,fbDoc]=await Promise.all([
+      fsDb.collection('platform').doc('personeelbeheer').get(),
+      fsDb.collection('platform').doc('fleetbeheer').get()
+    ]);
+    if(pbDoc.exists){
+      const data=pbDoc.data();
+      if(data.people)localStorage.setItem('vb_people',data.people);
+      if(data.departments)localStorage.setItem('vb_departments',data.departments);
+    }
+    if(fbDoc.exists){
+      const data=fbDoc.data();
+      if(data.vehicles)localStorage.setItem('fb_vehicles',data.vehicles);
+    }
+    console.log('✅ Cross-module data synced from Firestore');
+  }catch(e){console.warn('Cross-module sync failed',e);}
 }
 
 function getContractStatus(contract){
@@ -1744,8 +1806,9 @@ function loadDemoData(){
   autoSave();
 }
 
-function init(){
-  restore();
+async function init(){
+  await restore();
+  await syncCrossModuleData();
   loadDemoData();
   autoSave();
   updateTaskBadge();
