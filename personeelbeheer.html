@@ -4803,6 +4803,69 @@ function canEdit(){return shellPermissions.canEdit;}
 function canDelete(){return shellPermissions.canDelete;}
 function isAdmin(){return shellPermissions.role==='admin';}
 
+// ═══ FIRESTORE REAL-TIME LISTENER ═══
+// Luistert naar wijzigingen van bv. de remote app en ververst automatisch
+let firestoreListenerActive=false;
+function startFirestoreListener(){
+  if(firestoreListenerActive)return;
+  firestoreListenerActive=true;
+  fsDb.collection('platform').doc('personeelbeheer').onSnapshot(doc=>{
+    if(!doc.exists)return;
+    const data=doc.data();
+    let changed=false;
+    // Vergelijk alleen requests (meest waarschijnlijke wijziging van remote)
+    if(data.requests){
+      const newRequests=JSON.parse(data.requests);
+      if(JSON.stringify(newRequests)!==JSON.stringify(requests)){
+        requests=newRequests;
+        changed=true;
+        console.log('🔄 Requests bijgewerkt via Firestore real-time sync');
+      }
+    }
+    // Ook people/departments/leaveTypes meenemen
+    if(data.people){
+      const newPeople=JSON.parse(data.people);
+      if(JSON.stringify(newPeople)!==JSON.stringify(people)){
+        people=newPeople;changed=true;
+      }
+    }
+    if(data.departments){
+      const newDepts=JSON.parse(data.departments);
+      if(JSON.stringify(newDepts)!==JSON.stringify(departments)){
+        departments=newDepts;changed=true;
+      }
+    }
+    if(data.leaveTypes){
+      const newTypes=JSON.parse(data.leaveTypes);
+      if(JSON.stringify(newTypes)!==JSON.stringify(leaveTypes)){
+        leaveTypes=newTypes;changed=true;
+      }
+    }
+    if(changed){
+      // Herrender actieve pagina
+      const page=document.querySelector('.panel.active');
+      if(page){
+        const id=page.id.replace('page-','');
+        if(id==='dashboard')renderDashboard();
+        if(id==='people')renderPeople();
+        if(id==='requests')renderRequests();
+        if(id==='departments')renderDepartments();
+        if(id==='sickness')renderSickness();
+        if(id==='wallchart')renderWallchart();
+      }
+      // Update localStorage backup
+      localStorage.setItem('vb_requests',JSON.stringify(requests));
+      localStorage.setItem('vb_people',JSON.stringify(people));
+      localStorage.setItem('vb_departments',JSON.stringify(departments));
+      localStorage.setItem('vb_leaveTypes',JSON.stringify(leaveTypes));
+    }
+  },err=>{
+    console.warn('Firestore listener error:',err);
+    firestoreListenerActive=false;
+  });
+}
+startFirestoreListener();
+
 detectShell();
 renderDashboard();
 })(); // end async initApp
