@@ -761,15 +761,11 @@ function loadModule(mod){
         user:{name:currentUser.name,username:currentUser.username}
       },'*');
 
-      // Hide sub-app sidebar and role bar
+      // Hide sub-app role bar (sidebar stays visible for internal navigation)
       try{
         const doc=frame.contentDocument||frame.contentWindow.document;
-        const sb=doc.querySelector('.sidebar');
-        if(sb)sb.style.display='none';
         const rb=doc.querySelector('.role-bar');
         if(rb)rb.style.display='none';
-        const main=doc.querySelector('.main');
-        if(main){main.style.marginLeft='0';main.style.paddingTop='0';}
       }catch(e){/* cross-origin safety */}
     });
   }

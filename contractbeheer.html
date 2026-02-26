@@ -1823,10 +1823,7 @@ const isInIframe=window.self!==window.top;
 
 function detectShell(){
   if(isInIframe){
-    // Verberg eigen sidebar en role bar — shell neemt navigatie over
-    const sb=document.querySelector('.sidebar');if(sb)sb.style.display='none';
     const rb=document.querySelector('.role-bar');if(rb)rb.style.display='none';
-    const main=document.querySelector('.main');if(main){main.style.marginLeft='0';main.style.paddingTop='0';}
   }
 }
 
