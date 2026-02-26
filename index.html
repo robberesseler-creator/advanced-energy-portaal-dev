@@ -5,6 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>Advanced Energy — Platform</title>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyBKU-wCjV4Au4ngRG52Zmmxbzc3N3D8VBU",
+  authDomain:"advanced-intranet.firebaseapp.com",
+  projectId:"advanced-intranet",
+  storageBucket:"advanced-intranet.firebasestorage.app",
+  messagingSenderId:"309856938024",
+  appId:"1:309856938024:web:2108715f92c5dea2da2d1d"
+});
+const fsDb=firebase.firestore();
+</script>
 <style>
 /* ═══ CSS STYLES ═══ */
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
@@ -453,10 +467,31 @@ function closeModal(){document.getElementById('modal-overlay').classList.remove(
 // ═══ STORAGE ═══
 
 function autoSave(){
-  try{localStorage.setItem('sh_users',JSON.stringify(users));}catch(e){}
+  try{
+    // Lokale backup
+    localStorage.setItem('sh_users',JSON.stringify(users));
+    // Firestore sync
+    fsDb.collection('platform').doc('shell_users').set({
+      users:JSON.stringify(users),
+      updatedAt:new Date().toISOString()
+    }).catch(e=>console.error('Firestore save error',e));
+  }catch(e){}
 }
-function restore(){
-  try{const u=localStorage.getItem('sh_users');if(u)users=JSON.parse(u);}catch(e){}
+async function restore(){
+  try{
+    // Probeer eerst Firestore
+    const doc=await fsDb.collection('platform').doc('shell_users').get();
+    if(doc.exists&&doc.data().users){
+      users=JSON.parse(doc.data().users);
+      console.log('✅ Shell users geladen van Firestore');
+    }else{
+      // Fallback naar localStorage
+      const u=localStorage.getItem('sh_users');if(u)users=JSON.parse(u);
+    }
+  }catch(e){
+    console.warn('Firestore read failed, fallback naar localStorage',e);
+    try{const u=localStorage.getItem('sh_users');if(u)users=JSON.parse(u);}catch(e2){}
+  }
   if(!users.length)users=JSON.parse(JSON.stringify(DEFAULT_USERS));
 }
 function getSession(){
@@ -726,15 +761,11 @@ function loadModule(mod){
         user:{name:currentUser.name,username:currentUser.username}
       },'*');
 
-      // Hide sub-app sidebar and role bar
+      // Hide sub-app role bar (sidebar stays visible for internal navigation)
       try{
         const doc=frame.contentDocument||frame.contentWindow.document;
-        const sb=doc.querySelector('.sidebar');
-        if(sb)sb.style.display='none';
         const rb=doc.querySelector('.role-bar');
         if(rb)rb.style.display='none';
-        const main=doc.querySelector('.main');
-        if(main){main.style.marginLeft='0';main.style.paddingTop='0';}
       }catch(e){/* cross-origin safety */}
     });
   }
@@ -995,6 +1026,11 @@ function addAuditEntry(action,detail){
     });
     if(log.length>200)log=log.slice(0,200);
     localStorage.setItem('sh_audit',JSON.stringify(log));
+    // Firestore sync
+    fsDb.collection('platform').doc('shell_audit').set({
+      log:JSON.stringify(log),
+      updatedAt:new Date().toISOString()
+    }).catch(e=>console.error('Audit save error',e));
   }catch(e){}
 }
 
@@ -1003,8 +1039,20 @@ function getAuditLog(){
   return [];
 }
 
-function renderAuditLog(){
-  const log=getAuditLog();
+async function loadAuditFromFirestore(){
+  try{
+    const doc=await fsDb.collection('platform').doc('shell_audit').get();
+    if(doc.exists&&doc.data().log){
+      const log=JSON.parse(doc.data().log);
+      localStorage.setItem('sh_audit',JSON.stringify(log));
+      return log;
+    }
+  }catch(e){console.warn('Audit Firestore load failed',e);}
+  return getAuditLog();
+}
+
+async function renderAuditLog(){
+  const log=await loadAuditFromFirestore();
   const el=document.getElementById('audit-content');
 
   // Also gather mutations from all apps
@@ -1067,8 +1115,8 @@ document.addEventListener('keydown',e=>{
 
 // ═══ INIT ═══
 
-function init(){
-  restore();
+async function init(){
+  await restore();
   // DEV MODE: skip login, auto-enter as admin with full access
   currentUser=users.find(u=>u.username==='bert.resseler')||users[0];
   enterShell();
