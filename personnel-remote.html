@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1E3A5F">
+<title>Advanced Energy — Verlof</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{font-family:'DM Sans','Nunito',-apple-system,BlinkMacSystemFont,sans-serif;background:#F5F6F8}
+#root{max-width:430px;margin:0 auto;min-height:100vh;height:100vh;background:#F5F6F8;position:relative;overflow:hidden;display:flex;flex-direction:column}
+.screen{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:80px}
+input,textarea,select,button{font-family:inherit}
+@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.slide-up{animation:slideUp .3s ease}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script type="text/babel">
+const {useState, useEffect, useCallback} = React;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SYNC DATA
+// ═══════════════════════════════════════════════════════════════════════════
+
+const MOCK_SYNC_DATA = {
+  leaveTypes: [
+    { id: "wettelijk", name: "Wettelijk verlof", color: "#3b82f6", symbol: "🏖️", paid: true, tracked: true, defaultDays: 20, category: "verlof" },
+    { id: "adv", name: "ADV", color: "#22c55e", symbol: "📅", paid: true, tracked: true, defaultDays: 12, category: "adv" },
+    { id: "ancienniteit", name: "Anciënniteitsverlof", color: "#10b981", symbol: "🏅", paid: true, tracked: true, defaultDays: 0, category: "verlof" },
+    { id: "onbetaald", name: "Onbetaald verlof", color: "#94a3b8", symbol: "⚪", paid: false, tracked: true, defaultDays: 0, category: "verlof" },
+    { id: "opleiding", name: "Opleiding", color: "#a855f7", symbol: "📚", paid: true, tracked: false, defaultDays: 0, category: "verlof" },
+    { id: "huwelijk", name: "Huwelijk medewerker", color: "#ec4899", symbol: "💒", paid: true, tracked: false, defaultDays: 2, category: "verlof" },
+    { id: "huwelijk-kind", name: "Huwelijk kind", color: "#ec4899", symbol: "💍", paid: true, tracked: false, defaultDays: 1, category: "verlof" },
+    { id: "overlijden-1", name: "Overlijden partner/kind", color: "#374151", symbol: "🕯️", paid: true, tracked: false, defaultDays: 3, category: "verlof" },
+    { id: "overlijden-2", name: "Overlijden ouder/schoonouder", color: "#374151", symbol: "🕯️", paid: true, tracked: false, defaultDays: 3, category: "verlof" },
+    { id: "overlijden-3", name: "Overlijden broer/zus/schoon-", color: "#6b7280", symbol: "🕯️", paid: true, tracked: false, defaultDays: 2, category: "verlof" },
+    { id: "geboorte", name: "Geboorteverlof", color: "#06b6d4", symbol: "👶", paid: true, tracked: false, defaultDays: 20, category: "verlof" },
+    { id: "ouderschaps", name: "Ouderschapsverlof", color: "#0891b2", symbol: "👨‍👩‍👧", paid: false, tracked: false, defaultDays: 0, category: "verlof" },
+    { id: "communie", name: "Plechtige communie kind", color: "#8b5cf6", symbol: "⛪", paid: true, tracked: false, defaultDays: 1, category: "verlof" },
+    { id: "verhuizing", name: "Verhuizing", color: "#f59e0b", symbol: "📦", paid: true, tracked: false, defaultDays: 1, category: "verlof" },
+    { id: "sollicitatie", name: "Sollicitatieverlof", color: "#64748b", symbol: "🤝", paid: true, tracked: false, defaultDays: 0, category: "verlof" },
+    { id: "familiaal", name: "Familiaal verlof", color: "#f472b6", symbol: "👪", paid: false, tracked: false, defaultDays: 0, category: "verlof" },
+    { id: "dokter", name: "Doktersbezoek", color: "#14b8a6", symbol: "🩺", paid: true, tracked: false, defaultDays: 0, category: "verlof" },
+    { id: "juridisch", name: "Juridische verplichting", color: "#78716c", symbol: "⚖️", paid: true, tracked: false, defaultDays: 0, category: "verlof" },
+    { id: "ziekte", name: "Ziekte", color: "#ef4444", symbol: "🤒", paid: true, tracked: false, defaultDays: 0, category: "ziekte" },
+    { id: "arbeidsongeval", name: "Arbeidsongeval", color: "#dc2626", symbol: "🚑", paid: true, tracked: false, defaultDays: 0, category: "ziekte" },
+    { id: "hospitalisatie", name: "Hospitalisatie", color: "#b91c1c", symbol: "🏥", paid: true, tracked: false, defaultDays: 0, category: "ziekte" },
+    { id: "tech-werkloos", name: "Technische werkloosheid", color: "#f97316", symbol: "🏭", paid: false, tracked: false, defaultDays: 0, category: "extern" },
+    { id: "weerverlet", name: "Weerverlet", color: "#0369a1", symbol: "🌧️", paid: false, tracked: false, defaultDays: 0, category: "extern" },
+    { id: "economisch", name: "Economische werkloosheid", color: "#b45309", symbol: "📉", paid: false, tracked: false, defaultDays: 0, category: "extern" },
+    { id: "collectief", name: "Collectieve sluiting", color: "#7c3aed", symbol: "🔒", paid: true, tracked: false, defaultDays: 0, category: "extern" },
+  ],
+  user: {
+    id: "x1", firstName: "Enderson", lastName: "Molla", email: "enderson@advancedenergy.be",
+    departmentId: "dept-install", departmentName: "Installatie", role: "user", statuut: "arbeider",
+    gsm: "+32 467 70 90 49", tel: "", werkGsm: "", scheduleId: "fulltime", startDate: "2020-03-15",
+    noodNaam: "Greet Lemmens", noodRelatie: "vriend(in)", noodGsm: "+32 467 70 90 49",
+    iban: "BE71 0000 1234 5678", birthDate: "1995-08-22", rrn: "95.08.22-123.45",
+  },
+  balances: {
+    2026: { wettelijk: { allowance: 20, used: 6, remaining: 14 }, adv: { allowance: 12, used: 3, remaining: 9 }, ancienniteit: { allowance: 1, used: 0, remaining: 1 }, onbetaald: { allowance: 0, used: 0, remaining: 0 } },
+    2025: { wettelijk: { allowance: 20, used: 20, remaining: 0 }, adv: { allowance: 12, used: 12, remaining: 0 }, ancienniteit: { allowance: 0, used: 0, remaining: 0 }, onbetaald: { allowance: 0, used: 0, remaining: 0 } },
+  },
+  requests: [
+    { id: "r-p1", personId: "x1", type: "adv", startDate: "2026-04-02", endDate: "2026-04-02", halfDay: true, halfDayPeriod: "VM", status: "pending", days: 0.5, comment: "Doktersafspraak", requestDate: "2026-02-20" },
+    { id: "r-a1", personId: "x1", type: "wettelijk", startDate: "2026-03-15", endDate: "2026-03-20", halfDay: false, halfDayPeriod: null, status: "approved", days: 5, comment: "Vakantie", requestDate: "2026-02-10" },
+    { id: "r-a2", personId: "x1", type: "wettelijk", startDate: "2026-02-03", endDate: "2026-02-04", halfDay: false, halfDayPeriod: null, status: "approved", days: 2, comment: "", requestDate: "2026-01-20" },
+    { id: "r-a3", personId: "x1", type: "ziekte", startDate: "2026-01-27", endDate: "2026-01-28", halfDay: false, halfDayPeriod: null, status: "approved", days: 2, comment: "Griep", requestDate: "2026-01-27" },
+    { id: "r-a4", personId: "x1", type: "weerverlet", startDate: "2026-01-22", endDate: "2026-01-22", halfDay: false, halfDayPeriod: null, status: "approved", days: 1, comment: "Vorst op werf", requestDate: "2026-01-22" },
+    { id: "r-a5", personId: "x1", type: "opleiding", startDate: "2026-01-10", endDate: "2026-01-10", halfDay: false, halfDayPeriod: null, status: "approved", days: 1, comment: "Daikin training", requestDate: "2026-01-08" },
+    { id: "r-a6", personId: "x1", type: "adv", startDate: "2026-01-06", endDate: "2026-01-06", halfDay: false, halfDayPeriod: null, status: "approved", days: 1, comment: "", requestDate: "2026-01-02" },
+    { id: "r-r1", personId: "x1", type: "wettelijk", startDate: "2026-01-15", endDate: "2026-01-17", halfDay: false, halfDayPeriod: null, status: "rejected", days: 3, comment: "", rejectReason: "Te veel collega's afwezig", requestDate: "2026-01-05" },
+  ],
+  requestsPreviousYear: [
+    { id: "r-25a", personId: "x1", type: "wettelijk", startDate: "2025-12-18", endDate: "2025-12-19", halfDay: false, halfDayPeriod: null, status: "approved", days: 2, comment: "", requestDate: "2025-12-01" },
+    { id: "r-25b", personId: "x1", type: "weerverlet", startDate: "2025-12-18", endDate: "2025-12-18", halfDay: false, halfDayPeriod: null, status: "approved", days: 1, comment: "", requestDate: "2025-12-18" },
+    { id: "r-25c", personId: "x1", type: "onbetaald", startDate: "2025-12-02", endDate: "2025-12-02", halfDay: false, halfDayPeriod: null, status: "approved", days: 1, comment: "", requestDate: "2025-12-01" },
+    { id: "r-25d", personId: "x1", type: "wettelijk", startDate: "2025-11-11", endDate: "2025-11-14", halfDay: false, halfDayPeriod: null, status: "approved", days: 4, comment: "", requestDate: "2025-10-25" },
+    { id: "r-25e", personId: "x1", type: "ziekte", startDate: "2025-10-06", endDate: "2025-10-08", halfDay: false, halfDayPeriod: null, status: "approved", days: 3, comment: "", requestDate: "2025-10-06" },
+    { id: "r-25f", personId: "x1", type: "wettelijk", startDate: "2025-08-04", endDate: "2025-08-15", halfDay: false, halfDayPeriod: null, status: "approved", days: 10, comment: "Zomervakantie", requestDate: "2025-06-20" },
+    { id: "r-25g", personId: "x1", type: "weerverlet", startDate: "2025-07-15", endDate: "2025-07-15", halfDay: false, halfDayPeriod: null, status: "approved", days: 1, comment: "", requestDate: "2025-07-15" },
+    { id: "r-25h", personId: "x1", type: "opleiding", startDate: "2025-06-10", endDate: "2025-06-11", halfDay: false, halfDayPeriod: null, status: "approved", days: 2, comment: "Plenion opleiding", requestDate: "2025-05-28" },
+    { id: "r-25i", personId: "x1", type: "adv", startDate: "2025-04-18", endDate: "2025-04-18", halfDay: true, halfDayPeriod: "VM", status: "approved", days: 0.5, comment: "", requestDate: "2025-04-10" },
+    { id: "r-25j", personId: "x1", type: "wettelijk", startDate: "2025-02-24", endDate: "2025-02-28", halfDay: false, halfDayPeriod: null, status: "approved", days: 5, comment: "Krokusvakantie", requestDate: "2025-02-05" },
+    { id: "r-25r1", personId: "x1", type: "wettelijk", startDate: "2025-12-24", endDate: "2025-12-31", halfDay: false, halfDayPeriod: null, status: "rejected", days: 6, comment: "", rejectReason: "Kerstperiode volzet", requestDate: "2025-11-20" },
+    { id: "r-25r2", personId: "x1", type: "wettelijk", startDate: "2025-07-21", endDate: "2025-07-25", halfDay: false, halfDayPeriod: null, status: "rejected", days: 5, comment: "", rejectReason: "Te veel overlapping met team", requestDate: "2025-06-15" },
+  ],
+  team: [
+    { id: "x2", firstName: "Jarno", lastName: "Vranckx", departmentId: "dept-install", departmentName: "Installatie" },
+    { id: "x3", firstName: "Rens", lastName: "Deschryver", departmentId: "dept-install", departmentName: "Installatie" },
+    { id: "x4", firstName: "Gaëtan", lastName: "Bosmans", departmentId: "dept-install", departmentName: "Installatie" },
+    { id: "x10", firstName: "Kinza", lastName: "Janssens", departmentId: "dept-install", departmentName: "Installatie" },
+    { id: "x11", firstName: "Kenji", lastName: "Van Hees", departmentId: "dept-install", departmentName: "Installatie" },
+  ],
+  teamAbsences: [
+    { personId: "x2", firstName: "Jarno", lastName: "Vranckx", type: "wettelijk", startDate: "2026-02-24", endDate: "2026-02-26" },
+    { personId: "x3", firstName: "Rens", lastName: "Deschryver", type: "ziekte", startDate: "2026-02-25", endDate: "2026-02-25" },
+    { personId: "x10", firstName: "Kinza", lastName: "Janssens", type: "opleiding", startDate: "2026-02-25", endDate: "2026-02-27" },
+    { personId: "x4", firstName: "Gaëtan", lastName: "Bosmans", type: "wettelijk", startDate: "2026-02-28", endDate: "2026-03-04" },
+    { personId: "x11", firstName: "Kenji", lastName: "Van Hees", type: "adv", startDate: "2026-03-01", endDate: "2026-03-01" },
+  ],
+  notifications: [
+    { id: 1, type: "approved", message: "Wettelijk verlof 15-20 maart goedgekeurd", time: "2 uur geleden", read: false },
+    { id: 2, type: "info", message: "Jarno Vranckx is afwezig vandaag", time: "Vandaag 08:00", read: false },
+    { id: 3, type: "rejected", message: "Verlof 15-17 jan afgewezen: te veel collega's afwezig", time: "Gisteren", read: true },
+    { id: 4, type: "change", message: "Teamrooster maart bijgewerkt", time: "3 dagen geleden", read: true },
+  ],
+  lastSync: "2026-02-25T09:15:00",
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SYNC LAYER
+// ═══════════════════════════════════════════════════════════════════════════
+
+function useSyncData() {
+  const [syncData, setSyncData] = useState(MOCK_SYNC_DATA);
+  const [syncing, setSyncing] = useState(false);
+  const refreshSync = useCallback(async () => { setSyncing(true); await new Promise(r => setTimeout(r, 800)); setSyncing(false); }, []);
+  const submitRequest = useCallback(async (request) => { setSyncData(prev => ({ ...prev, requests: [request, ...prev.requests] })); return { success: true }; }, []);
+  const cancelRequest = useCallback(async (requestId) => { setSyncData(prev => ({ ...prev, requests: prev.requests.filter(r => r.id !== requestId) })); return { success: true }; }, []);
+  return { syncData, syncing, refreshSync, submitRequest, cancelRequest };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// UTILITY
+// ═══════════════════════════════════════════════════════════════════════════
+
+const fullName = (p) => `${p.firstName} ${p.lastName}`;
+const getInitials = (p) => `${(p.firstName||"")[0]||""}${(p.lastName||"")[0]||""}`.toUpperCase();
+const formatDate = (d) => new Date(d+"T00:00:00").toLocaleDateString("nl-BE",{day:"numeric",month:"short"});
+const formatDateFull = (d) => new Date(d+"T00:00:00").toLocaleDateString("nl-BE",{weekday:"short",day:"numeric",month:"long",year:"numeric"});
+const getDaysBetween = (s,e) => Math.max(1, Math.round((new Date(e)-new Date(s))/86400000)+1);
+const todayStr = () => new Date().toISOString().split("T")[0];
+const AVATAR_COLORS = ["#3b82f6","#22c55e","#a855f7","#ef4444","#eab308","#ec4899","#06b6d4","#f97316"];
+const getAvatarColor = (name) => AVATAR_COLORS[Math.abs([...name].reduce((h,c)=>((h<<5)-h+c.charCodeAt(0))|0,0)) % AVATAR_COLORS.length];
+const getRequestableTypes = (lt) => lt.filter(t => t.category!=="ziekte" && t.category!=="extern" && t.category!=="overuren");
+
+// ═══════════════════════════════════════════════════════════════════════════
+// COMPONENTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function StatusBadge({status}) {
+  const cfg = { approved:{bg:"#D1FAE5",color:"#065F46",label:"Goedgekeurd"}, pending:{bg:"#FEF3C7",color:"#92400E",label:"In afwachting"}, rejected:{bg:"#FEE2E2",color:"#991B1B",label:"Afgewezen"} };
+  const c = cfg[status]||cfg.pending;
+  return <span style={{background:c.bg,color:c.color,padding:"3px 10px",borderRadius:20,fontSize:11,fontWeight:600,letterSpacing:.3}}>{c.label}</span>;
+}
+
+function Avatar({person, size=40}) {
+  const name = person.firstName ? fullName(person) : (person.name||"?");
+  const initials = person.firstName ? getInitials(person) : (person.avatar||"?");
+  const color = getAvatarColor(name);
+  return <div style={{width:size,height:size,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",background:`linear-gradient(135deg,${color},${color}dd)`,color:"#fff",fontWeight:700,fontSize:size*.35,flexShrink:0,boxShadow:`0 2px 8px ${color}40`}}>{initials}</div>;
+}
+
+function BottomNav({active, onNavigate, unreadCount}) {
+  const items = [{id:"home",icon:"🏠",label:"Home"},{id:"absences",icon:"📋",label:"Afwezigheden"},{id:"notifications",icon:"🔔",label:"Meldingen"},{id:"profile",icon:"⚙️",label:"Profiel"}];
+  return (
+    <nav style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,background:"rgba(255,255,255,0.92)",backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",borderTop:"1px solid #E5E7EB",display:"flex",zIndex:100,paddingBottom:"env(safe-area-inset-bottom, 8px)"}}>
+      {items.map(it => (
+        <button key={it.id} onClick={() => onNavigate(it.id)} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"10px 0 6px",background:"none",border:"none",cursor:"pointer",position:"relative",color:active===it.id?"#1E3A5F":"#9CA3AF",transition:"color 0.2s"}}>
+          <span style={{fontSize:20,lineHeight:1}}>{it.icon}</span>
+          <span style={{fontSize:10,fontWeight:active===it.id?700:500,letterSpacing:.2}}>{it.label}</span>
+          {it.id==="notifications" && unreadCount>0 && <span style={{position:"absolute",top:4,right:"calc(50% - 16px)",width:16,height:16,borderRadius:"50%",background:"#EF4444",color:"#fff",fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>{unreadCount}</span>}
+          {active===it.id && <div style={{position:"absolute",top:0,left:"25%",right:"25%",height:2,background:"#1E3A5F",borderRadius:2}} />}
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+function Header({title, subtitle, rightAction}) {
+  return (
+    <div style={{padding:"16px 20px 12px",background:"linear-gradient(135deg,#1E3A5F 0%,#2D5A87 100%)",color:"#fff"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+        <div>
+          <h1 style={{margin:0,fontSize:22,fontWeight:800,letterSpacing:-.5}}>{title}</h1>
+          {subtitle && <p style={{margin:"2px 0 0",fontSize:13,opacity:.8}}>{subtitle}</p>}
+        </div>
+        {rightAction}
+      </div>
+    </div>
+  );
+}
+
+function Card({children, style={}, onClick}) {
+  return <div onClick={onClick} style={{background:"#fff",borderRadius:14,padding:16,boxShadow:"0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04)",border:"1px solid #F0F0F0",cursor:onClick?"pointer":"default",transition:"transform 0.15s, box-shadow 0.15s",...style}}>{children}</div>;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SCREENS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function HomeScreen({syncData, onNavigate, onNewRequest}) {
+  const {user, leaveTypes, requests, teamAbsences, balances} = syncData;
+  const today = todayStr();
+  const currentYear = new Date().getFullYear();
+  const yearBalances = balances[currentYear]||{};
+  const upcomingLeave = requests.filter(r => r.status==="approved" && r.startDate>=today).sort((a,b) => a.startDate.localeCompare(b.startDate));
+  const todayAbsent = teamAbsences.filter(t => t.startDate<=today && t.endDate>=today);
+  const trackedBalances = leaveTypes.filter(t => t.tracked && yearBalances[t.id] && (yearBalances[t.id].allowance>0||yearBalances[t.id].used>0)).map(t => ({...t,...yearBalances[t.id]}));
+
+  const BalanceBox = ({type}) => {
+    const pct = type.allowance>0 ? Math.max(0,Math.min(100,(type.remaining/type.allowance)*100)) : 0;
+    const accent = type.remaining>5 ? "#10B981" : type.remaining>0 ? "#F59E0B" : "#EF4444";
+    return (
+      <div style={{flex:1,minWidth:0,background:"#fff",borderRadius:12,padding:"12px 14px",border:"1px solid #E5E7EB"}}>
+        <div style={{fontSize:11,fontWeight:700,color:"#6B7280",textTransform:"uppercase",letterSpacing:.6,marginBottom:8,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{type.symbol} {type.name}</div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:4}}>
+          <span style={{fontSize:11,color:"#9CA3AF"}}>Recht</span>
+          <span style={{fontSize:16,fontWeight:800,color:"#9CA3AF"}}>{type.allowance}</span>
+        </div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
+          <span style={{fontSize:11,color:accent,fontWeight:600}}>Resterend</span>
+          <span style={{fontSize:22,fontWeight:800,color:accent}}>{type.remaining}</span>
+        </div>
+        <div style={{marginTop:8,height:4,borderRadius:2,background:"#F3F4F6",overflow:"hidden"}}>
+          <div style={{height:"100%",borderRadius:2,background:accent,width:`${pct}%`,transition:"width 0.5s"}} />
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="screen">
+      <Header title={`Hallo, ${user.firstName} 👋`} subtitle={formatDateFull(today)}
+        rightAction={<button onClick={onNewRequest} style={{background:"rgba(255,255,255,0.2)",border:"1px solid rgba(255,255,255,0.3)",borderRadius:12,color:"#fff",padding:"8px 14px",fontSize:13,fontWeight:700,cursor:"pointer",backdropFilter:"blur(4px)",display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:18,lineHeight:1}}>+</span> Aanvragen</button>}
+      />
+      <div style={{padding:"16px 16px 20px",display:"flex",flexDirection:"column",gap:16}}>
+        <Card style={{background:"linear-gradient(135deg,#F0F7FF 0%,#E8F4FD 100%)",border:"1px solid #D0E8F7",padding:12}}>
+          <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+            {trackedBalances.map(t => <BalanceBox key={t.id} type={t} />)}
+            {trackedBalances.length===0 && <div style={{color:"#9CA3AF",fontSize:13,padding:8,textAlign:"center",width:"100%"}}>Geen saldo's beschikbaar</div>}
+          </div>
+        </Card>
+
+        <div>
+          <h3 style={{margin:"0 0 10px 4px",fontSize:14,fontWeight:700,color:"#374151",textTransform:"uppercase",letterSpacing:.6}}>📅 Aankomend Verlof</h3>
+          {upcomingLeave.length===0 ? <Card><p style={{color:"#9CA3AF",fontSize:13,margin:0,textAlign:"center",padding:8}}>Geen gepland verlof</p></Card> : (
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {upcomingLeave.slice(0,3).map(r => {
+                const lt = leaveTypes.find(t => t.id===r.type); if (!lt) return null;
+                return (
+                  <Card key={r.id} onClick={() => onNavigate("absences")}>
+                    <div style={{display:"flex",alignItems:"center",gap:12}}>
+                      <div style={{width:42,height:42,borderRadius:12,background:`${lt.color}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>{lt.symbol}</div>
+                      <div style={{flex:1}}>
+                        <div style={{fontWeight:700,fontSize:14,color:"#1F2937"}}>{lt.name}</div>
+                        <div style={{fontSize:12,color:"#6B7280",marginTop:2}}>{formatDate(r.startDate)} → {formatDate(r.endDate)} · {r.halfDay ? `½ dag (${r.halfDayPeriod==="VM"?"Voormiddag":"Namiddag"})` : `${r.days} dag${r.days>1?"en":""}`}</div>
+                      </div>
+                      <StatusBadge status={r.status} />
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <h3 style={{margin:"0 0 10px 4px",fontSize:14,fontWeight:700,color:"#374151",textTransform:"uppercase",letterSpacing:.6}}>👥 Team Afwezig Vandaag</h3>
+          {todayAbsent.length===0 ? <Card><p style={{color:"#9CA3AF",fontSize:13,margin:0,textAlign:"center",padding:8}}>Iedereen is aanwezig</p></Card> : (
+            <Card>
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {todayAbsent.map((t,i) => {
+                  const lt = leaveTypes.find(x => x.id===t.type);
+                  return (
+                    <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"4px 0",borderBottom:i<todayAbsent.length-1?"1px solid #F3F4F6":"none"}}>
+                      <Avatar person={t} size={36} />
+                      <div style={{flex:1}}><div style={{fontWeight:600,fontSize:13,color:"#1F2937"}}>{fullName(t)}</div><div style={{fontSize:11,color:"#6B7280"}}>{lt ? `${lt.symbol} ${lt.name}` : t.type}</div></div>
+                      <span style={{fontSize:11,color:"#9CA3AF"}}>tot {formatDate(t.endDate)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NewRequestScreen({syncData, onBack, onSubmit}) {
+  const {user, leaveTypes, teamAbsences, balances} = syncData;
+  const requestableTypes = getRequestableTypes(leaveTypes);
+  const currentYear = new Date().getFullYear();
+  const yearBalances = balances[currentYear]||{};
+  const [type, setType] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [halfDay, setHalfDay] = useState(false);
+  const [halfDayPeriod, setHalfDayPeriod] = useState("VM");
+  const [comment, setComment] = useState("");
+  const [step, setStep] = useState(1);
+  const [showAllTypes, setShowAllTypes] = useState(false);
+
+  const selectedType = leaveTypes.find(t => t.id===type);
+  const bal = yearBalances[type];
+  const days = startDate && endDate ? (halfDay ? 0.5 : getDaysBetween(startDate,endDate)) : 0;
+  const showBalance = bal && bal.allowance>0;
+  const canSubmit = type && startDate && endDate && (!showBalance || days<=bal.remaining);
+  const overlappingTeam = (startDate && endDate) ? teamAbsences.filter(t => t.startDate<=endDate && t.endDate>=startDate) : [];
+  const overlapWarning = overlappingTeam.length>=2;
+
+  const handleSubmit = () => { if (!canSubmit) return; onSubmit({id:"r-"+Date.now(),personId:user.id,type,startDate,endDate,halfDay,halfDayPeriod:halfDay?halfDayPeriod:null,status:"pending",days,comment,requestDate:todayStr()}); };
+
+  return (
+    <div className="screen">
+      <div style={{padding:"16px 20px 12px",background:"linear-gradient(135deg,#1E3A5F 0%,#2D5A87 100%)",color:"#fff",display:"flex",alignItems:"center",gap:12}}>
+        <button onClick={onBack} style={{background:"none",border:"none",color:"#fff",fontSize:22,cursor:"pointer",padding:4}}>←</button>
+        <h1 style={{margin:0,fontSize:20,fontWeight:800}}>Verlof Aanvragen</h1>
+      </div>
+      <div style={{padding:"16px 16px 20px",display:"flex",flexDirection:"column",gap:16}}>
+        <Card>
+          <label style={{fontSize:12,fontWeight:700,color:"#6B7280",textTransform:"uppercase",letterSpacing:.8,marginBottom:10,display:"block"}}>① Type Verlof</label>
+          {(() => {
+            const defaultIds = ["wettelijk","adv","onbetaald"];
+            const defaultTypes = requestableTypes.filter(t => defaultIds.includes(t.id));
+            const extraTypes = requestableTypes.filter(t => !defaultIds.includes(t.id));
+            const selectedInExtra = type && !defaultIds.includes(type);
+            const visibleTypes = showAllTypes ? requestableTypes : (selectedInExtra ? [...defaultTypes, requestableTypes.find(t=>t.id===type)].filter(Boolean) : defaultTypes);
+            return (<>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                {visibleTypes.map(lt => (
+                  <button key={lt.id} onClick={() => {if(lt.id!==type){setStartDate("");setEndDate("");setHalfDay(false);setComment("")} setType(lt.id);setStep(2)}}
+                    style={{padding:"12px 10px",borderRadius:12,border:type===lt.id?`2px solid ${lt.color}`:"2px solid #E5E7EB",background:type===lt.id?`${lt.color}10`:"#FAFAFA",cursor:"pointer",display:"flex",alignItems:"center",gap:8,transition:"all 0.2s"}}>
+                    <span style={{fontSize:20}}>{lt.symbol}</span>
+                    <div style={{textAlign:"left"}}><div style={{fontSize:12,fontWeight:600,color:"#1F2937"}}>{lt.name}</div></div>
+                  </button>
+                ))}
+              </div>
+              {extraTypes.length>0 && <button onClick={() => setShowAllTypes(!showAllTypes)} style={{marginTop:10,width:"100%",padding:"10px",borderRadius:10,border:"1.5px dashed #D1D5DB",background:"transparent",cursor:"pointer",fontSize:12,fontWeight:600,color:"#6B7280",display:"flex",alignItems:"center",justifyContent:"center",gap:6,transition:"all 0.2s"}}>{showAllTypes?"▲ Minder types":`➕ Meer types (${extraTypes.length})`}</button>}
+            </>);
+          })()}
+        </Card>
+
+        {step>=2 && (
+          <Card className="slide-up">
+            <label style={{fontSize:12,fontWeight:700,color:"#6B7280",textTransform:"uppercase",letterSpacing:.8,marginBottom:10,display:"block"}}>② Datums</label>
+            <div style={{display:"flex",gap:10,marginBottom:12}}>
+              <div style={{flex:1}}>
+                <label style={{fontSize:11,color:"#9CA3AF",display:"block",marginBottom:4}}>Startdatum</label>
+                <input type="date" value={startDate} min={todayStr()} onChange={e => {setStartDate(e.target.value);if(!endDate||e.target.value>endDate)setEndDate(e.target.value);setStep(Math.max(step,3))}}
+                  style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1.5px solid #E5E7EB",fontSize:14,fontWeight:600,color:"#1F2937",boxSizing:"border-box"}} />
+              </div>
+              <div style={{flex:1}}>
+                <label style={{fontSize:11,color:"#9CA3AF",display:"block",marginBottom:4}}>Einddatum</label>
+                <input type="date" value={endDate} min={startDate||todayStr()} onChange={e => {setEndDate(e.target.value);setStep(Math.max(step,3))}}
+                  style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1.5px solid #E5E7EB",fontSize:14,fontWeight:600,color:"#1F2937",boxSizing:"border-box"}} />
+              </div>
+            </div>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 0",borderTop:"1px solid #F3F4F6"}}>
+              <span style={{fontSize:13,fontWeight:600,color:"#374151"}}>Halve dag?</span>
+              <button onClick={() => setHalfDay(!halfDay)} style={{width:48,height:28,borderRadius:14,border:"none",cursor:"pointer",position:"relative",background:halfDay?"#1E3A5F":"#D1D5DB",transition:"background 0.3s"}}>
+                <div style={{width:22,height:22,borderRadius:"50%",background:"#fff",position:"absolute",top:3,left:halfDay?23:3,transition:"left 0.3s",boxShadow:"0 1px 3px rgba(0,0,0,0.2)"}} />
+              </button>
+            </div>
+            {halfDay && <div style={{display:"flex",gap:8,marginTop:8}}>
+              {[{key:"VM",label:"☀️ Voormiddag"},{key:"NM",label:"🌙 Namiddag"}].map(h => (
+                <button key={h.key} onClick={() => setHalfDayPeriod(h.key)} style={{flex:1,padding:"10px",borderRadius:10,border:halfDayPeriod===h.key?"2px solid #1E3A5F":"2px solid #E5E7EB",background:halfDayPeriod===h.key?"#1E3A5F10":"#FAFAFA",cursor:"pointer",fontWeight:600,fontSize:13,color:halfDayPeriod===h.key?"#1E3A5F":"#6B7280"}}>{h.label}</button>
+              ))}
+            </div>}
+          </Card>
+        )}
+
+        {step>=2 && (
+          <Card className="slide-up">
+            <label style={{fontSize:12,fontWeight:700,color:"#6B7280",textTransform:"uppercase",letterSpacing:.8,marginBottom:10,display:"block"}}>💬 Opmerking (optioneel)</label>
+            <textarea value={comment} onChange={e => setComment(e.target.value)} placeholder="Bv. reden, extra info..."
+              style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1.5px solid #E5E7EB",fontSize:13,color:"#1F2937",boxSizing:"border-box",minHeight:60,resize:"vertical",fontFamily:"inherit"}} />
+          </Card>
+        )}
+
+        {step>=3 && startDate && endDate && (
+          <Card className="slide-up" style={{background:!showBalance||canSubmit?"linear-gradient(135deg,#F0FDF4,#ECFDF5)":"linear-gradient(135deg,#FEF2F2,#FEE2E2)"}}>
+            <label style={{fontSize:12,fontWeight:700,color:"#6B7280",textTransform:"uppercase",letterSpacing:.8,marginBottom:10,display:"block"}}>③ Overzicht</label>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+              <span style={{fontSize:13,color:"#6B7280"}}>Aantal dagen</span>
+              <span style={{fontSize:18,fontWeight:800,color:"#1F2937"}}>{days}</span>
+            </div>
+            {showBalance && (<>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                <span style={{fontSize:13,color:"#6B7280"}}>Huidig saldo</span>
+                <span style={{fontSize:14,fontWeight:600,color:"#1F2937"}}>{bal.remaining} dagen</span>
+              </div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0 0",borderTop:"1px solid rgba(0,0,0,0.06)"}}>
+                <span style={{fontSize:13,fontWeight:600,color:days>bal.remaining?"#DC2626":"#059669"}}>Resterend na aanvraag</span>
+                <span style={{fontSize:16,fontWeight:800,color:days>bal.remaining?"#DC2626":"#059669"}}>{bal.remaining-days}</span>
+              </div>
+              {days>bal.remaining && <p style={{color:"#DC2626",fontSize:12,fontWeight:600,margin:"10px 0 0",textAlign:"center"}}>⚠️ Onvoldoende saldo</p>}
+            </>)}
+          </Card>
+        )}
+
+        {step>=3 && startDate && endDate && overlappingTeam.length>0 && (
+          <Card className="slide-up" style={{background:overlapWarning?"linear-gradient(135deg,#FFFBEB,#FEF3C7)":"linear-gradient(135deg,#F0F9FF,#E0F2FE)",border:overlapWarning?"1px solid #F59E0B":"1px solid #7DD3FC"}}>
+            <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+              <span style={{fontSize:22,lineHeight:1}}>{overlapWarning?"⚠️":"ℹ️"}</span>
+              <div style={{flex:1}}>
+                <p style={{margin:"0 0 6px",fontSize:13,fontWeight:700,color:overlapWarning?"#92400E":"#0C4A6E"}}>{overlapWarning?"Meerdere collega's al afwezig in deze periode":`${overlappingTeam.length} collega ook afwezig in deze periode`}</p>
+                <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                  {overlappingTeam.map((t,i) => (
+                    <div key={i} style={{display:"flex",alignItems:"center",gap:8}}>
+                      <Avatar person={t} size={24} />
+                      <div><span style={{fontSize:12,fontWeight:600,color:"#374151"}}>{fullName(t)}</span><span style={{fontSize:11,color:"#6B7280",marginLeft:6}}>{formatDate(t.startDate)} → {formatDate(t.endDate)}</span></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        <button onClick={handleSubmit} disabled={!canSubmit}
+          style={{padding:"16px",borderRadius:14,border:"none",fontSize:16,fontWeight:800,background:canSubmit?"linear-gradient(135deg,#1E3A5F,#2D5A87)":"#D1D5DB",color:canSubmit?"#fff":"#9CA3AF",cursor:canSubmit?"pointer":"not-allowed",boxShadow:canSubmit?"0 4px 14px rgba(30,58,95,0.35)":"none",transition:"all 0.3s",letterSpacing:.3}}>
+          Indienen
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AbsencesScreen({syncData, onCancel}) {
+  const {leaveTypes, requests, requestsPreviousYear, balances} = syncData;
+  const currentYear = new Date().getFullYear();
+  const previousYear = currentYear-1;
+  const [selectedYear, setSelectedYear] = useState(currentYear);
+  const activeRequests = selectedYear===currentYear ? requests : requestsPreviousYear;
+  const pending = selectedYear===currentYear ? activeRequests.filter(r=>r.status==="pending").sort((a,b)=>(b.requestDate||"").localeCompare(a.requestDate||"")) : [];
+  const history = activeRequests.filter(r=>r.status!=="pending").sort((a,b)=>b.startDate.localeCompare(a.startDate));
+
+  const AbsenceRow = ({item, showCancel}) => {
+    const lt = leaveTypes.find(t=>t.id===item.type); if(!lt) return null;
+    const isApproved = item.status==="approved";
+    const borderColor = item.status==="pending"?"#F59E0B":isApproved?"#10B981":"#EF4444";
+    return (
+      <Card style={{borderLeft:`4px solid ${borderColor}`}}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <div style={{width:40,height:40,borderRadius:10,background:`${lt.color}12`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>{lt.symbol}</div>
+          <div style={{flex:1}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{fontWeight:700,fontSize:13,color:"#1F2937"}}>{lt.name}</span>
+              {item.status==="pending" ? <StatusBadge status="pending" /> : <span style={{fontSize:11,fontWeight:700,color:isApproved?"#059669":"#DC2626"}}>{isApproved?"✓ Goedgekeurd":"✗ Afgewezen"}</span>}
+            </div>
+            <div style={{fontSize:12,color:"#6B7280",marginTop:2}}>{formatDate(item.startDate)}{item.startDate!==item.endDate?` → ${formatDate(item.endDate)}`:""} · {item.halfDay?`½ dag (${item.halfDayPeriod==="VM"?"VM":"NM"})`:`${item.days} dag${item.days!==1?"en":""}`}</div>
+            {item.comment && <div style={{fontSize:11,color:"#6B7280",marginTop:2,fontStyle:"italic"}}>💬 {item.comment}</div>}
+            {item.rejectReason && <div style={{fontSize:11,color:"#DC2626",marginTop:3,fontStyle:"italic"}}>Reden: {item.rejectReason}</div>}
+          </div>
+        </div>
+        {showCancel && <button onClick={() => onCancel(item.id)} style={{marginTop:10,width:"100%",padding:"9px",borderRadius:10,border:"1.5px solid #FCA5A5",background:"#FEF2F2",color:"#DC2626",fontSize:12,fontWeight:700,cursor:"pointer"}}>Annuleren</button>}
+      </Card>
+    );
+  };
+
+  const yearBal = balances[selectedYear]||{};
+  const trackedBals = leaveTypes.filter(t=>t.tracked&&yearBal[t.id]&&(yearBal[t.id].allowance>0||yearBal[t.id].used>0)).map(t=>({...t,...yearBal[t.id]}));
+
+  return (
+    <div className="screen">
+      <Header title="Afwezigheden" subtitle={`${activeRequests.length} registraties`} />
+      <div style={{padding:"16px 16px 20px",display:"flex",flexDirection:"column",gap:16}}>
+        <div style={{display:"flex",gap:8}}>
+          {[currentYear,previousYear].map(yr => (
+            <button key={yr} onClick={() => setSelectedYear(yr)} style={{flex:1,padding:"10px 0",borderRadius:12,border:"none",fontSize:14,fontWeight:800,cursor:"pointer",background:selectedYear===yr?"linear-gradient(135deg,#1E3A5F,#2D5A87)":"#F3F4F6",color:selectedYear===yr?"#fff":"#6B7280",boxShadow:selectedYear===yr?"0 2px 8px rgba(30,58,95,0.25)":"none",transition:"all 0.2s",letterSpacing:.3}}>{yr===currentYear?`${yr} (huidig)`:yr}</button>
+          ))}
+        </div>
+
+        {trackedBals.length>0 && (
+          <Card style={{background:selectedYear===currentYear?"linear-gradient(135deg,#F0F7FF,#E8F4FD)":"linear-gradient(135deg,#F9FAFB,#F3F4F6)",border:selectedYear===currentYear?"1px solid #D0E8F7":"1px solid #E5E7EB",padding:12}}>
+            <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+              {trackedBals.map(t => {
+                const accent = t.remaining>5?"#10B981":t.remaining>0?"#F59E0B":"#EF4444";
+                return (
+                  <div key={t.id} style={{flex:1,minWidth:90,background:"#fff",borderRadius:10,padding:"10px 12px",border:"1px solid #E5E7EB"}}>
+                    <div style={{fontSize:10,fontWeight:700,color:"#6B7280",textTransform:"uppercase",letterSpacing:.5,marginBottom:4,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{t.symbol} {t.name}</div>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#9CA3AF",marginBottom:2}}><span>Recht</span><span style={{fontWeight:700}}>{t.allowance}</span></div>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:accent,fontWeight:700}}><span>Rest</span><span style={{fontSize:16,fontWeight:800}}>{t.remaining}</span></div>
+                  </div>
+                );
+              })}
+            </div>
+            {selectedYear===previousYear && <p style={{margin:"8px 0 0",fontSize:10,color:"#9CA3AF",textAlign:"center",fontStyle:"italic"}}>Archief — max. 2 jaar bewaard.</p>}
+          </Card>
+        )}
+
+        {pending.length>0 && (
+          <div>
+            <h3 style={{margin:"0 0 8px 4px",fontSize:12,fontWeight:700,color:"#92400E",textTransform:"uppercase",letterSpacing:1,display:"flex",alignItems:"center",gap:6}}>
+              <span style={{width:8,height:8,borderRadius:"50%",background:"#F59E0B",display:"inline-block"}} /> In afwachting ({pending.length})
+            </h3>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>{pending.map(r => <AbsenceRow key={r.id} item={r} showCancel />)}</div>
+          </div>
+        )}
+
+        <div>
+          <h3 style={{margin:"0 0 8px 4px",fontSize:12,fontWeight:700,color:"#6B7280",textTransform:"uppercase",letterSpacing:1}}>Historiek</h3>
+          {history.length===0 ? <Card><p style={{color:"#9CA3AF",fontSize:13,margin:0,textAlign:"center",padding:8}}>Nog geen historiek</p></Card> : (
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>{history.map(r => <AbsenceRow key={r.id} item={r} />)}</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NotificationsScreen({notifications, onMarkRead}) {
+  const typeIcon = {approved:"✅",rejected:"❌",info:"ℹ️",change:"🔄"};
+  const typeColor = {approved:"#10B981",rejected:"#EF4444",info:"#3B82F6",change:"#F59E0B"};
+  return (
+    <div className="screen">
+      <Header title="Meldingen" subtitle={`${notifications.filter(n=>!n.read).length} ongelezen`} />
+      <div style={{padding:"16px 16px 20px",display:"flex",flexDirection:"column",gap:8}}>
+        {notifications.map(n => (
+          <Card key={n.id} onClick={() => onMarkRead(n.id)} style={{background:n.read?"#fff":"#F8FAFF",borderLeft:n.read?"none":`3px solid ${typeColor[n.type]}`}}>
+            <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
+              <span style={{fontSize:20}}>{typeIcon[n.type]}</span>
+              <div style={{flex:1}}>
+                <p style={{margin:0,fontSize:13,fontWeight:n.read?400:700,color:"#1F2937",lineHeight:1.4}}>{n.message}</p>
+                <span style={{fontSize:11,color:"#9CA3AF",marginTop:4,display:"block"}}>{n.time}</span>
+              </div>
+              {!n.read && <div style={{width:8,height:8,borderRadius:"50%",background:typeColor[n.type],flexShrink:0,marginTop:4}} />}
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ProfileScreen({syncData}) {
+  const {user, leaveTypes, balances} = syncData;
+  const currentYear = new Date().getFullYear();
+  const [notifSettings, setNotifSettings] = useState({approvals:true,rejections:true,changes:true,team:false});
+  const Toggle = ({on, onToggle}) => (
+    <button onClick={onToggle} style={{width:48,height:28,borderRadius:14,border:"none",cursor:"pointer",position:"relative",background:on?"#1E3A5F":"#D1D5DB",transition:"background 0.3s"}}>
+      <div style={{width:22,height:22,borderRadius:"50%",background:"#fff",position:"absolute",top:3,left:on?23:3,transition:"left 0.3s",boxShadow:"0 1px 3px rgba(0,0,0,0.2)"}} />
+    </button>
+  );
+  const personalInfo = [{label:"📱 GSM",value:user.gsm||"—"},{label:"📞 Telefoon",value:user.tel||"—"},{label:"📱 Werk GSM",value:user.werkGsm||"—"},{label:"✉️ E-mail",value:user.email||"—"},{label:"🏦 IBAN",value:user.iban||"—"},{label:"🎂 Geboortedatum",value:user.birthDate?formatDateFull(user.birthDate):"—"},{label:"🆔 Rijksregisternummer",value:user.rrn||"—"}].filter(x=>x.value&&x.value!=="—");
+  const emergencyInfo = [{label:"Naam",value:user.noodNaam||"—"},{label:"Relatie",value:user.noodRelatie||"—"},{label:"GSM",value:user.noodGsm||"—"}].filter(x=>x.value&&x.value!=="—");
+
+  return (
+    <div className="screen">
+      <Header title="Profiel" />
+      <div style={{padding:"16px 16px 20px",display:"flex",flexDirection:"column",gap:16}}>
+        <Card style={{textAlign:"center",padding:24}}>
+          <div style={{display:"flex",justifyContent:"center",marginBottom:12}}><Avatar person={user} size={64} /></div>
+          <h2 style={{margin:"0 0 2px",fontSize:20,fontWeight:800,color:"#1F2937"}}>{fullName(user)}</h2>
+          <p style={{margin:"0 0 4px",fontSize:13,color:"#6B7280"}}>{user.statuut}</p>
+          <span style={{fontSize:12,color:"#9CA3AF",background:"#F3F4F6",padding:"3px 12px",borderRadius:20}}>{user.departmentName}</span>
+        </Card>
+
+        <Card>
+          <h3 style={{margin:"0 0 12px",fontSize:13,fontWeight:700,color:"#374151",textTransform:"uppercase",letterSpacing:.6}}>Persoonlijke Gegevens</h3>
+          {personalInfo.map((item,i) => (
+            <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderBottom:i<personalInfo.length-1?"1px solid #F3F4F6":"none"}}>
+              <span style={{fontSize:13,color:"#6B7280"}}>{item.label}</span>
+              <span style={{fontSize:13,fontWeight:600,color:"#1F2937"}}>{item.value}</span>
+            </div>
+          ))}
+        </Card>
+
+        {emergencyInfo.length>0 && (
+          <Card>
+            <h3 style={{margin:"0 0 12px",fontSize:13,fontWeight:700,color:"#374151",textTransform:"uppercase",letterSpacing:.6}}>🚨 Noodcontact</h3>
+            {emergencyInfo.map((item,i) => (
+              <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"10px 0",borderBottom:i<emergencyInfo.length-1?"1px solid #F3F4F6":"none"}}>
+                <span style={{fontSize:13,color:"#6B7280"}}>{item.label}</span>
+                <span style={{fontSize:13,fontWeight:600,color:"#1F2937"}}>{item.value}</span>
+              </div>
+            ))}
+          </Card>
+        )}
+
+        <Card>
+          <h3 style={{margin:"0 0 12px",fontSize:13,fontWeight:700,color:"#374151",textTransform:"uppercase",letterSpacing:.6}}>Notificaties</h3>
+          {[{key:"approvals",label:"Goedkeuringen"},{key:"rejections",label:"Afwijzingen"},{key:"changes",label:"Wijzigingen"},{key:"team",label:"Team afwezigheden"}].map((item,i) => (
+            <div key={item.key} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:i<3?"1px solid #F3F4F6":"none"}}>
+              <span style={{fontSize:13,color:"#374151"}}>{item.label}</span>
+              <Toggle on={notifSettings[item.key]} onToggle={() => setNotifSettings(s=>({...s,[item.key]:!s[item.key]}))} />
+            </div>
+          ))}
+        </Card>
+
+        <div style={{textAlign:"center",padding:"8px 0"}}>
+          <p style={{fontSize:11,color:"#9CA3AF",margin:0}}>🔗 Verbonden met PersoneelBeheer Desktop</p>
+          <p style={{fontSize:10,color:"#D1D5DB",margin:"4px 0 0"}}>Laatste sync: {syncData.lastSync ? new Date(syncData.lastSync).toLocaleDateString("nl-BE",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}) : "—"}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════════════════════════
+
+function Toast({message, visible}) {
+  return <div style={{position:"fixed",top:visible?60:-60,left:"50%",transform:"translateX(-50%)",zIndex:200,background:"#1F2937",color:"#fff",padding:"10px 24px",borderRadius:12,fontSize:13,fontWeight:600,boxShadow:"0 8px 30px rgba(0,0,0,0.2)",transition:"top 0.4s cubic-bezier(0.34,1.56,0.64,1)",whiteSpace:"nowrap"}}>{message}</div>;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MAIN APP
+// ═══════════════════════════════════════════════════════════════════════════
+
+function App() {
+  const {syncData, syncing, refreshSync, submitRequest, cancelRequest} = useSyncData();
+  const [screen, setScreen] = useState("home");
+  const [showNewRequest, setShowNewRequest] = useState(false);
+  const [notifications, setNotifications] = useState(syncData.notifications);
+  const [toast, setToast] = useState({message:"",visible:false});
+
+  const showToast = useCallback((msg) => { setToast({message:msg,visible:true}); setTimeout(() => setToast(t=>({...t,visible:false})),2500); }, []);
+
+  const handleSubmitRequest = async (req) => {
+    const result = await submitRequest(req);
+    if (result.success) { setShowNewRequest(false); setScreen("absences"); showToast("✅ Verlofaanvraag ingediend!");
+      setNotifications(prev => [{id:Date.now(),type:"info",message:"Nieuwe aanvraag ingediend — in afwachting van goedkeuring",time:"Zojuist",read:false},...prev]);
+    }
+  };
+
+  const handleCancelRequest = async (id) => { const result = await cancelRequest(id); if(result.success) showToast("Aanvraag geannuleerd"); };
+  const handleMarkRead = (id) => { setNotifications(prev => prev.map(n => n.id===id ? {...n,read:true} : n)); };
+  const unreadCount = notifications.filter(n=>!n.read).length;
+
+  return (
+    <>
+      <Toast message={toast.message} visible={toast.visible} />
+      {showNewRequest ? (
+        <NewRequestScreen syncData={syncData} onBack={() => setShowNewRequest(false)} onSubmit={handleSubmitRequest} />
+      ) : (<>
+        {screen==="home" && <HomeScreen syncData={syncData} onNavigate={setScreen} onNewRequest={() => setShowNewRequest(true)} />}
+        {screen==="absences" && <AbsencesScreen syncData={syncData} onCancel={handleCancelRequest} />}
+        {screen==="notifications" && <NotificationsScreen notifications={notifications} onMarkRead={handleMarkRead} />}
+        {screen==="profile" && <ProfileScreen syncData={syncData} />}
+      </>)}
+      {!showNewRequest && <BottomNav active={screen} onNavigate={setScreen} unreadCount={unreadCount} />}
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
