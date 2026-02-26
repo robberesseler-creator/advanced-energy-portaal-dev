@@ -1,0 +1,2497 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Fleetbeheer — Advanced Energy</title>
+<style>
+/* ═══ CSS STYLES ═══ */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+
+:root{
+  --bg:#f0f4ff;--surface:#fff;--surface2:#f8faff;--surface3:#eef2fb;
+  --text:#2d2d2d;--text2:#5a6377;--text3:#6b7280;
+  --border:#e2e8f4;--border-hover:#c5cfe0;
+  --accent:#3b82f6;--accent-bg:rgba(59,130,246,.08);--accent-border:rgba(59,130,246,.25);
+  --success:#38d9a9;--success-bg:rgba(56,217,169,.1);
+  --danger:#ff5c5c;--danger-bg:rgba(255,92,92,.08);--danger-border:rgba(255,92,92,.2);
+  --warn:#f59e0b;--warn-bg:rgba(245,158,11,.08);
+  --radius:14px;--radius-sm:8px;--radius-xs:6px;
+  --shadow:0 2px 8px rgba(0,0,0,.06);--shadow-lg:0 8px 24px rgba(0,0,0,.1);
+  --sidebar-w:240px;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;}
+button{font-family:inherit;cursor:pointer;}
+input,select,textarea{font-family:inherit;font-size:13px;}
+
+/* Sidebar */
+.sidebar{width:var(--sidebar-w);background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:250;}
+.sb-header{padding:20px;border-bottom:1px solid var(--border);}
+.sb-logo{display:flex;align-items:center;gap:10px;}
+.sb-logo-icon{width:36px;height:36px;border-radius:50%;overflow:hidden;flex-shrink:0;}
+.sb-logo-icon img{width:100%;height:100%;object-fit:contain;}
+.sb-logo-text{font-weight:700;font-size:15px;line-height:1.2;}
+.sb-logo-sub{font-size:11px;color:var(--text3);font-weight:400;}
+.sb-nav{flex:1;padding:12px 10px;overflow-y:auto;}
+.sb-section{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;
+  color:var(--text3);padding:12px 10px 6px;}
+.sb-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius-sm);
+  color:var(--text2);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;border:none;
+  background:none;width:100%;text-align:left;}
+.sb-item:hover{background:var(--surface2);color:var(--text);}
+.sb-item.active{background:var(--accent-bg);color:var(--accent);font-weight:600;}
+.sb-item-icon{font-size:16px;width:22px;text-align:center;}
+.sb-item-badge{margin-left:auto;background:var(--danger);color:#fff;font-size:10px;font-weight:700;
+  padding:2px 7px;border-radius:10px;min-width:20px;text-align:center;}
+.sb-footer{padding:12px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--text3);}
+
+/* Role bar */
+.role-bar{position:fixed;top:0;left:var(--sidebar-w);right:0;height:44px;background:var(--surface);
+  border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;z-index:90;gap:12px;}
+.role-bar-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1px;}
+.role-bar-right{margin-left:auto;display:flex;align-items:center;gap:12px;}
+.env-badge{background:#3b82f6;color:#fff;font-size:10px;font-weight:700;padding:3px 10px;
+  border-radius:10px;letter-spacing:1px;text-transform:uppercase;}
+
+/* Main content */
+.main{margin-left:var(--sidebar-w);padding-top:44px;flex:1;min-height:100vh;}
+.page{max-width:1100px;margin:0 auto;padding:28px 32px;}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;}
+.page-title{font-size:22px;font-weight:700;}
+.page-subtitle{font-size:13px;color:var(--text3);margin-top:2px;}
+
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:20px;box-shadow:var(--shadow);transition:all .15s;}
+.card-title{font-size:14px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.card-grid{display:grid;gap:16px;}
+.card-grid-2{grid-template-columns:1fr 1fr;}
+.card-grid-3{grid-template-columns:1fr 1fr 1fr;}
+.card-grid-4{grid-template-columns:1fr 1fr 1fr 1fr;}
+
+/* Stats */
+.stat{text-align:center;padding:16px;}
+.stat-value{font-size:28px;font-weight:700;line-height:1;}
+.stat-label{font-size:11px;color:var(--text3);margin-top:4px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+
+/* Tables */
+.tbl{width:100%;border-collapse:collapse;font-size:13px;}
+.tbl th{text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
+  color:var(--text3);padding:10px 12px;border-bottom:2px solid var(--border);}
+.tbl td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.tbl tr:hover td{background:var(--surface2);}
+.tbl tr:last-child td{border-bottom:none;}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:12px;
+  font-size:11px;font-weight:600;white-space:nowrap;}
+.badge-blue{background:rgba(59,130,246,.1);color:#3b82f6;}
+.badge-green{background:rgba(34,197,94,.1);color:#22c55e;}
+.badge-yellow{background:rgba(234,179,8,.1);color:#b45309;}
+.badge-red{background:rgba(239,68,68,.1);color:#ef4444;}
+.badge-gray{background:rgba(148,163,184,.1);color:#64748b;}
+.badge-purple{background:rgba(168,85,247,.1);color:#a855f7;}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius-sm);
+  font-size:13px;font-weight:600;border:1px solid var(--border);background:var(--surface);
+  color:var(--text);transition:all .15s;}
+.btn:hover{border-color:var(--border-hover);background:var(--surface2);}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+.btn-primary:hover{background:#2563eb;border-color:#2563eb;}
+.btn-primary-outline{background:rgba(59,130,246,.08);color:var(--accent);border-color:rgba(59,130,246,.35);}
+.btn-primary-outline:hover{background:rgba(59,130,246,.15);border-color:var(--accent);}
+.btn-danger{background:var(--danger-bg);color:var(--danger);border-color:var(--danger-border);}
+.btn-danger:hover{background:rgba(255,92,92,.15);}
+.btn-sm{padding:5px 12px;font-size:12px;}
+.btn-icon{width:32px;height:32px;padding:0;display:inline-flex;align-items:center;justify-content:center;}
+
+/* Forms */
+.form-group{margin-bottom:16px;}
+.form-label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;}
+.form-label .req{color:var(--danger);}
+.form-input{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);
+  background:#fff;color:#000;font-size:13px;transition:border-color .15s;}
+.form-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,.1);}
+.form-row{display:flex;gap:16px;}
+.form-row>*{flex:1;}
+select.form-input{cursor:pointer;}
+
+/* Modal */
+.modal-overlay{position:fixed;top:0;left:var(--sidebar-w);right:0;bottom:0;background:rgba(0,0,0,.5);z-index:200;display:none;
+  align-items:stretch;justify-content:stretch;backdrop-filter:blur(2px);}
+.modal-overlay.show{display:flex;}
+.modal{background:var(--surface);border-radius:0;width:100%;max-width:none;
+  max-height:none;overflow-y:auto;box-shadow:var(--shadow-lg);padding:24px 32px;margin:0;
+  display:flex;flex-direction:column;}
+.modal.modal-wide{max-width:none;}
+.modal-sm{max-width:520px;margin:auto;border-radius:var(--radius);max-height:85vh;}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:20px;display:flex;align-items:center;
+  justify-content:space-between;flex-shrink:0;}
+.modal-close{width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--surface);
+  display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;color:var(--text3);}
+.modal-close:hover{background:var(--surface2);color:var(--text);}
+.modal-body{flex:1;overflow-y:auto;min-height:0;}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;padding-top:16px;
+  border-top:1px solid var(--border);flex-shrink:0;}
+.modal-top-actions{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+
+/* Utility */
+.flex-between{display:flex;justify-content:space-between;align-items:center;}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:var(--radius-sm);
+  font-size:13px;font-weight:600;box-shadow:var(--shadow-lg);z-index:300;transform:translateY(80px);
+  opacity:0;transition:all .3s ease;pointer-events:none;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast-success{background:#065f46;color:#fff;}
+.toast-error{background:#991b1b;color:#fff;}
+.toast-warn{background:#92400e;color:#fff;}
+
+/* Color dots */
+.clr-dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex-shrink:0;}
+
+/* Chip */
+.chip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:12px;
+  font-size:11px;font-weight:600;border:1px solid var(--border);background:var(--surface2);}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;border-bottom:2px solid var(--border);margin-bottom:20px;}
+.tab{padding:10px 16px;font-size:13px;font-weight:600;color:var(--text3);cursor:pointer;
+  border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+/* Panels */
+.panel{display:none;}
+.panel.active{display:block;}
+
+/* Avatar */
+.avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;color:#fff;flex-shrink:0;}
+
+/* Search */
+.search-box{position:relative;}
+.search-box input{padding-left:34px;}
+.search-box::before{content:'🔍';position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:13px;}
+
+/* Alert status colors */
+.alert-ok{color:var(--success);}
+.alert-warn{color:var(--warn);}
+.alert-danger{color:var(--danger);}
+
+/* Dashed add button */
+.btn-dashed{border-style:dashed;width:100%;justify-content:center;color:var(--text3);}
+
+/* Timeline */
+.timeline-item{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
+.timeline-item:last-child{border-bottom:none;}
+.timeline-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);margin-top:5px;flex-shrink:0;}
+.timeline-content{flex:1;}
+.timeline-date{font-size:11px;color:var(--text3);font-weight:600;}
+.timeline-text{font-size:13px;margin-top:2px;}
+
+/* Status dots */
+.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;}
+.status-actief{background:var(--success);}
+.status-onderhoud{background:var(--warn);}
+.status-defect{background:var(--danger);}
+.status-gearchiveerd{background:var(--text3);}
+</style>
+</head>
+<body>
+
+<!-- ═══ HTML STRUCTURE ═══ -->
+
+<!-- Sidebar -->
+<nav class="sidebar" aria-label="Hoofdmenu">
+  <div class="sb-header">
+    <div class="sb-logo" onclick="showPage('dashboard')" style="cursor:pointer">
+      <div class="sb-logo-icon"><img src="data:image/png;base64,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" alt="AE"/></div>
+      <div>
+        <div class="sb-logo-text">Fleetbeheer</div>
+        <div class="sb-logo-sub">Advanced Energy</div>
+      </div>
+    </div>
+  </div>
+  <div class="sb-nav">
+    <div class="sb-section">Overzicht</div>
+    <button class="sb-item active" data-page="dashboard" onclick="showPage('dashboard')">
+      <span class="sb-item-icon">📊</span>Dashboard
+    </button>
+    <div class="sb-section">Beheer</div>
+    <button class="sb-item" data-page="vehicles" onclick="showPage('vehicles')">
+      <span class="sb-item-icon">🚛</span>Voertuigen
+    </button>
+    <button class="sb-item" data-page="drivers" onclick="showPage('drivers')">
+      <span class="sb-item-icon">👤</span>Chauffeurs
+    </button>
+    <button class="sb-item" data-page="damage" onclick="showPage('damage')">
+      <span class="sb-item-icon">💥</span>Schade
+    </button>
+    <button class="sb-item" data-page="fines" onclick="showPage('fines')">
+      <span class="sb-item-icon">🎫</span>Boetes
+    </button>
+    <button class="sb-item" data-page="documents" onclick="showPage('documents')">
+      <span class="sb-item-icon">📋</span>Documenten
+      <span class="sb-item-badge" id="badge-docs" style="display:none">0</span>
+    </button>
+    <div class="sb-section">Configuratie</div>
+    <button class="sb-item" data-page="settings" onclick="showPage('settings')">
+      <span class="sb-item-icon">⚙️</span>Instellingen
+    </button>
+  </div>
+  <div class="sb-footer">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      Fleetbeheer v1.0
+      <button onclick="resetData()" style="background:none;border:none;color:var(--text3);font-size:10px;cursor:pointer;text-decoration:underline" title="Alle data resetten naar standaardwaarden">🔄 Reset</button>
+    </div>
+  </div>
+</nav>
+
+<!-- Role bar -->
+<div class="role-bar">
+  <span class="role-bar-label">Fleetbeheer — Advanced Energy</span>
+  <div class="role-bar-right">
+    <span class="env-badge">Development</span>
+  </div>
+</div>
+
+<!-- Main content -->
+<div class="main" role="main">
+
+  <!-- Dashboard -->
+  <div class="panel active" id="page-dashboard">
+    <div class="page">
+      <div class="page-header">
+        <div><div class="page-title">Dashboard</div><div class="page-subtitle">Overzicht wagenpark en meldingen</div></div>
+      </div>
+      <div class="card-grid card-grid-4" style="margin-bottom:20px">
+        <div class="card" style="cursor:pointer" onclick="showPage('vehicles')"><div class="stat"><div class="stat-value" id="st-total">0</div><div class="stat-label">Totaal voertuigen</div></div></div>
+        <div class="card" style="cursor:pointer" onclick="showPageFiltered('vehicles','vehicle-status-filter','actief')"><div class="stat"><div class="stat-value" id="st-active" style="color:var(--success)">0</div><div class="stat-label">Actief</div></div></div>
+        <div class="card" style="cursor:pointer" onclick="showPageFilteredDocs()"><div class="stat"><div class="stat-value" id="st-alerts" style="color:var(--warn)">0</div><div class="stat-label">Doc. alerts</div></div></div>
+        <div class="card" style="cursor:pointer" onclick="showPageFiltered('damage','damage-status-filter','open')"><div class="stat"><div class="stat-value" id="st-open-damage" style="color:var(--danger)">0</div><div class="stat-label">Open schade</div></div></div>
+      </div>
+      <div class="card-grid card-grid-4" style="margin-bottom:20px">
+        <div class="card" style="cursor:pointer" onclick="showPageFiltered('vehicles','vehicle-status-filter','onderhoud')"><div class="stat"><div class="stat-value" id="st-maintenance" style="color:var(--warn)">0</div><div class="stat-label">In onderhoud</div></div></div>
+        <div class="card" style="cursor:pointer" onclick="showPageFiltered('vehicles','vehicle-status-filter','defect')"><div class="stat"><div class="stat-value" id="st-defect" style="color:var(--danger)">0</div><div class="stat-label">Defect</div></div></div>
+        <div class="card" style="cursor:pointer" onclick="showPageFiltered('vehicles','vehicle-status-filter','archived')"><div class="stat"><div class="stat-value" id="st-archived" style="color:var(--text3)">0</div><div class="stat-label">Gearchiveerd</div></div></div>
+        <div class="card" style="cursor:pointer" onclick="showPageFiltered('fines','fine-status-filter','open')"><div class="stat"><div class="stat-value" id="st-open-fines" style="color:var(--warn)">0</div><div class="stat-label">Open boetes</div></div></div>
+      </div>
+      <div class="card-grid card-grid-2">
+        <div class="card">
+          <div class="card-title">⏰ Komende vervaldatums</div>
+          <div id="dash-alerts"><span style="font-size:13px;color:var(--text3)">Geen openstaande alerts</span></div>
+        </div>
+        <div class="card">
+          <div class="card-title">💥 Recente meldingen</div>
+          <div id="dash-recent"><span style="font-size:13px;color:var(--text3)">Geen recente meldingen</span></div>
+        </div>
+      </div>
+      <div class="card-grid card-grid-3" style="margin-top:16px">
+        <div class="card">
+          <div class="card-title">🚛 Verdeling per type</div>
+          <div id="dash-types"><span style="font-size:13px;color:var(--text3)">Geen voertuigen</span></div>
+        </div>
+        <div class="card">
+          <div class="card-title">⚠️ Openstaande schade</div>
+          <div id="dash-open-damage"><span style="font-size:13px;color:var(--text3)">Geen openstaande schade</span></div>
+        </div>
+        <div class="card">
+          <div class="card-title">💰 Financieel overzicht</div>
+          <div id="dash-finance"><span style="font-size:13px;color:var(--text3)">Geen data</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Voertuigen -->
+  <div class="panel" id="page-vehicles">
+    <div class="page">
+      <div class="page-header">
+        <div><div class="page-title">Voertuigen</div><div class="page-subtitle" id="vehicles-count">0 voertuigen</div></div>
+        <button class="btn btn-sm btn-primary-outline" onclick="openVehicleModal()" id="btn-new-vehicle">➕ Voertuig toevoegen</button>
+      </div>
+      <div style="display:flex;gap:12px;margin-bottom:16px;align-items:center">
+        <div class="search-box" style="flex:1"><input class="form-input" placeholder="Zoek voertuig..." oninput="filterVehicles(this.value)" id="vehicle-search"/></div>
+        <select class="form-input" style="width:180px" id="vehicle-type-filter" onchange="renderVehicles()">
+          <option value="">Alle types</option>
+        </select>
+        <select class="form-input" style="width:160px" id="vehicle-status-filter" onchange="renderVehicles()">
+          <option value="active">Actieve voertuigen</option>
+          <option value="actief">Alleen actief</option>
+          <option value="onderhoud">In onderhoud</option>
+          <option value="defect">Defect</option>
+          <option value="archived">Gearchiveerd</option>
+          <option value="all">Alle voertuigen</option>
+        </select>
+      </div>
+      <div class="card">
+        <table class="tbl">
+          <thead><tr>
+            <th>Voertuig</th>
+            <th>Nummerplaat</th>
+            <th>Type</th>
+            <th>Chauffeur</th>
+            <th>Km-stand</th>
+            <th>Status</th>
+            <th></th>
+          </tr></thead>
+          <tbody id="vehicles-table"></tbody>
+        </table>
+        <button class="btn btn-sm btn-dashed" style="margin-top:12px" onclick="openVehicleModal()">➕ Voertuig toevoegen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chauffeurs -->
+  <div class="panel" id="page-drivers">
+    <div class="page">
+      <div class="page-header">
+        <div><div class="page-title">Chauffeurs</div><div class="page-subtitle" id="drivers-count">0 chauffeurs</div></div>
+      </div>
+      <div style="display:flex;gap:12px;margin-bottom:16px;align-items:center">
+        <div class="search-box" style="flex:1"><input class="form-input" placeholder="Zoek chauffeur..." oninput="filterDrivers(this.value)" id="driver-search"/></div>
+      </div>
+      <div class="card">
+        <div id="drivers-empty" style="display:none;padding:20px;text-align:center">
+          <div style="font-size:14px;color:var(--text3);margin-bottom:8px">⚠️ Geen personeelsdata gevonden</div>
+          <div style="font-size:12px;color:var(--text3)">Open eerst de Personeelbeheer-app en voeg medewerkers toe.</div>
+        </div>
+        <table class="tbl" id="drivers-table-wrap">
+          <thead><tr>
+            <th>Chauffeur</th>
+            <th>Department</th>
+            <th>GSM</th>
+            <th>Huidig voertuig</th>
+            <th>Sinds</th>
+            <th></th>
+          </tr></thead>
+          <tbody id="drivers-table"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Schade -->
+  <div class="panel" id="page-damage">
+    <div class="page">
+      <div class="page-header">
+        <div><div class="page-title">Schademeldingen</div><div class="page-subtitle" id="damage-count">0 meldingen</div></div>
+        <button class="btn btn-sm btn-primary-outline" onclick="openDamageModal()">➕ Schade melden</button>
+      </div>
+      <div style="display:flex;gap:12px;margin-bottom:16px;align-items:center">
+        <div class="search-box" style="flex:1"><input class="form-input" placeholder="Zoek schademelding..." oninput="filterDamage(this.value)" id="damage-search"/></div>
+        <select class="form-input" style="width:180px" id="damage-status-filter" onchange="renderDamage()">
+          <option value="">Alle statussen</option>
+          <option value="open">Openstaand</option>
+          <option value="gemeld">Gemeld</option>
+          <option value="in_behandeling">In behandeling</option>
+          <option value="afgehandeld">Afgehandeld</option>
+        </select>
+      </div>
+      <div class="card">
+        <table class="tbl">
+          <thead><tr>
+            <th>Datum</th>
+            <th>Voertuig</th>
+            <th>Chauffeur</th>
+            <th>Beschrijving</th>
+            <th>Bedrag</th>
+            <th>Status</th>
+            <th></th>
+          </tr></thead>
+          <tbody id="damage-table"></tbody>
+        </table>
+        <button class="btn btn-sm btn-dashed" style="margin-top:12px" onclick="openDamageModal()">➕ Schade melden</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Boetes -->
+  <div class="panel" id="page-fines">
+    <div class="page">
+      <div class="page-header">
+        <div><div class="page-title">Boetes</div><div class="page-subtitle" id="fines-count">0 boetes</div></div>
+        <button class="btn btn-sm btn-primary-outline" onclick="openFineModal()">➕ Boete registreren</button>
+      </div>
+      <div style="display:flex;gap:12px;margin-bottom:16px;align-items:center">
+        <div class="search-box" style="flex:1"><input class="form-input" placeholder="Zoek boete..." oninput="filterFines(this.value)" id="fine-search"/></div>
+        <select class="form-input" style="width:180px" id="fine-status-filter" onchange="renderFines()">
+          <option value="">Alle statussen</option>
+          <option value="open">Openstaand</option>
+          <option value="ontvangen">Ontvangen</option>
+          <option value="betwist">Betwist</option>
+          <option value="betaald">Betaald</option>
+        </select>
+      </div>
+      <div class="card">
+        <table class="tbl">
+          <thead><tr>
+            <th>Datum</th>
+            <th>Voertuig</th>
+            <th>Chauffeur</th>
+            <th>Type</th>
+            <th>Bedrag</th>
+            <th>Status</th>
+            <th></th>
+          </tr></thead>
+          <tbody id="fines-table"></tbody>
+        </table>
+        <button class="btn btn-sm btn-dashed" style="margin-top:12px" onclick="openFineModal()">➕ Boete registreren</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Documenten -->
+  <div class="panel" id="page-documents">
+    <div class="page">
+      <div class="page-header">
+        <div><div class="page-title">Documenten</div><div class="page-subtitle" id="docs-count">Overzicht documenten en vervaldatums</div></div>
+      </div>
+      <div class="tabs" id="docs-tabs">
+        <button class="tab active" onclick="showDocsTab('all',this)">📋 Alle</button>
+        <button class="tab" onclick="showDocsTab('alerts',this)">🔔 Alerts</button>
+        <button class="tab" onclick="showDocsTab('expiring',this)">⚠️ Bijna verlopen</button>
+        <button class="tab" onclick="showDocsTab('expired',this)">🔴 Verlopen</button>
+      </div>
+      <div class="card">
+        <table class="tbl">
+          <thead><tr>
+            <th>Voertuig</th>
+            <th>Document</th>
+            <th>Type</th>
+            <th>Vervaldatum</th>
+            <th>Status</th>
+            <th></th>
+          </tr></thead>
+          <tbody id="docs-table"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Instellingen -->
+  <div class="panel" id="page-settings">
+    <div class="page">
+      <div class="page-header">
+        <div><div class="page-title">Instellingen</div><div class="page-subtitle">Configureer types en alerts</div></div>
+      </div>
+      <div class="tabs">
+        <button class="tab active" onclick="showSettingsTab('vehicleTypes',this)">🚛 Voertuigtypes</button>
+        <button class="tab" onclick="showSettingsTab('damageTypes',this)">💥 Schadetypes</button>
+        <button class="tab" onclick="showSettingsTab('fineTypes',this)">🎫 Boetetypes</button>
+        <button class="tab" onclick="showSettingsTab('alerts',this)">⏰ Alerts</button>
+      </div>
+      <div id="settings-vehicleTypes" class="settings-panel">
+        <div class="card">
+          <div class="flex-between" style="margin-bottom:16px">
+            <div class="card-title" style="margin:0">🚛 Voertuigtypes</div>
+            <button class="btn btn-sm btn-primary-outline" onclick="openVehicleTypeModal()">➕ Type toevoegen</button>
+          </div>
+          <table class="tbl">
+            <thead><tr><th>Kleur</th><th>Naam</th><th>Icoon</th><th></th></tr></thead>
+            <tbody id="vehicleTypes-table"></tbody>
+          </table>
+          <button class="btn btn-sm btn-dashed" style="margin-top:12px" onclick="openVehicleTypeModal()">➕ Type toevoegen</button>
+        </div>
+      </div>
+      <div id="settings-damageTypes" class="settings-panel" style="display:none">
+        <div class="card">
+          <div class="flex-between" style="margin-bottom:16px">
+            <div class="card-title" style="margin:0">💥 Schadetypes</div>
+            <button class="btn btn-sm btn-primary-outline" onclick="openDamageTypeModal()">➕ Type toevoegen</button>
+          </div>
+          <table class="tbl">
+            <thead><tr><th>Naam</th><th></th></tr></thead>
+            <tbody id="damageTypes-table"></tbody>
+          </table>
+          <button class="btn btn-sm btn-dashed" style="margin-top:12px" onclick="openDamageTypeModal()">➕ Type toevoegen</button>
+        </div>
+      </div>
+      <div id="settings-fineTypes" class="settings-panel" style="display:none">
+        <div class="card">
+          <div class="flex-between" style="margin-bottom:16px">
+            <div class="card-title" style="margin:0">🎫 Boetetypes</div>
+            <button class="btn btn-sm btn-primary-outline" onclick="openFineTypeModal()">➕ Type toevoegen</button>
+          </div>
+          <table class="tbl">
+            <thead><tr><th>Naam</th><th></th></tr></thead>
+            <tbody id="fineTypes-table"></tbody>
+          </table>
+          <button class="btn btn-sm btn-dashed" style="margin-top:12px" onclick="openFineTypeModal()">➕ Type toevoegen</button>
+        </div>
+      </div>
+      <div id="settings-alerts" class="settings-panel" style="display:none">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:16px">⏰ Alert-instellingen</div>
+          <div class="form-group">
+            <label class="form-label">Waarschuwing tonen (dagen vóór vervaldatum)</label>
+            <input type="number" class="form-input" style="width:120px" id="alert-days" value="30" onchange="saveAlertSettings()"/>
+          </div>
+          <p style="font-size:12px;color:var(--text3);margin-top:8px">
+            Documenten waarvan de vervaldatum binnen dit aantal dagen valt, worden als ⚠️ waarschuwing getoond.
+            Verlopen documenten worden altijd als 🔴 verlopen gemarkeerd.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- Modal overlay -->
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="modal-title-text"></span>
+      <span id="modal-title-actions" style="display:flex;gap:8px;align-items:center"></span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══ DATA & CONFIG ═══
+
+const AVATARCOLORS=['#3b82f6','#22c55e','#a855f7','#ef4444','#eab308','#ec4899','#06b6d4','#f97316'];
+
+const DEFAULT_VEHICLE_TYPES=[
+  {id:'bestelwagen',name:'Bestelwagen',color:'#3b82f6',icon:'🚐'},
+  {id:'personenwagen',name:'Personenwagen',color:'#22c55e',icon:'🚗'},
+  {id:'vrachtwagen',name:'Vrachtwagen',color:'#f97316',icon:'🚛'},
+  {id:'aanhangwagen',name:'Aanhangwagen',color:'#a855f7',icon:'🚜'},
+  {id:'camionette',name:'Camionette',color:'#06b6d4',icon:'🚚'}
+];
+
+const DEFAULT_DAMAGE_TYPES=[
+  {id:'aanrijding',name:'Aanrijding'},
+  {id:'vandalisme',name:'Vandalisme'},
+  {id:'parkeerschade',name:'Parkeerschade'},
+  {id:'stormschade',name:'Stormschade'},
+  {id:'glasbreuk',name:'Glasbreuk'},
+  {id:'andere',name:'Andere'}
+];
+
+const DEFAULT_FINE_TYPES=[
+  {id:'snelheid',name:'Snelheidsovertreding'},
+  {id:'parkeren',name:'Foutparkeren'},
+  {id:'roodlicht',name:'Rood licht'},
+  {id:'gordel',name:'Gordel niet gedragen'},
+  {id:'gsm',name:'GSM-gebruik'},
+  {id:'andere',name:'Andere'}
+];
+
+const DEFAULT_DOC_TYPES=[
+  {id:'aankoop',name:'Aankoopbewijs',icon:'🧾'},
+  {id:'verzekering',name:'Verzekeringsbewijs',icon:'🛡️'},
+  {id:'keuring',name:'Keuringsbewijs',icon:'🔍'},
+  {id:'inschrijving',name:'Inschrijvingsbewijs',icon:'📝'},
+  {id:'gelijkvormigheid',name:'Gelijkvormigheidsattest',icon:'📄'},
+  {id:'andere',name:'Andere',icon:'📎'}
+];
+
+const FUEL_TYPES=['Diesel','Benzine','Elektrisch','Hybride','CNG','LPG'];
+
+let activePage='dashboard';
+let vehicleSearch='';
+let driverSearch='';
+let damageSearch='';
+let fineSearch='';
+let docsTab='all';
+
+// Data stores (localStorage backed, prefix fb_)
+let vehicles=[];
+let vehicleTypes=[];
+let damageTypes=[];
+let fineTypes=[];
+let damages=[];
+let fines=[];
+let documents=[];
+let mutations=[];  // chauffeur-voertuig mutaties
+let settings={alertDays:30};
+
+// ═══ CORE (data-helpers, autoSave, restore) ═══
+
+function uid(){return Date.now().toString(36)+'_'+Math.random().toString(36).substr(2,5);}
+
+function autoSave(){
+  try{
+    localStorage.setItem('fb_vehicles',JSON.stringify(vehicles));
+    localStorage.setItem('fb_vehicleTypes',JSON.stringify(vehicleTypes));
+    localStorage.setItem('fb_damageTypes',JSON.stringify(damageTypes));
+    localStorage.setItem('fb_fineTypes',JSON.stringify(fineTypes));
+    localStorage.setItem('fb_damages',JSON.stringify(damages));
+    localStorage.setItem('fb_fines',JSON.stringify(fines));
+    localStorage.setItem('fb_documents',JSON.stringify(documents));
+    localStorage.setItem('fb_mutations',JSON.stringify(mutations));
+    localStorage.setItem('fb_settings',JSON.stringify(settings));
+  }catch(e){console.error('autoSave error',e);}
+}
+
+function restore(){
+  try{
+    const v=localStorage.getItem('fb_vehicles');if(v)vehicles=JSON.parse(v);
+    const vt=localStorage.getItem('fb_vehicleTypes');if(vt)vehicleTypes=JSON.parse(vt);
+    const dt=localStorage.getItem('fb_damageTypes');if(dt)damageTypes=JSON.parse(dt);
+    const ft=localStorage.getItem('fb_fineTypes');if(ft)fineTypes=JSON.parse(ft);
+    const d=localStorage.getItem('fb_damages');if(d)damages=JSON.parse(d);
+    const f=localStorage.getItem('fb_fines');if(f)fines=JSON.parse(f);
+    const doc=localStorage.getItem('fb_documents');if(doc)documents=JSON.parse(doc);
+    const m=localStorage.getItem('fb_mutations');if(m)mutations=JSON.parse(m);
+    const s=localStorage.getItem('fb_settings');if(s)Object.assign(settings,JSON.parse(s));
+  }catch(e){console.error('restore error',e);}
+  // Defaults bij eerste gebruik
+  if(!vehicleTypes.length)vehicleTypes=[...DEFAULT_VEHICLE_TYPES];
+  if(!damageTypes.length)damageTypes=[...DEFAULT_DAMAGE_TYPES];
+  if(!fineTypes.length)fineTypes=[...DEFAULT_FINE_TYPES];
+}
+
+function resetData(){
+  if(!confirm('Alle fleetbeheer-data resetten naar standaardwaarden? Dit kan niet ongedaan worden.'))return;
+  ['fb_vehicles','fb_vehicleTypes','fb_damageTypes','fb_fineTypes','fb_damages','fb_fines','fb_documents','fb_mutations','fb_settings'].forEach(k=>localStorage.removeItem(k));
+  vehicles=[];vehicleTypes=[];damageTypes=[];fineTypes=[];damages=[];fines=[];documents=[];mutations=[];
+  settings={alertDays:30};
+  restore();
+  autoSave();
+  showPage('dashboard');
+  showToast('Data gereset naar standaardwaarden','success');
+}
+
+// Personeelbeheer koppeling (read-only)
+function getPeople(){
+  try{
+    const p=localStorage.getItem('vb_people');
+    if(p)return JSON.parse(p).filter(x=>x.status!=='archived');
+  }catch(e){}
+  return [];
+}
+function getDepartments(){
+  try{
+    const d=localStorage.getItem('vb_departments');
+    if(d)return JSON.parse(d);
+  }catch(e){}
+  return [];
+}
+function getPersonName(id){
+  const people=getPeople();
+  const p=people.find(x=>x.id===id);
+  return p?(p.firstName||'')+' '+(p.lastName||''):'Onbekend';
+}
+function getPersonDept(id){
+  const people=getPeople();const deps=getDepartments();
+  const p=people.find(x=>x.id===id);if(!p)return'-';
+  const d=deps.find(x=>x.id===p.departmentId);return d?d.name:'-';
+}
+
+// Helpers
+function getAvatarColor(name){let h=0;for(let i=0;i<name.length;i++)h=name.charCodeAt(i)+((h<<5)-h);return AVATARCOLORS[Math.abs(h)%AVATARCOLORS.length];}
+function getInitials(name){return name.split(' ').filter(w=>w).map(w=>w[0]).join('').toUpperCase().substr(0,2);}
+function formatDate(d){if(!d)return'-';return new Date(d).toLocaleDateString('nl-BE',{day:'2-digit',month:'2-digit',year:'numeric'});}
+function formatCurrency(n){if(n==null||isNaN(n))return'-';return new Intl.NumberFormat('nl-BE',{style:'currency',currency:'EUR'}).format(n);}
+function getVehicleTypeName(id){const t=vehicleTypes.find(x=>x.id===id);return t?t.name:id||'-';}
+function getVehicleTypeColor(id){const t=vehicleTypes.find(x=>x.id===id);return t?t.color:'#94a3b8';}
+function getVehicleTypeIcon(id){const t=vehicleTypes.find(x=>x.id===id);return t?t.icon:'🚗';}
+function getVehicleLabel(id){const v=vehicles.find(x=>x.id===id);return v?(v.brand+' '+v.model+' ('+v.plate+')'):'Onbekend';}
+function getCurrentDriver(vehicleId){const m=mutations.filter(x=>x.vehicleId===vehicleId&&!x.endDate).sort((a,b)=>new Date(b.startDate)-new Date(a.startDate));return m.length?m[0]:null;}
+function getCurrentVehicle(personId){const m=mutations.filter(x=>x.personId===personId&&!x.endDate).sort((a,b)=>new Date(b.startDate)-new Date(a.startDate));return m.length?m[0]:null;}
+
+function daysUntil(dateStr){
+  if(!dateStr)return Infinity;
+  const d=new Date(dateStr);const now=new Date();
+  now.setHours(0,0,0,0);d.setHours(0,0,0,0);
+  return Math.ceil((d-now)/(1000*60*60*24));
+}
+
+function formatPlate(val){
+  // Belgisch nummerplaatformaat: 1-ABC-123
+  let v=val.replace(/[^A-Za-z0-9]/g,'').toUpperCase();
+  if(v.length>7)v=v.substr(0,7);
+  if(v.length>=2)v=v[0]+'-'+v.substr(1);
+  if(v.length>=6)v=v.substr(0,5)+'-'+v.substr(5);
+  return v;
+}
+
+// Belgische telefoonformattering (overgenomen uit design rules)
+function formatPhone(val){
+  if(!val)return '';
+  let d=val.replace(/[^\d+]/g,'');
+  // Prefix normalisatie
+  if(d.startsWith('0032'))d='+32'+d.substr(4);
+  else if(d.startsWith('+32')){}
+  else if(d.startsWith('0'))d='+32'+d.substr(1);
+  else if(!d.startsWith('+'))d='+32'+d;
+  let digits=d.replace(/\D/g,'');
+  if(digits.startsWith('32'))digits=digits.substr(2);
+  const len=digits.length;
+  if(len===0)return val;
+  // GSM (begint met 4, 9 cijfers)
+  if(digits[0]==='4'&&len===9)return '+32 '+digits.substr(0,3)+' '+digits.substr(3,2)+' '+digits.substr(5,2)+' '+digits.substr(7,2);
+  // Vast 1-cijfer zone
+  if(['2','3','4','9'].includes(digits[0])&&len===8)return '+32 '+digits[0]+' '+digits.substr(1,3)+' '+digits.substr(4,2)+' '+digits.substr(6,2);
+  // Vast 2-cijfer zone
+  if(len===8)return '+32 '+digits.substr(0,2)+' '+digits.substr(2,2)+' '+digits.substr(4,2)+' '+digits.substr(6,2);
+  // Onbekend: groepeer per 2 van rechts
+  let result='+32 ';const rest=digits;let parts=[];
+  for(let i=rest.length;i>0;i-=2)parts.unshift(rest.substr(Math.max(0,i-2),i<2?i:2));
+  return result+parts.join(' ');
+}
+
+function getDocAlertClass(dateStr){
+  const days=daysUntil(dateStr);
+  if(days<0)return 'alert-danger';
+  if(days<=settings.alertDays)return 'alert-warn';
+  return 'alert-ok';
+}
+function getDocAlertLabel(dateStr){
+  const days=daysUntil(dateStr);
+  if(days<0)return '🔴 Verlopen ('+Math.abs(days)+' dagen)';
+  if(days===0)return '🔴 Verloopt vandaag';
+  if(days<=settings.alertDays)return '🟡 Nog '+days+' dagen';
+  return '🟢 OK';
+}
+
+// ═══ HUB / NAVIGATIE ═══
+
+function showToast(msg,type='success'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast toast-'+type+' show';
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+function showPage(page){
+  closeModal();
+  activePage=page;
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  const el=document.getElementById('page-'+page);
+  if(el)el.classList.add('active');
+  document.querySelectorAll('.sb-item').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(b=>{
+    if(b.onclick&&b.onclick.toString().includes("'"+page+"'"))b.classList.add('active');
+  });
+  if(page==='dashboard')renderDashboard();
+  if(page==='vehicles'){renderVehicles();const b=document.getElementById('btn-new-vehicle');if(b)b.style.display=canCreate()?'':'none';}
+  if(page==='drivers')renderDrivers();
+  if(page==='damage')renderDamage();
+  if(page==='fines')renderFines();
+  if(page==='documents')renderDocuments();
+  if(page==='settings')renderSettings();
+}
+
+function showPageFiltered(page,filterField,filterValue){
+  // Activeer de pagina ZONDER te renderen
+  closeModal();
+  activePage=page;
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  const panel=document.getElementById('page-'+page);
+  if(panel)panel.classList.add('active');
+  document.querySelectorAll('.sb-item').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(b=>{
+    if(b.onclick&&b.onclick.toString().includes("'"+page+"'"))b.classList.add('active');
+  });
+  // Stel filter in VOOR render
+  const el=document.getElementById(filterField);
+  if(el){el.value=filterValue;}
+  if(page==='documents'){docsTab=filterValue;}
+  // Nu renderen met het juiste filter
+  if(page==='vehicles')renderVehicles();
+  if(page==='damage')renderDamage();
+  if(page==='fines')renderFines();
+  if(page==='documents')renderDocuments();
+}
+
+function showPageFilteredDocs(){
+  // Navigeer naar documenten met alerts tab (bijna verlopen + verlopen)
+  closeModal();
+  activePage='documents';
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-documents').classList.add('active');
+  document.querySelectorAll('.sb-item').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(b=>{
+    if(b.onclick&&b.onclick.toString().includes("'documents'"))b.classList.add('active');
+  });
+  docsTab='alerts';
+  renderDocuments();
+}
+
+function showSettingsTab(tab,btn){
+  document.querySelectorAll('.settings-panel').forEach(p=>p.style.display='none');
+  const el=document.getElementById('settings-'+tab);
+  if(el)el.style.display='block';
+  btn.parentElement.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  renderSettings();
+}
+
+function showDocsTab(tab,btn){
+  docsTab=tab;
+  btn.parentElement.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  renderDocuments();
+}
+
+function closeModal(){document.getElementById('modal-overlay').classList.remove('show');}
+
+function openModal(title,html){
+  document.getElementById('modal-title-text').textContent=title;
+  document.getElementById('modal-title-actions').innerHTML='';
+  document.getElementById('modal-body').innerHTML=html;
+  document.getElementById('modal-overlay').classList.add('show');
+  const firstInput=document.querySelector('#modal-body input,#modal-body select,#modal-body textarea');
+  if(firstInput)setTimeout(()=>firstInput.focus(),100);
+}
+
+// Keyboard: Escape sluit modal, Enter submit in modals, Ctrl+S opslaan
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')closeModal();
+  if(e.key==='s'&&(e.ctrlKey||e.metaKey)){e.preventDefault();autoSave();showToast('Data opgeslagen','success');}
+  if(e.key==='Enter'&&!e.shiftKey){
+    const overlay=document.getElementById('modal-overlay');
+    if(overlay.classList.contains('show')){
+      if(document.activeElement&&document.activeElement.tagName==='TEXTAREA')return;
+      const saveBtn=overlay.querySelector('.btn-primary');
+      if(saveBtn){e.preventDefault();saveBtn.click();}
+    }
+  }
+});
+
+// Confirm dialog (design rules: altijd bevestiging bij destructieve acties)
+function confirmAction(msg){
+  return new Promise(resolve=>{
+    const overlay=document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:10001';
+    overlay.innerHTML=`<div style="background:#fff;border-radius:12px;padding:24px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+      <div style="font-size:14px;line-height:1.5;margin-bottom:20px;white-space:pre-line">${msg}</div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn" id="confirm-cancel">Annuleren</button>
+        <button class="btn btn-primary" id="confirm-ok">Bevestigen</button>
+      </div>
+    </div>`;
+    document.body.appendChild(overlay);
+    overlay.querySelector('#confirm-cancel').onclick=()=>{overlay.remove();resolve(false);};
+    overlay.querySelector('#confirm-ok').onclick=()=>{overlay.remove();resolve(true);};
+  });
+}
+
+// Filter helpers
+function filterVehicles(val){vehicleSearch=val.toLowerCase();renderVehicles();}
+function filterDrivers(val){driverSearch=val.toLowerCase();renderDrivers();}
+function filterDamage(val){damageSearch=val.toLowerCase();renderDamage();}
+function filterFines(val){fineSearch=val.toLowerCase();renderFines();}
+
+// Save alert settings
+function saveAlertSettings(){
+  const v=parseInt(document.getElementById('alert-days').value);
+  if(!isNaN(v)&&v>=0){settings.alertDays=v;autoSave();showToast('Alert-instellingen opgeslagen');}
+}
+
+// ═══ RENDERING ═══
+
+function renderDashboard(){
+  const active=vehicles.filter(v=>v.status==='actief'||(!v.status));
+  const maintenance=vehicles.filter(v=>v.status==='onderhoud');
+  const defect=vehicles.filter(v=>v.status==='defect');
+  const archived=vehicles.filter(v=>v.status==='gearchiveerd');
+  const nonArchived=vehicles.filter(v=>v.status!=='gearchiveerd');
+
+  document.getElementById('st-total').textContent=nonArchived.length;
+  document.getElementById('st-active').textContent=active.length;
+  document.getElementById('st-maintenance').textContent=maintenance.length;
+  document.getElementById('st-defect').textContent=defect.length;
+  document.getElementById('st-archived').textContent=archived.length;
+
+  // Open schade + boetes
+  const openDmg=damages.filter(d=>d.status!=='afgehandeld');
+  const openFns=fines.filter(f=>f.status!=='betaald');
+  document.getElementById('st-open-damage').textContent=openDmg.length;
+  document.getElementById('st-open-fines').textContent=openFns.length;
+
+  // Doc Alerts
+  const alertDocs=documents.filter(d=>{
+    const days=daysUntil(d.expiryDate);
+    return days<=settings.alertDays;
+  }).sort((a,b)=>daysUntil(a.expiryDate)-daysUntil(b.expiryDate));
+  document.getElementById('st-alerts').textContent=alertDocs.length;
+
+  // Update sidebar badge
+  const badge=document.getElementById('badge-docs');
+  if(alertDocs.length>0){badge.style.display='';badge.textContent=alertDocs.length;}
+  else{badge.style.display='none';}
+
+  // Alerts list
+  const alertEl=document.getElementById('dash-alerts');
+  if(alertDocs.length===0){alertEl.innerHTML='<span style="font-size:13px;color:var(--text3)">Geen openstaande alerts</span>';}
+  else{
+    alertEl.innerHTML=alertDocs.slice(0,5).map(d=>{
+      const v=vehicles.find(x=>x.id===d.vehicleId);
+      const vLabel=v?(v.brand+' '+v.model):'?';
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div><span style="font-weight:600">${vLabel}</span> <span style="color:var(--text3);font-size:12px">— ${d.name||d.typeId}</span></div>
+        <span class="${getDocAlertClass(d.expiryDate)}" style="font-size:12px;font-weight:600">${getDocAlertLabel(d.expiryDate)}</span>
+      </div>`;
+    }).join('');
+  }
+
+  // Recent damage + fines
+  const recent=[
+    ...damages.map(d=>({...d,_type:'damage',_date:d.date})),
+    ...fines.map(f=>({...f,_type:'fine',_date:f.date}))
+  ].sort((a,b)=>new Date(b._date)-new Date(a._date)).slice(0,5);
+  const recentEl=document.getElementById('dash-recent');
+  if(recent.length===0){recentEl.innerHTML='<span style="font-size:13px;color:var(--text3)">Geen recente meldingen</span>';}
+  else{
+    recentEl.innerHTML=recent.map(r=>{
+      const icon=r._type==='damage'?'💥':'🎫';
+      const label=r._type==='damage'?(r.description||'Schade').substr(0,40):((fineTypes.find(t=>t.id===r.typeId)?.name)||'Boete');
+      const v=vehicles.find(x=>x.id===r.vehicleId);
+      const statusBadge=r._type==='damage'
+        ?(r.status==='gemeld'?'badge-blue':r.status==='in_behandeling'?'badge-yellow':'badge-green')
+        :(r.status==='ontvangen'?'badge-blue':r.status==='betwist'?'badge-yellow':'badge-green');
+      const statusLabel=r._type==='damage'
+        ?(r.status==='in_behandeling'?'In behandeling':(r.status||'').charAt(0).toUpperCase()+(r.status||'').slice(1))
+        :(r.status||'').charAt(0).toUpperCase()+(r.status||'').slice(1);
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span>${icon}</span>
+          <div><span style="font-weight:600">${v?v.plate:'?'}</span> <span style="color:var(--text3);font-size:12px">— ${label}</span>
+          <div style="font-size:11px;color:var(--text3)">${formatDate(r._date)}</div></div>
+        </div>
+        <span class="badge ${statusBadge}">${statusLabel}</span>
+      </div>`;
+    }).join('');
+  }
+
+  // Verdeling per type
+  const typesEl=document.getElementById('dash-types');
+  if(nonArchived.length===0){typesEl.innerHTML='<span style="font-size:13px;color:var(--text3)">Geen voertuigen</span>';}
+  else{
+    const typeCounts={};
+    nonArchived.forEach(v=>{const tid=v.typeId||'onbekend';typeCounts[tid]=(typeCounts[tid]||0)+1;});
+    typesEl.innerHTML=Object.entries(typeCounts).map(([tid,count])=>{
+      const t=vehicleTypes.find(x=>x.id===tid);
+      const pct=Math.round((count/nonArchived.length)*100);
+      return `<div style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="font-size:12px;font-weight:600">${t?(t.icon+' '+t.name):tid}</span>
+          <span style="font-size:12px;color:var(--text3)">${count} (${pct}%)</span>
+        </div>
+        <div style="background:var(--surface3);border-radius:20px;height:6px;overflow:hidden">
+          <div style="background:${t?t.color:'var(--accent)'};height:100%;border-radius:20px;width:${pct}%"></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // Openstaande schade
+  const openDamage=damages.filter(d=>d.status!=='afgehandeld');
+  const openDmgEl=document.getElementById('dash-open-damage');
+  if(openDamage.length===0){openDmgEl.innerHTML='<span style="font-size:13px;color:var(--text3)">Geen openstaande schade</span>';}
+  else{
+    const totalOpen=openDamage.reduce((s,d)=>s+(parseFloat(d.amount)||0),0);
+    openDmgEl.innerHTML=`
+      <div style="text-align:center;margin-bottom:12px">
+        <div style="font-size:24px;font-weight:700;color:var(--danger)">${openDamage.length}</div>
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;font-weight:600">openstaande meldingen</div>
+        ${totalOpen>0?`<div style="font-size:14px;font-weight:600;color:var(--text2);margin-top:4px">${formatCurrency(totalOpen)} geschat</div>`:''}
+      </div>
+      ${openDamage.slice(0,3).map(d=>{
+        const v=vehicles.find(x=>x.id===d.vehicleId);
+        const statusBadge=d.status==='gemeld'?'badge-blue':'badge-yellow';
+        const statusLabel=d.status==='in_behandeling'?'In behandeling':'Gemeld';
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-top:1px solid var(--border);font-size:12px">
+          <span style="font-weight:600">${v?v.plate:'?'}</span>
+          <span class="badge ${statusBadge}" style="font-size:10px">${statusLabel}</span>
+        </div>`;
+      }).join('')}`;
+  }
+
+  // Financieel overzicht
+  const financeEl=document.getElementById('dash-finance');
+  const totalDmgAmount=damages.reduce((s,d)=>s+(parseFloat(d.amount)||0),0);
+  const totalFineAmount=fines.reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
+  const unpaidFines=fines.filter(f=>f.status!=='betaald').reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
+  if(totalDmgAmount===0&&totalFineAmount===0){
+    financeEl.innerHTML='<span style="font-size:13px;color:var(--text3)">Geen data</span>';
+  }else{
+    financeEl.innerHTML=`
+      <div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+          <span style="font-size:12px;color:var(--text3)">💥 Totaal schade</span>
+          <span style="font-weight:700;color:var(--danger)">${formatCurrency(totalDmgAmount)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+          <span style="font-size:12px;color:var(--text3)">🎫 Totaal boetes</span>
+          <span style="font-weight:700;color:var(--warn)">${formatCurrency(totalFineAmount)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+          <span style="font-size:12px;color:var(--text3)">🎫 Onbetaalde boetes</span>
+          <span style="font-weight:700;color:var(--warn)">${formatCurrency(unpaidFines)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:10px 0">
+          <span style="font-size:13px;font-weight:700">Totaal kosten</span>
+          <span style="font-size:15px;font-weight:700;color:var(--text)">${formatCurrency(totalDmgAmount+totalFineAmount)}</span>
+        </div>
+      </div>`;
+  }
+}
+
+function renderVehicles(){
+  const statusFilter=document.getElementById('vehicle-status-filter').value;
+  const typeFilter=document.getElementById('vehicle-type-filter').value;
+
+  // Populate type filter
+  const typeSelect=document.getElementById('vehicle-type-filter');
+  const currentTypeVal=typeSelect.value;
+  const opts=['<option value="">Alle types</option>'];
+  vehicleTypes.forEach(t=>opts.push(`<option value="${t.id}">${t.icon} ${t.name}</option>`));
+  typeSelect.innerHTML=opts.join('');
+  typeSelect.value=currentTypeVal;
+
+  let list=vehicles;
+  if(statusFilter==='active')list=list.filter(v=>v.status!=='gearchiveerd');
+  else if(statusFilter==='archived')list=list.filter(v=>v.status==='gearchiveerd');
+  else if(statusFilter==='all'){}
+  else if(statusFilter)list=list.filter(v=>(v.status||'actief')===statusFilter);
+  if(typeFilter)list=list.filter(v=>v.typeId===typeFilter);
+  if(vehicleSearch)list=list.filter(v=>(v.brand+' '+v.model+' '+v.plate).toLowerCase().includes(vehicleSearch));
+
+  document.getElementById('vehicles-count').textContent=list.length+' voertuig'+(list.length!==1?'en':'');
+  const tbody=document.getElementById('vehicles-table');
+  if(list.length===0){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px">Geen voertuigen gevonden</td></tr>';return;}
+
+  tbody.innerHTML=list.map(v=>{
+    const driver=getCurrentDriver(v.id);
+    const driverName=driver?getPersonName(driver.personId):'<span style="color:var(--text3)">—</span>';
+    const statusClass='status-'+(v.status||'actief');
+    const statusLabel=(v.status||'actief').charAt(0).toUpperCase()+(v.status||'actief').slice(1);
+    return `<tr style="cursor:pointer" onclick="openVehicleDetail('${v.id}')">
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:18px">${getVehicleTypeIcon(v.typeId)}</span>
+        <div><div style="font-weight:600">${v.brand||''} ${v.model||''}</div><div style="font-size:11px;color:var(--text3)">${v.year||''}</div></div>
+      </div></td>
+      <td><span style="font-weight:600;font-family:monospace;font-size:13px">${v.plate||''}</span></td>
+      <td><span class="badge" style="background:${getVehicleTypeColor(v.typeId)}1a;color:${getVehicleTypeColor(v.typeId)}">${getVehicleTypeName(v.typeId)}</span></td>
+      <td>${driverName}</td>
+      <td>${v.mileage?Number(v.mileage).toLocaleString('nl-BE')+' km':'-'}</td>
+      <td><span class="badge badge-${v.status==='actief'||!v.status?'green':v.status==='onderhoud'?'yellow':v.status==='defect'?'red':'gray'}"><span class="${statusClass}" style="width:8px;height:8px;border-radius:50%;display:inline-block"></span> ${statusLabel}</span></td>
+      <td onclick="event.stopPropagation()">
+        ${canEdit()?`<button class="btn btn-icon btn-sm" title="Bewerken" onclick="openVehicleModal('${v.id}')">✏️</button>`:''}
+        ${canEdit()?(v.status==='gearchiveerd'?
+          `<button class="btn btn-icon btn-sm" title="Herstellen" onclick="restoreVehicle('${v.id}')">♻️</button>`:
+          `<button class="btn btn-icon btn-sm" title="Archiveren" onclick="archiveVehicle('${v.id}')">📦</button>`):''}
+        ${canDelete()?`<button class="btn btn-icon btn-sm" title="Verwijderen" onclick="deleteVehicle('${v.id}')">🗑</button>`:''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderDrivers(){
+  const people=getPeople();
+  const emptyEl=document.getElementById('drivers-empty');
+  const tableEl=document.getElementById('drivers-table-wrap');
+
+  if(people.length===0){emptyEl.style.display='';tableEl.style.display='none';return;}
+  emptyEl.style.display='none';tableEl.style.display='';
+
+  let list=people;
+  if(driverSearch)list=list.filter(p=>((p.firstName||'')+' '+(p.lastName||'')).toLowerCase().includes(driverSearch));
+
+  document.getElementById('drivers-count').textContent=list.length+' chauffeur'+(list.length!==1?'s':'');
+  const tbody=document.getElementById('drivers-table');
+  if(list.length===0){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px">Geen chauffeurs gevonden</td></tr>';return;}
+
+  tbody.innerHTML=list.map(p=>{
+    const name=(p.firstName||'')+' '+(p.lastName||'');
+    const color=getAvatarColor(name);
+    const cv=getCurrentVehicle(p.id);
+    const vLabel=cv?getVehicleLabel(cv.vehicleId):'<span style="color:var(--text3)">—</span>';
+    const since=cv?formatDate(cv.startDate):'-';
+    return `<tr style="cursor:pointer" onclick="openDriverDetail('${p.id}')">
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="avatar" style="background:${color}">${getInitials(name)}</div>
+        <span style="font-weight:600">${name}</span>
+      </div></td>
+      <td>${getPersonDept(p.id)}</td>
+      <td>${p.gsm||'-'}</td>
+      <td>${vLabel}</td>
+      <td>${since}</td>
+      <td><button class="btn btn-icon btn-sm" title="Bekijken" onclick="event.stopPropagation();openDriverDetail('${p.id}')">👁</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderDamage(){
+  const statusFilter=document.getElementById('damage-status-filter').value;
+  let list=damages;
+  if(statusFilter==='open')list=list.filter(d=>d.status!=='afgehandeld');
+  else if(statusFilter)list=list.filter(d=>d.status===statusFilter);
+  if(damageSearch)list=list.filter(d=>(d.description||'').toLowerCase().includes(damageSearch)||(getVehicleLabel(d.vehicleId)).toLowerCase().includes(damageSearch));
+  list.sort((a,b)=>new Date(b.date)-new Date(a.date));
+
+  document.getElementById('damage-count').textContent=list.length+' melding'+(list.length!==1?'en':'');
+  const tbody=document.getElementById('damage-table');
+  if(list.length===0){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px">Geen schademeldingen gevonden</td></tr>';return;}
+
+  tbody.innerHTML=list.map(d=>{
+    const statusBadge=d.status==='gemeld'?'badge-blue':d.status==='in_behandeling'?'badge-yellow':'badge-green';
+    const statusLabel=d.status==='in_behandeling'?'In behandeling':(d.status||'gemeld').charAt(0).toUpperCase()+(d.status||'gemeld').slice(1);
+    return `<tr style="cursor:pointer" onclick="openDamageModal('${d.id}')">
+      <td>${formatDate(d.date)}</td>
+      <td style="font-weight:600">${getVehicleLabel(d.vehicleId)}</td>
+      <td>${d.personId?getPersonName(d.personId):'-'}</td>
+      <td>${(d.description||'').substr(0,50)}${(d.description||'').length>50?'…':''}</td>
+      <td>${d.amount?formatCurrency(d.amount):'-'}</td>
+      <td><span class="badge ${statusBadge}">${statusLabel}</span></td>
+      <td onclick="event.stopPropagation()">
+        <button class="btn btn-icon btn-sm" title="Bewerken" onclick="openDamageModal('${d.id}')">✏️</button>
+        <button class="btn btn-icon btn-sm" title="Verwijderen" onclick="deleteDamage('${d.id}')">🗑</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderFines(){
+  const statusFilter=document.getElementById('fine-status-filter').value;
+  let list=fines;
+  if(statusFilter==='open')list=list.filter(f=>f.status!=='betaald');
+  else if(statusFilter)list=list.filter(f=>f.status===statusFilter);
+  if(fineSearch)list=list.filter(f=>(f.reference||'').toLowerCase().includes(fineSearch)||(getVehicleLabel(f.vehicleId)).toLowerCase().includes(fineSearch));
+  list.sort((a,b)=>new Date(b.date)-new Date(a.date));
+
+  document.getElementById('fines-count').textContent=list.length+' boete'+(list.length!==1?'s':'');
+  const tbody=document.getElementById('fines-table');
+  if(list.length===0){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px">Geen boetes gevonden</td></tr>';return;}
+
+  tbody.innerHTML=list.map(f=>{
+    const statusBadge=f.status==='ontvangen'?'badge-blue':f.status==='betwist'?'badge-yellow':'badge-green';
+    const statusLabel=(f.status||'ontvangen').charAt(0).toUpperCase()+(f.status||'ontvangen').slice(1);
+    const typeName=fineTypes.find(x=>x.id===f.typeId);
+    return `<tr style="cursor:pointer" onclick="openFineModal('${f.id}')">
+      <td>${formatDate(f.date)}</td>
+      <td style="font-weight:600">${getVehicleLabel(f.vehicleId)}</td>
+      <td>${f.personId?getPersonName(f.personId):'-'}</td>
+      <td>${typeName?typeName.name:f.typeId||'-'}</td>
+      <td>${f.amount?formatCurrency(f.amount):'-'}</td>
+      <td><span class="badge ${statusBadge}">${statusLabel}</span></td>
+      <td onclick="event.stopPropagation()">
+        <button class="btn btn-icon btn-sm" title="Bewerken" onclick="openFineModal('${f.id}')">✏️</button>
+        <button class="btn btn-icon btn-sm" title="Verwijderen" onclick="deleteFine('${f.id}')">🗑</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderDocuments(){
+  let list=documents;
+  const alertsCount=documents.filter(d=>{const days=daysUntil(d.expiryDate);return days<=settings.alertDays;}).length;
+  const expiringCount=documents.filter(d=>{const days=daysUntil(d.expiryDate);return days>=0&&days<=settings.alertDays;}).length;
+  const expiredCount=documents.filter(d=>daysUntil(d.expiryDate)<0).length;
+
+  if(docsTab==='alerts')list=list.filter(d=>{const days=daysUntil(d.expiryDate);return days<=settings.alertDays;});
+  if(docsTab==='expiring')list=list.filter(d=>{const days=daysUntil(d.expiryDate);return days>=0&&days<=settings.alertDays;});
+  if(docsTab==='expired')list=list.filter(d=>daysUntil(d.expiryDate)<0);
+  list.sort((a,b)=>daysUntil(a.expiryDate)-daysUntil(b.expiryDate));
+
+  // Update tab labels met counts + active state
+  const tabBtns=document.querySelectorAll('#docs-tabs .tab');
+  if(tabBtns.length>=4){
+    tabBtns[0].innerHTML='📋 Alle <span style="font-size:10px;color:var(--text3)">('+documents.length+')</span>';
+    tabBtns[1].innerHTML='🔔 Alerts '+(alertsCount>0?'<span style="background:var(--danger);color:#fff;font-size:10px;padding:1px 6px;border-radius:8px;font-weight:700">'+alertsCount+'</span>':'');
+    tabBtns[2].innerHTML='⚠️ Bijna verlopen '+(expiringCount>0?'<span style="background:var(--warn);color:#fff;font-size:10px;padding:1px 6px;border-radius:8px;font-weight:700">'+expiringCount+'</span>':'');
+    tabBtns[3].innerHTML='🔴 Verlopen '+(expiredCount>0?'<span style="background:var(--danger);color:#fff;font-size:10px;padding:1px 6px;border-radius:8px;font-weight:700">'+expiredCount+'</span>':'');
+    // Set active tab
+    tabBtns.forEach(t=>t.classList.remove('active'));
+    const tabIdx={all:0,alerts:1,expiring:2,expired:3};
+    tabBtns[tabIdx[docsTab]||0].classList.add('active');
+  }
+
+  document.getElementById('docs-count').textContent=list.length+' document'+(list.length!==1?'en':'')+' — '+expiringCount+' bijna verlopen, '+expiredCount+' verlopen';
+
+  const tbody=document.getElementById('docs-table');
+  if(list.length===0){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px">Geen documenten gevonden</td></tr>';updateDocBadge();return;}
+
+  tbody.innerHTML=list.map(d=>{
+    const v=vehicles.find(x=>x.id===d.vehicleId);
+    const vLabel=v?(v.brand+' '+v.model+' ('+v.plate+')'):'?';
+    const docType=DEFAULT_DOC_TYPES.find(x=>x.id===d.typeId);
+    return `<tr style="cursor:pointer" onclick="openDocDetail('${d.id}')">
+      <td style="font-weight:600">${vLabel}</td>
+      <td>${d.name||'-'}</td>
+      <td>${docType?(docType.icon+' '+docType.name):(d.typeId||'-')}</td>
+      <td>${formatDate(d.expiryDate)}</td>
+      <td><span class="${getDocAlertClass(d.expiryDate)}" style="font-weight:600;font-size:12px">${getDocAlertLabel(d.expiryDate)}</span></td>
+      <td onclick="event.stopPropagation()"><button class="btn btn-icon btn-sm" title="Bekijken" onclick="openDocDetail('${d.id}')">👁</button></td>
+    </tr>`;
+  }).join('');
+
+  updateDocBadge();
+}
+
+function renderSettings(){
+  // Vehicle types
+  const vtBody=document.getElementById('vehicleTypes-table');
+  vtBody.innerHTML=vehicleTypes.map(t=>{
+    const count=vehicles.filter(v=>v.typeId===t.id).length;
+    const canDelete=count===0;
+    return `<tr>
+      <td><span class="clr-dot" style="background:${t.color}"></span></td>
+      <td><span style="font-weight:600">${t.icon} ${t.name}</span></td>
+      <td>${t.icon}</td>
+      <td>
+        <button class="btn btn-icon btn-sm" title="Bewerken" onclick="openVehicleTypeModal('${t.id}')">✏️</button>
+        ${canDelete?`<button class="btn btn-icon btn-sm" title="Verwijderen" onclick="deleteVehicleType('${t.id}')">🗑</button>`
+          :`<span title="${count} voertuig(en) gekoppeld" style="cursor:help">🔒</span>`}
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Damage types
+  const dtBody=document.getElementById('damageTypes-table');
+  dtBody.innerHTML=damageTypes.map(t=>{
+    const count=damages.filter(d=>d.damageTypeId===t.id).length;
+    return `<tr>
+      <td style="font-weight:600">${t.name}</td>
+      <td>
+        <button class="btn btn-icon btn-sm" onclick="openDamageTypeModal('${t.id}')">✏️</button>
+        ${count===0?`<button class="btn btn-icon btn-sm" onclick="deleteDamageType('${t.id}')">🗑</button>`
+          :`<span title="${count} melding(en) gekoppeld" style="cursor:help">🔒</span>`}
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Fine types
+  const ftBody=document.getElementById('fineTypes-table');
+  ftBody.innerHTML=fineTypes.map(t=>{
+    const count=fines.filter(f=>f.typeId===t.id).length;
+    return `<tr>
+      <td style="font-weight:600">${t.name}</td>
+      <td>
+        <button class="btn btn-icon btn-sm" onclick="openFineTypeModal('${t.id}')">✏️</button>
+        ${count===0?`<button class="btn btn-icon btn-sm" onclick="deleteFineType('${t.id}')">🗑</button>`
+          :`<span title="${count} boete(s) gekoppeld" style="cursor:help">🔒</span>`}
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Alert settings
+  document.getElementById('alert-days').value=settings.alertDays;
+}
+
+// ═══ SAVE FUNCTIONS ═══
+
+function openVehicleModal(id){
+  const v=id?vehicles.find(x=>x.id===id):null;
+  const title=v?'✏️ Voertuig bewerken':'🚛 Voertuig toevoegen';
+  const typeOpts=vehicleTypes.map(t=>`<option value="${t.id}" ${v&&v.typeId===t.id?'selected':''}>${t.icon} ${t.name}</option>`).join('');
+  const fuelOpts=FUEL_TYPES.map(f=>`<option value="${f}" ${v&&v.fuel===f?'selected':''}>${f}</option>`).join('');
+  const statusOpts=['actief','onderhoud','defect'].map(s=>`<option value="${s}" ${v&&v.status===s?'selected':''}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`).join('');
+
+  // Chauffeur dropdown (uit personeelbeheer)
+  const people=getPeople();
+  const currentDriver=v?getCurrentDriver(v.id):null;
+  const driverOpts=['<option value="">— Geen chauffeur —</option>',
+    ...people.map(p=>{
+      const name=(p.firstName||'')+' '+(p.lastName||'');
+      const sel=currentDriver&&currentDriver.personId===p.id?'selected':'';
+      return `<option value="${p.id}" ${sel}>${name}</option>`;
+    })
+  ].join('');
+
+  openModal(title,`
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Nummerplaat <span class="req">*</span></label>
+        <input class="form-input" id="v-plate" value="${v?v.plate:''}" placeholder="1-ABC-123" style="text-transform:uppercase" oninput="this.value=formatPlate(this.value)"/></div>
+      <div class="form-group"><label class="form-label">Type <span class="req">*</span></label>
+        <select class="form-input" id="v-type"><option value="">— Kies type —</option>${typeOpts}</select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Merk <span class="req">*</span></label>
+        <input class="form-input" id="v-brand" value="${v?v.brand:''}" placeholder="bv. Mercedes"/></div>
+      <div class="form-group"><label class="form-label">Model <span class="req">*</span></label>
+        <input class="form-input" id="v-model" value="${v?v.model:''}" placeholder="bv. Sprinter"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Bouwjaar</label>
+        <input type="number" class="form-input" id="v-year" value="${v?v.year:''}" placeholder="${new Date().getFullYear()}" min="1990" max="${new Date().getFullYear()+1}"/></div>
+      <div class="form-group"><label class="form-label">Chassisnummer</label>
+        <input class="form-input" id="v-chassis" value="${v?v.chassis:''}" placeholder="VIN" style="text-transform:uppercase"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Brandstof</label>
+        <select class="form-input" id="v-fuel"><option value="">— Kies brandstof —</option>${fuelOpts}</select></div>
+      <div class="form-group"><label class="form-label">Km-stand</label>
+        <input type="number" class="form-input" id="v-mileage" value="${v?v.mileage:''}" placeholder="0" min="0"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Status</label>
+        <select class="form-input" id="v-status">${statusOpts}</select></div>
+      <div class="form-group"><label class="form-label">Chauffeur</label>
+        <select class="form-input" id="v-driver">${driverOpts}</select></div>
+    </div>
+    <div class="form-group"><label class="form-label">Opmerkingen</label>
+      <textarea class="form-input" id="v-notes" rows="2" placeholder="Optionele opmerkingen...">${v?v.notes||'':''}</textarea></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Annuleren</button>
+      <button class="btn btn-primary" onclick="saveVehicle('${id||''}')">Opslaan</button>
+    </div>
+  `);
+}
+
+function saveVehicle(id){
+  const plate=document.getElementById('v-plate').value.trim().toUpperCase();
+  const typeId=document.getElementById('v-type').value;
+  const brand=document.getElementById('v-brand').value.trim();
+  const model=document.getElementById('v-model').value.trim();
+  const year=document.getElementById('v-year').value;
+  const chassis=document.getElementById('v-chassis').value.trim().toUpperCase();
+  const fuel=document.getElementById('v-fuel').value;
+  const mileage=document.getElementById('v-mileage').value;
+  const status=document.getElementById('v-status').value;
+  const driverId=document.getElementById('v-driver').value;
+  const notes=document.getElementById('v-notes').value.trim();
+
+  // Validatie
+  if(!plate){showToast('Nummerplaat is verplicht','error');return;}
+  if(!typeId){showToast('Type is verplicht','error');return;}
+  if(!brand){showToast('Merk is verplicht','error');return;}
+  if(!model){showToast('Model is verplicht','error');return;}
+
+  // Dubbele nummerplaat check
+  const duplicate=vehicles.find(v=>v.plate===plate&&v.id!==id);
+  if(duplicate){showToast('Nummerplaat "'+plate+'" bestaat al','error');return;}
+
+  if(id){
+    // Update bestaand voertuig
+    const v=vehicles.find(x=>x.id===id);
+    if(!v)return;
+    v.plate=plate;v.typeId=typeId;v.brand=brand;v.model=model;
+    v.year=year;v.chassis=chassis;v.fuel=fuel;v.mileage=mileage;
+    v.status=status;v.notes=notes;
+
+    // Chauffeur-mutatie afhandelen
+    handleDriverChange(id,driverId);
+  }else{
+    // Nieuw voertuig
+    const newId=uid();
+    vehicles.push({id:newId,plate,typeId,brand,model,year,chassis,fuel,mileage,status:status||'actief',notes,createdAt:new Date().toISOString()});
+
+    // Chauffeur toewijzen als geselecteerd
+    if(driverId){
+      assignDriver(newId,driverId);
+    }
+  }
+
+  autoSave();closeModal();renderVehicles();renderDashboard();
+  showToast(id?'Voertuig bijgewerkt':'Voertuig toegevoegd');
+}
+
+function handleDriverChange(vehicleId,newDriverId){
+  const currentMutation=getCurrentDriver(vehicleId);
+  const currentDriverId=currentMutation?currentMutation.personId:null;
+
+  // Geen wijziging
+  if(currentDriverId===newDriverId)return;
+  if(!currentDriverId&&!newDriverId)return;
+
+  const today=new Date().toISOString().split('T')[0];
+
+  // Huidige chauffeur ontkoppelen
+  if(currentMutation){
+    currentMutation.endDate=today;
+    currentMutation.endReason='Hertoewezen';
+  }
+
+  // Nieuwe chauffeur toewijzen
+  if(newDriverId){
+    // Check of deze chauffeur al een actief voertuig heeft
+    const otherMutation=getCurrentVehicle(newDriverId);
+    if(otherMutation&&otherMutation.vehicleId!==vehicleId){
+      // Ontkoppel van ander voertuig
+      otherMutation.endDate=today;
+      otherMutation.endReason='Overgeplaatst naar '+getVehicleLabel(vehicleId);
+    }
+    assignDriver(vehicleId,newDriverId);
+  }
+}
+
+function assignDriver(vehicleId,personId){
+  const today=new Date().toISOString().split('T')[0];
+  mutations.push({
+    id:uid(),
+    vehicleId,
+    personId,
+    startDate:today,
+    endDate:null,
+    endReason:null
+  });
+}
+function openVehicleDetail(id){
+  const v=vehicles.find(x=>x.id===id);
+  if(!v){showToast('Voertuig niet gevonden','error');return;}
+
+  const title=getVehicleTypeIcon(v.typeId)+' '+v.brand+' '+v.model+' — '+v.plate;
+  const statusBadge=v.status==='actief'||!v.status?'badge-green':v.status==='onderhoud'?'badge-yellow':v.status==='defect'?'badge-red':'badge-gray';
+  const statusLabel=(v.status||'actief').charAt(0).toUpperCase()+(v.status||'actief').slice(1);
+  const driver=getCurrentDriver(v.id);
+  const driverName=driver?getPersonName(driver.personId):null;
+
+  openModal(title,`
+    <div class="modal-top-actions">
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm btn-primary-outline" onclick="openVehicleModal('${v.id}')">✏️ Bewerken</button>
+        ${v.status!=='gearchiveerd'?`<button class="btn btn-sm" onclick="archiveVehicle('${v.id}');closeModal()">📦 Archiveren</button>`
+          :`<button class="btn btn-sm" onclick="restoreVehicle('${v.id}');closeModal()">♻️ Herstellen</button>`}
+      </div>
+      <span class="badge ${statusBadge}">${statusLabel}</span>
+    </div>
+    <div class="tabs" id="vd-tabs">
+      <button class="tab active" onclick="showVehicleDetailTab('profile',this)">📋 Profiel</button>
+      <button class="tab" onclick="showVehicleDetailTab('history',this)">👤 Chauffeurhistoriek</button>
+      <button class="tab" onclick="showVehicleDetailTab('docs',this)">📎 Documenten</button>
+      <button class="tab" onclick="showVehicleDetailTab('damage',this)">💥 Schade</button>
+      <button class="tab" onclick="showVehicleDetailTab('fines',this)">🎫 Boetes</button>
+    </div>
+    <div id="vd-tab-profile">${renderVehicleProfile(v,driver,driverName)}</div>
+    <div id="vd-tab-history" style="display:none">${renderVehicleMutations(v.id)}</div>
+    <div id="vd-tab-docs" style="display:none">${renderVehicleDocs(v.id)}</div>
+    <div id="vd-tab-damage" style="display:none">${renderVehicleDamage(v.id)}</div>
+    <div id="vd-tab-fines" style="display:none">${renderVehicleFines(v.id)}</div>
+  `);
+}
+
+function showVehicleDetailTab(tab,btn){
+  ['profile','history','docs','damage','fines'].forEach(t=>{
+    const el=document.getElementById('vd-tab-'+t);
+    if(el)el.style.display=t===tab?'':'none';
+  });
+  btn.parentElement.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function renderVehicleProfile(v,driver,driverName){
+  const driverColor=driverName?getAvatarColor(driverName):'#94a3b8';
+  return `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+      <div class="card">
+        <div class="card-title">🚛 Voertuiggegevens</div>
+        <table style="width:100%;font-size:13px">
+          <tr><td style="color:var(--text3);padding:6px 0;width:140px">Nummerplaat</td><td style="font-weight:600;padding:6px 0;font-family:monospace">${v.plate||'-'}</td></tr>
+          <tr><td style="color:var(--text3);padding:6px 0">Type</td><td style="padding:6px 0"><span class="badge" style="background:${getVehicleTypeColor(v.typeId)}1a;color:${getVehicleTypeColor(v.typeId)}">${getVehicleTypeIcon(v.typeId)} ${getVehicleTypeName(v.typeId)}</span></td></tr>
+          <tr><td style="color:var(--text3);padding:6px 0">Merk / Model</td><td style="font-weight:600;padding:6px 0">${v.brand||''} ${v.model||''}</td></tr>
+          <tr><td style="color:var(--text3);padding:6px 0">Bouwjaar</td><td style="padding:6px 0">${v.year||'-'}</td></tr>
+          <tr><td style="color:var(--text3);padding:6px 0">Chassisnummer</td><td style="padding:6px 0;font-family:monospace;font-size:12px">${v.chassis||'-'}</td></tr>
+          <tr><td style="color:var(--text3);padding:6px 0">Brandstof</td><td style="padding:6px 0">${v.fuel||'-'}</td></tr>
+          <tr><td style="color:var(--text3);padding:6px 0">Km-stand</td><td style="font-weight:600;padding:6px 0">${v.mileage?Number(v.mileage).toLocaleString('nl-BE')+' km':'-'}</td></tr>
+          <tr><td style="color:var(--text3);padding:6px 0">Aangemaakt</td><td style="padding:6px 0">${v.createdAt?formatDate(v.createdAt):'-'}</td></tr>
+        </table>
+        ${v.notes?`<div style="margin-top:12px;padding:10px;background:var(--surface2);border-radius:var(--radius-sm);font-size:12px;color:var(--text2)">📝 ${v.notes}</div>`:''}
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title">👤 Huidige chauffeur</div>
+          ${driverName?`
+            <div style="display:flex;align-items:center;gap:12px">
+              <div class="avatar" style="background:${driverColor};width:44px;height:44px;font-size:16px">${getInitials(driverName)}</div>
+              <div>
+                <div style="font-weight:700;font-size:14px">${driverName}</div>
+                <div style="font-size:12px;color:var(--text3)">${driver?'Sinds '+formatDate(driver.startDate):''}</div>
+              </div>
+            </div>`
+          :`<span style="color:var(--text3);font-size:13px">Geen chauffeur toegewezen</span>`}
+        </div>
+        <div class="card">
+          <div class="card-title">📊 Samenvatting</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div style="text-align:center;padding:12px;background:var(--surface2);border-radius:var(--radius-sm)">
+              <div style="font-size:20px;font-weight:700">${mutations.filter(m=>m.vehicleId===v.id).length}</div>
+              <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase">Chauffeurs</div>
+            </div>
+            <div style="text-align:center;padding:12px;background:var(--surface2);border-radius:var(--radius-sm)">
+              <div style="font-size:20px;font-weight:700">${documents.filter(d=>d.vehicleId===v.id).length}</div>
+              <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase">Documenten</div>
+            </div>
+            <div style="text-align:center;padding:12px;background:rgba(255,92,92,.08);border-radius:var(--radius-sm)">
+              <div style="font-size:20px;font-weight:700;color:var(--danger)">${damages.filter(d=>d.vehicleId===v.id).length}</div>
+              <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase">Schade</div>
+            </div>
+            <div style="text-align:center;padding:12px;background:var(--warn-bg);border-radius:var(--radius-sm)">
+              <div style="font-size:20px;font-weight:700;color:var(--warn)">${fines.filter(f=>f.vehicleId===v.id).length}</div>
+              <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase">Boetes</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderVehicleMutations(vehicleId){
+  const muts=mutations.filter(m=>m.vehicleId===vehicleId).sort((a,b)=>new Date(b.startDate)-new Date(a.startDate));
+  if(muts.length===0)return '<div style="text-align:center;color:var(--text3);padding:32px">Geen chauffeurhistoriek</div>';
+  return `<div class="card"><div class="card-title">👤 Chauffeurhistoriek</div>
+    ${muts.map((m,i)=>{
+      const name=getPersonName(m.personId);
+      const color=getAvatarColor(name);
+      const isCurrent=!m.endDate;
+      return `<div class="timeline-item">
+        <div class="timeline-dot" style="background:${isCurrent?'var(--success)':'var(--border)'}"></div>
+        <div class="timeline-content">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <div class="avatar" style="background:${color};width:28px;height:28px;font-size:11px">${getInitials(name)}</div>
+            <span style="font-weight:600">${name}</span>
+            ${isCurrent?'<span class="badge badge-green">Huidig</span>':''}
+          </div>
+          <div class="timeline-date">
+            ${formatDate(m.startDate)} ${m.endDate?' → '+formatDate(m.endDate):' → heden'}
+            ${m.endReason?'<span style="color:var(--text3);margin-left:8px">— '+m.endReason+'</span>':''}
+          </div>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function renderVehicleDocs(vehicleId){
+  const docs=documents.filter(d=>d.vehicleId===vehicleId);
+  const v=vehicles.find(x=>x.id===vehicleId);
+  const isArchived=v&&v.status==='gearchiveerd';
+  return `<div class="card">
+    <div class="flex-between" style="margin-bottom:16px">
+      <div class="card-title" style="margin:0">📎 Documenten</div>
+      ${!isArchived?`<button class="btn btn-sm btn-primary-outline" onclick="openUploadDocModal('${vehicleId}')">➕ Document uploaden</button>`:''}
+    </div>
+    ${docs.length===0?'<div style="text-align:center;color:var(--text3);padding:24px">Geen documenten</div>'
+    :`<table class="tbl"><thead><tr><th>Document</th><th>Type</th><th>Vervaldatum</th><th>Status</th><th></th></tr></thead><tbody>
+      ${docs.map(d=>{
+        const docType=DEFAULT_DOC_TYPES.find(x=>x.id===d.typeId);
+        return `<tr>
+          <td style="font-weight:600">${d.name||'-'}</td>
+          <td>${docType?(docType.icon+' '+docType.name):(d.typeId||'-')}</td>
+          <td>${d.expiryDate?formatDate(d.expiryDate):'-'}</td>
+          <td><span class="${getDocAlertClass(d.expiryDate)}" style="font-weight:600;font-size:12px">${d.expiryDate?getDocAlertLabel(d.expiryDate):'-'}</span></td>
+          <td>
+            ${d.fileData?`<button class="btn btn-icon btn-sm" title="Downloaden" onclick="downloadDoc('${d.id}')">📥</button>`:''}
+            ${!isArchived?`<button class="btn btn-icon btn-sm" title="Verwijderen" onclick="deleteDocument('${d.id}','${vehicleId}')">🗑</button>`:''}
+          </td>
+        </tr>`;
+      }).join('')}
+    </tbody></table>`}
+    ${!isArchived?`<button class="btn btn-sm btn-dashed" style="margin-top:12px" onclick="openUploadDocModal('${vehicleId}')">➕ Document uploaden</button>`:''}
+  </div>`;
+}
+
+function renderVehicleDamage(vehicleId){
+  const dmgs=damages.filter(d=>d.vehicleId===vehicleId).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const v=vehicles.find(x=>x.id===vehicleId);
+  const isArchived=v&&v.status==='gearchiveerd';
+  return `<div class="card">
+    <div class="flex-between" style="margin-bottom:16px">
+      <div class="card-title" style="margin:0">💥 Schademeldingen</div>
+      ${!isArchived?`<button class="btn btn-sm btn-primary-outline" onclick="openDamageModal(null,'${vehicleId}')">➕ Schade melden</button>`:''}
+    </div>
+    ${dmgs.length===0?'<div style="text-align:center;color:var(--text3);padding:24px">Geen schademeldingen</div>'
+    :`<table class="tbl"><thead><tr><th>Datum</th><th>Chauffeur</th><th>Beschrijving</th><th>Bedrag</th><th>Status</th></tr></thead><tbody>
+      ${dmgs.map(d=>{
+        const statusBadge=d.status==='gemeld'?'badge-blue':d.status==='in_behandeling'?'badge-yellow':'badge-green';
+        const statusLabel=d.status==='in_behandeling'?'In behandeling':(d.status||'gemeld').charAt(0).toUpperCase()+(d.status||'gemeld').slice(1);
+        return `<tr>
+          <td>${formatDate(d.date)}</td>
+          <td>${d.personId?getPersonName(d.personId):'-'}</td>
+          <td>${(d.description||'').substr(0,60)}${(d.description||'').length>60?'…':''}</td>
+          <td>${d.amount?formatCurrency(d.amount):'-'}</td>
+          <td><span class="badge ${statusBadge}">${statusLabel}</span></td>
+        </tr>`;
+      }).join('')}
+    </tbody></table>`}
+  </div>`;
+}
+
+function renderVehicleFines(vehicleId){
+  const vFines=fines.filter(f=>f.vehicleId===vehicleId).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const v=vehicles.find(x=>x.id===vehicleId);
+  const isArchived=v&&v.status==='gearchiveerd';
+  return `<div class="card">
+    <div class="flex-between" style="margin-bottom:16px">
+      <div class="card-title" style="margin:0">🎫 Boetes</div>
+      ${!isArchived?`<button class="btn btn-sm btn-primary-outline" onclick="openFineModal(null,'${vehicleId}')">➕ Boete registreren</button>`:''}
+    </div>
+    ${vFines.length===0?'<div style="text-align:center;color:var(--text3);padding:24px">Geen boetes</div>'
+    :`<table class="tbl"><thead><tr><th>Datum</th><th>Chauffeur</th><th>Type</th><th>Bedrag</th><th>Status</th></tr></thead><tbody>
+      ${vFines.map(f=>{
+        const statusBadge=f.status==='ontvangen'?'badge-blue':f.status==='betwist'?'badge-yellow':'badge-green';
+        const statusLabel=(f.status||'ontvangen').charAt(0).toUpperCase()+(f.status||'ontvangen').slice(1);
+        const typeName=fineTypes.find(x=>x.id===f.typeId);
+        return `<tr>
+          <td>${formatDate(f.date)}</td>
+          <td>${f.personId?getPersonName(f.personId):'-'}</td>
+          <td>${typeName?typeName.name:f.typeId||'-'}</td>
+          <td>${f.amount?formatCurrency(f.amount):'-'}</td>
+          <td><span class="badge ${statusBadge}">${statusLabel}</span></td>
+        </tr>`;
+      }).join('')}
+    </tbody></table>`}
+  </div>`;
+}
+
+// Document upload modal
+function openUploadDocModal(vehicleId){
+  const docTypeOpts=DEFAULT_DOC_TYPES.map(t=>`<option value="${t.id}">${t.icon} ${t.name}</option>`).join('');
+  openModal('📎 Document uploaden',`
+    <div class="form-group"><label class="form-label">Documenttype <span class="req">*</span></label>
+      <select class="form-input" id="doc-type">${docTypeOpts}</select></div>
+    <div class="form-group"><label class="form-label">Naam / omschrijving <span class="req">*</span></label>
+      <input class="form-input" id="doc-name" placeholder="bv. Keuring 2025"/></div>
+    <div class="form-group"><label class="form-label">Vervaldatum</label>
+      <input type="date" class="form-input" id="doc-expiry"/></div>
+    <div class="form-group"><label class="form-label">Bestand</label>
+      <input type="file" class="form-input" id="doc-file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="padding:8px"/></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Annuleren</button>
+      <button class="btn btn-primary" onclick="saveDocument('${vehicleId}')">Opslaan</button>
+    </div>
+  `);
+}
+
+function saveDocument(vehicleId){
+  const typeId=document.getElementById('doc-type').value;
+  const name=document.getElementById('doc-name').value.trim();
+  const expiryDate=document.getElementById('doc-expiry').value;
+  const fileInput=document.getElementById('doc-file');
+
+  if(!name){showToast('Naam is verplicht','error');return;}
+
+  const doc={id:uid(),vehicleId,typeId,name,expiryDate:expiryDate||null,uploadDate:new Date().toISOString(),fileData:null,fileName:null};
+
+  if(fileInput.files.length>0){
+    const file=fileInput.files[0];
+    doc.fileName=file.name;
+    const reader=new FileReader();
+    reader.onload=function(e){
+      doc.fileData=e.target.result;
+      documents.push(doc);
+      autoSave();closeModal();
+      openVehicleDetail(vehicleId);
+      showToast('Document opgeslagen');
+    };
+    reader.readAsDataURL(file);
+  }else{
+    documents.push(doc);
+    autoSave();closeModal();
+    openVehicleDetail(vehicleId);
+    showToast('Document opgeslagen');
+  }
+}
+
+function downloadDoc(docId){
+  const doc=documents.find(d=>d.id===docId);
+  if(!doc||!doc.fileData)return;
+  const a=document.createElement('a');
+  a.href=doc.fileData;
+  a.download=doc.fileName||'document';
+  a.click();
+}
+
+async function deleteDocument(docId,vehicleId){
+  if(!await confirmAction('Dit document verwijderen?'))return;
+  documents=documents.filter(d=>d.id!==docId);
+  autoSave();
+  openVehicleDetail(vehicleId);
+  showToast('Document verwijderd');
+}
+function openDriverDetail(personId){
+  const people=getPeople();
+  const allPeople=[...people];
+  // Ook gearchiveerde medewerkers ophalen voor historiek
+  try{
+    const raw=localStorage.getItem('vb_people');
+    if(raw){const all=JSON.parse(raw);const archived=all.filter(p=>!allPeople.find(x=>x.id===p.id));allPeople.push(...archived);}
+  }catch(e){}
+
+  const p=allPeople.find(x=>x.id===personId);
+  if(!p){showToast('Chauffeur niet gevonden','error');return;}
+
+  const name=(p.firstName||'')+' '+(p.lastName||'');
+  const color=getAvatarColor(name);
+  const dept=getPersonDept(p.id);
+  const cv=getCurrentVehicle(p.id);
+
+  // Alle mutaties voor deze chauffeur
+  const muts=mutations.filter(m=>m.personId===personId).sort((a,b)=>new Date(b.startDate)-new Date(a.startDate));
+
+  // Schade & boetes waar deze chauffeur bij betrokken was
+  const driverDamages=damages.filter(d=>d.personId===personId).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const driverFines=fines.filter(f=>f.personId===personId).sort((a,b)=>new Date(b.date)-new Date(a.date));
+
+  // Totaal bedragen
+  const totalDamage=driverDamages.reduce((s,d)=>s+(parseFloat(d.amount)||0),0);
+  const totalFines=driverFines.reduce((s,f)=>s+(parseFloat(f.amount)||0),0);
+
+  openModal('👤 '+name,`
+    <div class="modal-top-actions">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="avatar" style="background:${color};width:44px;height:44px;font-size:16px">${getInitials(name)}</div>
+        <div>
+          <div style="font-weight:700;font-size:15px">${name}</div>
+          <div style="font-size:12px;color:var(--text3)">${dept}${p.gsm?' · '+p.gsm:''}</div>
+        </div>
+      </div>
+      ${cv?`<span class="badge badge-green">🚛 ${getVehicleLabel(cv.vehicleId)}</span>`
+        :'<span class="badge badge-gray">Geen voertuig</span>'}
+    </div>
+    <div class="tabs" id="dd-tabs">
+      <button class="tab active" onclick="showDriverDetailTab('overview',this)">📋 Overzicht</button>
+      <button class="tab" onclick="showDriverDetailTab('history',this)">🚛 Voertuighistoriek</button>
+      <button class="tab" onclick="showDriverDetailTab('incidents',this)">⚠️ Incidenten</button>
+    </div>
+    <div id="dd-tab-overview">${renderDriverOverview(p,cv,muts,driverDamages,driverFines,totalDamage,totalFines)}</div>
+    <div id="dd-tab-history" style="display:none">${renderDriverHistory(muts)}</div>
+    <div id="dd-tab-incidents" style="display:none">${renderDriverIncidents(driverDamages,driverFines)}</div>
+  `);
+}
+
+function showDriverDetailTab(tab,btn){
+  ['overview','history','incidents'].forEach(t=>{
+    const el=document.getElementById('dd-tab-'+t);
+    if(el)el.style.display=t===tab?'':'none';
+  });
+  btn.parentElement.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function renderDriverOverview(p,cv,muts,driverDamages,driverFines,totalDamage,totalFines){
+  const name=(p.firstName||'')+' '+(p.lastName||'');
+  const color=getAvatarColor(name);
+
+  return `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+      <div class="card">
+        <div class="card-title">👤 Persoonlijke gegevens</div>
+        <table style="width:100%;font-size:13px">
+          <tr><td style="color:var(--text3);padding:6px 0;width:130px">Naam</td><td style="font-weight:600;padding:6px 0">${name}</td></tr>
+          <tr><td style="color:var(--text3);padding:6px 0">Department</td><td style="padding:6px 0">${getPersonDept(p.id)}</td></tr>
+          <tr><td style="color:var(--text3);padding:6px 0">GSM</td><td style="padding:6px 0">${p.gsm?formatPhone(p.gsm):'-'}</td></tr>
+          <tr><td style="color:var(--text3);padding:6px 0">E-mail</td><td style="padding:6px 0">${p.email||'-'}</td></tr>
+          <tr><td style="color:var(--text3);padding:6px 0">Rol</td><td style="padding:6px 0">${p.role||'-'}</td></tr>
+          <tr><td style="color:var(--text3);padding:6px 0">Startdatum</td><td style="padding:6px 0">${p.startDate?formatDate(p.startDate):'-'}</td></tr>
+        </table>
+        <div style="margin-top:12px;padding:8px 12px;background:var(--accent-bg);border-radius:var(--radius-sm);font-size:11px;color:var(--accent)">
+          ℹ️ Gegevens beheerd in Personeelbeheer (read-only)
+        </div>
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title">🚛 Huidig voertuig</div>
+          ${cv?`
+            <div style="display:flex;align-items:center;gap:12px;cursor:pointer" onclick="closeModal();setTimeout(()=>openVehicleDetail('${cv.vehicleId}'),100)">
+              <span style="font-size:28px">${getVehicleTypeIcon(vehicles.find(v=>v.id===cv.vehicleId)?.typeId)}</span>
+              <div>
+                <div style="font-weight:700;font-size:14px">${getVehicleLabel(cv.vehicleId)}</div>
+                <div style="font-size:12px;color:var(--text3)">Sinds ${formatDate(cv.startDate)}</div>
+              </div>
+            </div>
+          `:'<span style="color:var(--text3);font-size:13px">Geen voertuig toegewezen</span>'}
+        </div>
+        <div class="card">
+          <div class="card-title">📊 Statistieken</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div style="text-align:center;padding:12px;background:var(--surface2);border-radius:var(--radius-sm)">
+              <div style="font-size:20px;font-weight:700">${muts.length}</div>
+              <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase">Voertuigen</div>
+            </div>
+            <div style="text-align:center;padding:12px;background:var(--surface2);border-radius:var(--radius-sm)">
+              <div style="font-size:20px;font-weight:700">${calcDriverDays(muts)}</div>
+              <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase">Dagen actief</div>
+            </div>
+            <div style="text-align:center;padding:12px;background:rgba(255,92,92,.08);border-radius:var(--radius-sm)">
+              <div style="font-size:20px;font-weight:700;color:var(--danger)">${driverDamages.length}</div>
+              <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase">Schade</div>
+            </div>
+            <div style="text-align:center;padding:12px;background:var(--warn-bg);border-radius:var(--radius-sm)">
+              <div style="font-size:20px;font-weight:700;color:var(--warn)">${driverFines.length}</div>
+              <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase">Boetes</div>
+            </div>
+          </div>
+          ${(totalDamage>0||totalFines>0)?`
+          <div style="margin-top:12px;padding:10px;background:var(--surface2);border-radius:var(--radius-sm);font-size:12px">
+            ${totalDamage>0?`<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--text3)">Totaal schade</span><span style="font-weight:600;color:var(--danger)">${formatCurrency(totalDamage)}</span></div>`:''}
+            ${totalFines>0?`<div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">Totaal boetes</span><span style="font-weight:600;color:var(--warn)">${formatCurrency(totalFines)}</span></div>`:''}
+          </div>`:''}
+        </div>
+      </div>
+    </div>`;
+}
+
+function calcDriverDays(muts){
+  let total=0;
+  const now=new Date();
+  muts.forEach(m=>{
+    const start=new Date(m.startDate);
+    const end=m.endDate?new Date(m.endDate):now;
+    total+=Math.max(0,Math.ceil((end-start)/(1000*60*60*24)));
+  });
+  return total;
+}
+
+function renderDriverHistory(muts){
+  if(muts.length===0)return '<div style="text-align:center;color:var(--text3);padding:32px">Geen voertuighistoriek</div>';
+  return `<div class="card"><div class="card-title">🚛 Voertuighistoriek</div>
+    ${muts.map(m=>{
+      const v=vehicles.find(x=>x.id===m.vehicleId);
+      const icon=v?getVehicleTypeIcon(v.typeId):'🚗';
+      const label=v?(v.brand+' '+v.model+' ('+v.plate+')'):'Onbekend voertuig';
+      const isCurrent=!m.endDate;
+      const days=calcDriverDays([m]);
+      return `<div class="timeline-item">
+        <div class="timeline-dot" style="background:${isCurrent?'var(--success)':'var(--border)'}"></div>
+        <div class="timeline-content">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <span style="font-size:18px">${icon}</span>
+            <span style="font-weight:600;cursor:pointer;color:var(--accent)" onclick="closeModal();setTimeout(()=>openVehicleDetail('${m.vehicleId}'),100)">${label}</span>
+            ${isCurrent?'<span class="badge badge-green">Huidig</span>':''}
+          </div>
+          <div class="timeline-date">
+            ${formatDate(m.startDate)} ${m.endDate?' → '+formatDate(m.endDate):' → heden'}
+            <span style="color:var(--text3);margin-left:8px">— ${days} dagen</span>
+            ${m.endReason?'<span style="color:var(--text3);margin-left:8px">· '+m.endReason+'</span>':''}
+          </div>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function renderDriverIncidents(driverDamages,driverFines){
+  const all=[
+    ...driverDamages.map(d=>({...d,_type:'damage',_date:d.date})),
+    ...driverFines.map(f=>({...f,_type:'fine',_date:f.date}))
+  ].sort((a,b)=>new Date(b._date)-new Date(a._date));
+
+  if(all.length===0)return '<div style="text-align:center;color:var(--text3);padding:32px">Geen incidenten</div>';
+
+  return `<div class="card"><div class="card-title">⚠️ Incidenten</div>
+    <table class="tbl"><thead><tr><th>Datum</th><th>Type</th><th>Voertuig</th><th>Beschrijving</th><th>Bedrag</th><th>Status</th></tr></thead><tbody>
+    ${all.map(item=>{
+      const isDamage=item._type==='damage';
+      const icon=isDamage?'💥':'🎫';
+      const typeLabel=isDamage?'Schade':'Boete';
+      const desc=isDamage?(item.description||'').substr(0,40):(fineTypes.find(t=>t.id===item.typeId)?.name||item.typeId||'-');
+      const statusMap=isDamage
+        ?{gemeld:'badge-blue',in_behandeling:'badge-yellow',afgehandeld:'badge-green'}
+        :{ontvangen:'badge-blue',betwist:'badge-yellow',betaald:'badge-green'};
+      const statusLabel=isDamage
+        ?(item.status==='in_behandeling'?'In behandeling':(item.status||'gemeld').charAt(0).toUpperCase()+(item.status||'gemeld').slice(1))
+        :(item.status||'ontvangen').charAt(0).toUpperCase()+(item.status||'ontvangen').slice(1);
+      const badge=statusMap[item.status]||'badge-gray';
+      return `<tr>
+        <td>${formatDate(item._date)}</td>
+        <td>${icon} ${typeLabel}</td>
+        <td style="font-weight:600">${getVehicleLabel(item.vehicleId)}</td>
+        <td>${desc}</td>
+        <td>${item.amount?formatCurrency(item.amount):'-'}</td>
+        <td><span class="badge ${badge}">${statusLabel}</span></td>
+      </tr>`;
+    }).join('')}
+    </tbody></table>
+  </div>`;
+}
+function openDamageModal(id,preVehicleId){
+  const existing=id?damages.find(d=>d.id===id):null;
+  const title=existing?'✏️ Schademelding bewerken':'💥 Schade melden';
+
+  // Voertuig dropdown
+  const activeVehicles=vehicles.filter(v=>v.status!=='gearchiveerd');
+  const selectedVehicleId=existing?existing.vehicleId:(preVehicleId||'');
+  const vehicleOpts=['<option value="">— Kies voertuig —</option>',
+    ...activeVehicles.map(v=>`<option value="${v.id}" ${v.id===selectedVehicleId?'selected':''}>${v.brand} ${v.model} (${v.plate})</option>`)
+  ].join('');
+
+  // Chauffeur dropdown (uit personeelbeheer)
+  const people=getPeople();
+  const driverOpts=['<option value="">— Kies chauffeur —</option>',
+    ...people.map(p=>{
+      const name=(p.firstName||'')+' '+(p.lastName||'');
+      const sel=existing&&existing.personId===p.id?'selected':'';
+      return `<option value="${p.id}" ${sel}>${name}</option>`;
+    })
+  ].join('');
+
+  // Auto-select chauffeur van geselecteerd voertuig
+  const autoDriverScript=`
+    document.getElementById('dmg-vehicle').addEventListener('change',function(){
+      const vid=this.value;
+      if(!vid)return;
+      const muts=JSON.parse(localStorage.getItem('fb_mutations')||'[]');
+      const current=muts.filter(m=>m.vehicleId===vid&&!m.endDate).sort((a,b)=>new Date(b.startDate)-new Date(a.startDate))[0];
+      if(current){document.getElementById('dmg-driver').value=current.personId;}
+    });
+    ${!existing&&preVehicleId?`setTimeout(()=>{document.getElementById('dmg-vehicle').dispatchEvent(new Event('change'));},50);`:''}
+  `;
+
+  // Schadetype dropdown
+  const dmgTypeOpts=['<option value="">— Kies type —</option>',
+    ...damageTypes.map(t=>`<option value="${t.id}" ${existing&&existing.damageTypeId===t.id?'selected':''}>${t.name}</option>`)
+  ].join('');
+
+  // Status opties
+  const statusOpts=[
+    {val:'gemeld',label:'Gemeld',badge:'badge-blue'},
+    {val:'in_behandeling',label:'In behandeling',badge:'badge-yellow'},
+    {val:'afgehandeld',label:'Afgehandeld',badge:'badge-green'}
+  ];
+  const currentStatus=existing?existing.status:'gemeld';
+
+  openModal(title,`
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Voertuig <span class="req">*</span></label>
+        <select class="form-input" id="dmg-vehicle">${vehicleOpts}</select></div>
+      <div class="form-group"><label class="form-label">Chauffeur</label>
+        <select class="form-input" id="dmg-driver">${driverOpts}</select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Datum <span class="req">*</span></label>
+        <input type="date" class="form-input" id="dmg-date" value="${existing?existing.date:new Date().toISOString().split('T')[0]}"/></div>
+      <div class="form-group"><label class="form-label">Schadetype</label>
+        <select class="form-input" id="dmg-type">${dmgTypeOpts}</select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Locatie</label>
+        <input class="form-input" id="dmg-location" value="${existing?existing.location||'':''}" placeholder="bv. Parking kantoor"/></div>
+      <div class="form-group"><label class="form-label">Geschat bedrag (€)</label>
+        <input type="number" class="form-input" id="dmg-amount" value="${existing?existing.amount||'':''}" placeholder="0.00" min="0" step="0.01"/></div>
+    </div>
+    <div class="form-group"><label class="form-label">Beschrijving <span class="req">*</span></label>
+      <textarea class="form-input" id="dmg-desc" rows="3" placeholder="Beschrijf de schade...">${existing?existing.description||'':''}</textarea></div>
+    <div class="form-group"><label class="form-label">Foto</label>
+      <input type="file" class="form-input" id="dmg-photo" accept="image/*" style="padding:8px"/>
+      ${existing&&existing.photo?`<div style="margin-top:8px"><img src="${existing.photo}" style="max-width:200px;max-height:120px;border-radius:var(--radius-sm);border:1px solid var(--border)"/></div>`:''}
+    </div>
+    ${existing?`
+    <div class="form-group"><label class="form-label">Status</label>
+      <div style="display:flex;gap:8px">
+        ${statusOpts.map(s=>`<button type="button" class="btn btn-sm ${currentStatus===s.val?'btn-primary':''}" onclick="selectDmgStatus(this,'${s.val}')" data-status="${s.val}">${s.label}</button>`).join('')}
+      </div>
+      <input type="hidden" id="dmg-status" value="${currentStatus}"/>
+    </div>`
+    :'<input type="hidden" id="dmg-status" value="gemeld"/>'}
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Annuleren</button>
+      <button class="btn btn-primary" onclick="saveDamage('${id||''}')">Opslaan</button>
+    </div>
+    <script>${autoDriverScript}<\/script>
+  `);
+}
+
+function selectDmgStatus(btn,status){
+  document.getElementById('dmg-status').value=status;
+  btn.parentElement.querySelectorAll('.btn').forEach(b=>b.classList.remove('btn-primary'));
+  btn.classList.add('btn-primary');
+}
+
+function saveDamage(id){
+  const vehicleId=document.getElementById('dmg-vehicle').value;
+  const personId=document.getElementById('dmg-driver').value;
+  const date=document.getElementById('dmg-date').value;
+  const damageTypeId=document.getElementById('dmg-type').value;
+  const location=document.getElementById('dmg-location').value.trim();
+  const amount=document.getElementById('dmg-amount').value;
+  const description=document.getElementById('dmg-desc').value.trim();
+  const status=document.getElementById('dmg-status').value;
+  const photoInput=document.getElementById('dmg-photo');
+
+  // Validatie
+  if(!vehicleId){showToast('Voertuig is verplicht','error');return;}
+  if(!date){showToast('Datum is verplicht','error');return;}
+  if(!description){showToast('Beschrijving is verplicht','error');return;}
+
+  const doSave=function(photoData){
+    if(id){
+      const d=damages.find(x=>x.id===id);
+      if(!d)return;
+      d.vehicleId=vehicleId;d.personId=personId||null;d.date=date;
+      d.damageTypeId=damageTypeId||null;d.location=location;
+      d.amount=amount?parseFloat(amount):null;d.description=description;
+      d.status=status;
+      if(photoData)d.photo=photoData;
+    }else{
+      damages.push({
+        id:uid(),vehicleId,personId:personId||null,date,
+        damageTypeId:damageTypeId||null,location,
+        amount:amount?parseFloat(amount):null,description,
+        status:status||'gemeld',photo:photoData||null,
+        createdAt:new Date().toISOString()
+      });
+    }
+    autoSave();closeModal();renderDamage();renderDashboard();
+    showToast(id?'Schademelding bijgewerkt':'Schademelding toegevoegd');
+  };
+
+  // Foto verwerken
+  if(photoInput.files.length>0){
+    const reader=new FileReader();
+    reader.onload=function(e){doSave(e.target.result);};
+    reader.readAsDataURL(photoInput.files[0]);
+  }else{
+    doSave(id?damages.find(x=>x.id===id)?.photo:null);
+  }
+}
+function openFineModal(id,preVehicleId){
+  const existing=id?fines.find(f=>f.id===id):null;
+  const title=existing?'✏️ Boete bewerken':'🎫 Boete registreren';
+
+  // Voertuig dropdown
+  const activeVehicles=vehicles.filter(v=>v.status!=='gearchiveerd');
+  const selectedVehicleId=existing?existing.vehicleId:(preVehicleId||'');
+  const vehicleOpts=['<option value="">— Kies voertuig —</option>',
+    ...activeVehicles.map(v=>`<option value="${v.id}" ${v.id===selectedVehicleId?'selected':''}>${v.brand} ${v.model} (${v.plate})</option>`)
+  ].join('');
+
+  // Chauffeur dropdown
+  const people=getPeople();
+  const driverOpts=['<option value="">— Kies chauffeur —</option>',
+    ...people.map(p=>{
+      const name=(p.firstName||'')+' '+(p.lastName||'');
+      const sel=existing&&existing.personId===p.id?'selected':'';
+      return `<option value="${p.id}" ${sel}>${name}</option>`;
+    })
+  ].join('');
+
+  // Auto-select chauffeur
+  const autoDriverScript=`
+    document.getElementById('fine-vehicle').addEventListener('change',function(){
+      const vid=this.value;
+      if(!vid)return;
+      const muts=JSON.parse(localStorage.getItem('fb_mutations')||'[]');
+      const current=muts.filter(m=>m.vehicleId===vid&&!m.endDate).sort((a,b)=>new Date(b.startDate)-new Date(a.startDate))[0];
+      if(current){document.getElementById('fine-driver').value=current.personId;}
+    });
+    ${!existing&&preVehicleId?`setTimeout(()=>{document.getElementById('fine-vehicle').dispatchEvent(new Event('change'));},50);`:''}
+  `;
+
+  // Boetetype dropdown
+  const fineTypeOpts=['<option value="">— Kies type —</option>',
+    ...fineTypes.map(t=>`<option value="${t.id}" ${existing&&existing.typeId===t.id?'selected':''}>${t.name}</option>`)
+  ].join('');
+
+  // Status opties
+  const statusOpts=[
+    {val:'ontvangen',label:'Ontvangen'},
+    {val:'betwist',label:'Betwist'},
+    {val:'betaald',label:'Betaald'}
+  ];
+  const currentStatus=existing?existing.status:'ontvangen';
+
+  openModal(title,`
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Voertuig <span class="req">*</span></label>
+        <select class="form-input" id="fine-vehicle">${vehicleOpts}</select></div>
+      <div class="form-group"><label class="form-label">Chauffeur</label>
+        <select class="form-input" id="fine-driver">${driverOpts}</select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Datum overtreding <span class="req">*</span></label>
+        <input type="date" class="form-input" id="fine-date" value="${existing?existing.date:new Date().toISOString().split('T')[0]}"/></div>
+      <div class="form-group"><label class="form-label">Type overtreding <span class="req">*</span></label>
+        <select class="form-input" id="fine-type">${fineTypeOpts}</select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Bedrag (€) <span class="req">*</span></label>
+        <input type="number" class="form-input" id="fine-amount" value="${existing?existing.amount||'':''}" placeholder="0.00" min="0" step="0.01"/></div>
+      <div class="form-group"><label class="form-label">Referentienummer</label>
+        <input class="form-input" id="fine-ref" value="${existing?existing.reference||'':''}" placeholder="bv. PV-2025-12345"/></div>
+    </div>
+    <div class="form-group"><label class="form-label">Opmerkingen</label>
+      <textarea class="form-input" id="fine-notes" rows="2" placeholder="Optionele opmerkingen...">${existing?existing.notes||'':''}</textarea></div>
+    ${existing?`
+    <div class="form-group"><label class="form-label">Status</label>
+      <div style="display:flex;gap:8px">
+        ${statusOpts.map(s=>`<button type="button" class="btn btn-sm ${currentStatus===s.val?'btn-primary':''}" onclick="selectFineStatus(this,'${s.val}')" data-status="${s.val}">${s.label}</button>`).join('')}
+      </div>
+      <input type="hidden" id="fine-status" value="${currentStatus}"/>
+    </div>`
+    :'<input type="hidden" id="fine-status" value="ontvangen"/>'}
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Annuleren</button>
+      <button class="btn btn-primary" onclick="saveFine('${id||''}')">Opslaan</button>
+    </div>
+    <script>${autoDriverScript}<\/script>
+  `);
+}
+
+function selectFineStatus(btn,status){
+  document.getElementById('fine-status').value=status;
+  btn.parentElement.querySelectorAll('.btn').forEach(b=>b.classList.remove('btn-primary'));
+  btn.classList.add('btn-primary');
+}
+
+function saveFine(id){
+  const vehicleId=document.getElementById('fine-vehicle').value;
+  const personId=document.getElementById('fine-driver').value;
+  const date=document.getElementById('fine-date').value;
+  const typeId=document.getElementById('fine-type').value;
+  const amount=document.getElementById('fine-amount').value;
+  const reference=document.getElementById('fine-ref').value.trim();
+  const notes=document.getElementById('fine-notes').value.trim();
+  const status=document.getElementById('fine-status').value;
+
+  // Validatie
+  if(!vehicleId){showToast('Voertuig is verplicht','error');return;}
+  if(!date){showToast('Datum is verplicht','error');return;}
+  if(!typeId){showToast('Type overtreding is verplicht','error');return;}
+  if(!amount){showToast('Bedrag is verplicht','error');return;}
+
+  if(id){
+    const f=fines.find(x=>x.id===id);
+    if(!f)return;
+    f.vehicleId=vehicleId;f.personId=personId||null;f.date=date;
+    f.typeId=typeId;f.amount=parseFloat(amount);f.reference=reference;
+    f.notes=notes;f.status=status;
+  }else{
+    fines.push({
+      id:uid(),vehicleId,personId:personId||null,date,
+      typeId,amount:parseFloat(amount),reference,notes,
+      status:status||'ontvangen',
+      createdAt:new Date().toISOString()
+    });
+  }
+  autoSave();closeModal();renderFines();renderDashboard();
+  showToast(id?'Boete bijgewerkt':'Boete geregistreerd');
+}
+function openDocDetail(docId){
+  const doc=documents.find(d=>d.id===docId);
+  if(!doc){showToast('Document niet gevonden','error');return;}
+  const v=vehicles.find(x=>x.id===doc.vehicleId);
+  const vLabel=v?(v.brand+' '+v.model+' ('+v.plate+')'):'Onbekend voertuig';
+  const docType=DEFAULT_DOC_TYPES.find(x=>x.id===doc.typeId);
+  const days=daysUntil(doc.expiryDate);
+  const alertClass=getDocAlertClass(doc.expiryDate);
+  const alertLabel=doc.expiryDate?getDocAlertLabel(doc.expiryDate):'-';
+
+  // Countdown bar
+  let countdownHtml='';
+  if(doc.expiryDate){
+    if(days<0){
+      countdownHtml=`<div style="background:rgba(255,92,92,.1);border:1px solid rgba(255,92,92,.2);border-radius:var(--radius-sm);padding:16px;margin-bottom:20px;text-align:center">
+        <div style="font-size:24px;font-weight:700;color:var(--danger)">🔴 ${Math.abs(days)} dagen verlopen</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:4px">Vervallen op ${formatDate(doc.expiryDate)}</div>
+      </div>`;
+    }else if(days<=settings.alertDays){
+      const pct=Math.max(0,Math.min(100,100-((days/settings.alertDays)*100)));
+      countdownHtml=`<div style="background:var(--warn-bg);border:1px solid rgba(245,158,11,.2);border-radius:var(--radius-sm);padding:16px;margin-bottom:20px">
+        <div style="text-align:center;margin-bottom:10px">
+          <div style="font-size:24px;font-weight:700;color:var(--warn)">⚠️ Nog ${days} dag${days!==1?'en':''}</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:4px">Verloopt op ${formatDate(doc.expiryDate)}</div>
+        </div>
+        <div style="background:rgba(245,158,11,.15);border-radius:20px;height:8px;overflow:hidden">
+          <div style="background:var(--warn);height:100%;border-radius:20px;width:${pct}%;transition:width .3s"></div>
+        </div>
+      </div>`;
+    }else{
+      countdownHtml=`<div style="background:var(--success-bg);border:1px solid rgba(56,217,169,.2);border-radius:var(--radius-sm);padding:16px;margin-bottom:20px;text-align:center">
+        <div style="font-size:24px;font-weight:700;color:var(--success)">🟢 Nog ${days} dag${days!==1?'en':''}</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:4px">Verloopt op ${formatDate(doc.expiryDate)}</div>
+      </div>`;
+    }
+  }
+
+  openModal((docType?docType.icon+' ':'')+( doc.name||'Document'),`
+    <div class="modal-top-actions">
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm" onclick="closeModal();setTimeout(()=>openVehicleDetail('${doc.vehicleId}'),100)">🚛 Naar voertuig</button>
+        ${doc.fileData?`<button class="btn btn-sm btn-primary-outline" onclick="downloadDoc('${doc.id}')">📥 Downloaden</button>`:''}
+      </div>
+      <button class="btn btn-sm btn-danger" onclick="deleteDocFromDetail('${doc.id}')">🗑 Verwijderen</button>
+    </div>
+    ${countdownHtml}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+      <div class="card">
+        <div class="card-title">📄 Documentgegevens</div>
+        <table style="width:100%;font-size:13px">
+          <tr><td style="color:var(--text3);padding:6px 0;width:130px">Naam</td><td style="font-weight:600;padding:6px 0">${doc.name||'-'}</td></tr>
+          <tr><td style="color:var(--text3);padding:6px 0">Type</td><td style="padding:6px 0">${docType?(docType.icon+' '+docType.name):(doc.typeId||'-')}</td></tr>
+          <tr><td style="color:var(--text3);padding:6px 0">Vervaldatum</td><td style="padding:6px 0;font-weight:600">${doc.expiryDate?formatDate(doc.expiryDate):'<span style="color:var(--text3)">Niet ingesteld</span>'}</td></tr>
+          <tr><td style="color:var(--text3);padding:6px 0">Status</td><td style="padding:6px 0"><span class="${alertClass}" style="font-weight:600">${alertLabel}</span></td></tr>
+          <tr><td style="color:var(--text3);padding:6px 0">Uploaddatum</td><td style="padding:6px 0">${doc.uploadDate?formatDate(doc.uploadDate):'-'}</td></tr>
+          <tr><td style="color:var(--text3);padding:6px 0">Bestandsnaam</td><td style="padding:6px 0">${doc.fileName||'<span style="color:var(--text3)">Geen bestand</span>'}</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-title">🚛 Voertuig</div>
+        <div style="display:flex;align-items:center;gap:12px;cursor:pointer" onclick="closeModal();setTimeout(()=>openVehicleDetail('${doc.vehicleId}'),100)">
+          ${v?`<span style="font-size:28px">${getVehicleTypeIcon(v.typeId)}</span>
+          <div>
+            <div style="font-weight:700;font-size:14px">${v.brand} ${v.model}</div>
+            <div style="font-size:12px;color:var(--text3);font-family:monospace">${v.plate}</div>
+          </div>`:'<span style="color:var(--text3)">Onbekend voertuig</span>'}
+        </div>
+        ${doc.expiryDate?`
+        <div style="margin-top:20px">
+          <div class="card-title" style="font-size:12px">✏️ Vervaldatum aanpassen</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="date" class="form-input" id="doc-edit-expiry" value="${doc.expiryDate}" style="flex:1"/>
+            <button class="btn btn-sm btn-primary" onclick="updateDocExpiry('${doc.id}')">Opslaan</button>
+          </div>
+        </div>`
+        :`<div style="margin-top:20px">
+          <div class="card-title" style="font-size:12px">➕ Vervaldatum toevoegen</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="date" class="form-input" id="doc-edit-expiry" style="flex:1"/>
+            <button class="btn btn-sm btn-primary" onclick="updateDocExpiry('${doc.id}')">Opslaan</button>
+          </div>
+        </div>`}
+      </div>
+    </div>
+  `);
+}
+
+function updateDocExpiry(docId){
+  const doc=documents.find(d=>d.id===docId);
+  if(!doc)return;
+  const val=document.getElementById('doc-edit-expiry').value;
+  doc.expiryDate=val||null;
+  autoSave();
+  showToast('Vervaldatum bijgewerkt');
+  openDocDetail(docId);
+  updateDocBadge();
+}
+
+async function deleteDocFromDetail(docId){
+  if(!await confirmAction('Dit document verwijderen?'))return;
+  documents=documents.filter(d=>d.id!==docId);
+  autoSave();closeModal();
+  renderDocuments();updateDocBadge();
+  showToast('Document verwijderd');
+}
+
+function updateDocBadge(){
+  const alertDocs=documents.filter(d=>{
+    const days=daysUntil(d.expiryDate);
+    return days<=settings.alertDays;
+  });
+  const badge=document.getElementById('badge-docs');
+  if(alertDocs.length>0){badge.style.display='';badge.textContent=alertDocs.length;}
+  else{badge.style.display='none';}
+}
+
+async function deleteVehicle(id){
+  const deps=damages.filter(d=>d.vehicleId===id).length+fines.filter(f=>f.vehicleId===id).length+documents.filter(d=>d.vehicleId===id).length;
+  if(deps>0){showToast(`Kan niet verwijderen: ${deps} gekoppelde record(s)`,'error');return;}
+  if(!await confirmAction('Dit voertuig definitief verwijderen?'))return;
+  vehicles=vehicles.filter(v=>v.id!==id);mutations=mutations.filter(m=>m.vehicleId!==id);
+  autoSave();renderVehicles();showToast('Voertuig verwijderd');
+}
+async function archiveVehicle(id){
+  if(!await confirmAction('Dit voertuig archiveren? Het verdwijnt uit de actieve lijst.'))return;
+  const v=vehicles.find(x=>x.id===id);if(v){v.status='gearchiveerd';autoSave();renderVehicles();showToast('Voertuig gearchiveerd');}
+}
+function restoreVehicle(id){
+  const v=vehicles.find(x=>x.id===id);if(v){v.status='actief';autoSave();renderVehicles();showToast('Voertuig hersteld');}
+}
+
+async function deleteDamage(id){
+  if(!await confirmAction('Deze schademelding verwijderen?'))return;
+  damages=damages.filter(d=>d.id!==id);autoSave();renderDamage();showToast('Schademelding verwijderd');
+}
+async function deleteFine(id){
+  if(!await confirmAction('Deze boete verwijderen?'))return;
+  fines=fines.filter(f=>f.id!==id);autoSave();renderFines();showToast('Boete verwijderd');
+}
+
+// Settings type CRUD
+function openVehicleTypeModal(id){
+  const existing=id?vehicleTypes.find(t=>t.id===id):null;
+  openModal(existing?'Voertuigtype bewerken':'Voertuigtype toevoegen',`
+    <div class="form-group"><label class="form-label">Naam <span class="req">*</span></label>
+      <input class="form-input" id="vt-name" value="${existing?existing.name:''}"/></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Kleur</label>
+        <input type="color" class="form-input" id="vt-color" value="${existing?existing.color:'#3b82f6'}" style="height:40px;padding:4px"/></div>
+      <div class="form-group"><label class="form-label">Icoon</label>
+        <input class="form-input" id="vt-icon" value="${existing?existing.icon:'🚗'}" maxlength="4"/></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Annuleren</button>
+      <button class="btn btn-primary" onclick="saveVehicleType('${id||''}')">Opslaan</button>
+    </div>`);
+}
+function saveVehicleType(id){
+  const name=document.getElementById('vt-name').value.trim();
+  if(!name){showToast('Naam is verplicht','error');return;}
+  const color=document.getElementById('vt-color').value;
+  const icon=document.getElementById('vt-icon').value||'🚗';
+  if(id){const t=vehicleTypes.find(x=>x.id===id);if(t){t.name=name;t.color=color;t.icon=icon;}}
+  else{vehicleTypes.push({id:uid(),name,color,icon});}
+  autoSave();closeModal();renderSettings();showToast('Voertuigtype opgeslagen');
+}
+async function deleteVehicleType(id){
+  if(!await confirmAction('Dit voertuigtype verwijderen?'))return;
+  vehicleTypes=vehicleTypes.filter(t=>t.id!==id);autoSave();renderSettings();showToast('Voertuigtype verwijderd');
+}
+
+function openDamageTypeModal(id){
+  const existing=id?damageTypes.find(t=>t.id===id):null;
+  openModal(existing?'Schadetype bewerken':'Schadetype toevoegen',`
+    <div class="form-group"><label class="form-label">Naam <span class="req">*</span></label>
+      <input class="form-input" id="dt-name" value="${existing?existing.name:''}"/></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Annuleren</button>
+      <button class="btn btn-primary" onclick="saveDamageType('${id||''}')">Opslaan</button>
+    </div>`);
+}
+function saveDamageType(id){
+  const name=document.getElementById('dt-name').value.trim();
+  if(!name){showToast('Naam is verplicht','error');return;}
+  if(id){const t=damageTypes.find(x=>x.id===id);if(t)t.name=name;}
+  else{damageTypes.push({id:uid(),name});}
+  autoSave();closeModal();renderSettings();showToast('Schadetype opgeslagen');
+}
+async function deleteDamageType(id){
+  if(!await confirmAction('Dit schadetype verwijderen?'))return;
+  damageTypes=damageTypes.filter(t=>t.id!==id);autoSave();renderSettings();showToast('Schadetype verwijderd');
+}
+
+function openFineTypeModal(id){
+  const existing=id?fineTypes.find(t=>t.id===id):null;
+  openModal(existing?'Boetetype bewerken':'Boetetype toevoegen',`
+    <div class="form-group"><label class="form-label">Naam <span class="req">*</span></label>
+      <input class="form-input" id="ft-name" value="${existing?existing.name:''}"/></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Annuleren</button>
+      <button class="btn btn-primary" onclick="saveFineType('${id||''}')">Opslaan</button>
+    </div>`);
+}
+function saveFineType(id){
+  const name=document.getElementById('ft-name').value.trim();
+  if(!name){showToast('Naam is verplicht','error');return;}
+  if(id){const t=fineTypes.find(x=>x.id===id);if(t)t.name=name;}
+  else{fineTypes.push({id:uid(),name});}
+  autoSave();closeModal();renderSettings();showToast('Boetetype opgeslagen');
+}
+async function deleteFineType(id){
+  if(!await confirmAction('Dit boetetype verwijderen?'))return;
+  fineTypes=fineTypes.filter(t=>t.id!==id);autoSave();renderSettings();showToast('Boetetype verwijderd');
+}
+
+// ═══ INIT ═══
+
+function loadDemoData(){
+  if(vehicles.length>0)return; // Alleen bij eerste gebruik
+
+  // Demo voertuigen
+  vehicles=[
+    {id:'v1',plate:'1-ABC-123',typeId:'bestelwagen',brand:'Mercedes',model:'Sprinter',year:'2022',chassis:'WDB9066351S123456',fuel:'Diesel',mileage:'45230',status:'actief',notes:'Hoofdvoertuig team Noord',createdAt:'2022-03-15T00:00:00'},
+    {id:'v2',plate:'1-DEF-456',typeId:'personenwagen',brand:'Volkswagen',model:'Golf',year:'2023',chassis:'WVWZZZ1KZAP012345',fuel:'Benzine',mileage:'28100',status:'actief',notes:'',createdAt:'2023-01-10T00:00:00'},
+    {id:'v3',plate:'1-GHI-789',typeId:'vrachtwagen',brand:'DAF',model:'LF 210',year:'2021',chassis:'XLRAE47MS0E012345',fuel:'Diesel',mileage:'112500',status:'onderhoud',notes:'Gepland onderhoud — remblokken',createdAt:'2021-06-20T00:00:00'},
+    {id:'v4',plate:'1-JKL-012',typeId:'camionette',brand:'Ford',model:'Transit Custom',year:'2024',chassis:'WF0XXXTTGXR012345',fuel:'Diesel',mileage:'8750',status:'actief',notes:'',createdAt:'2024-02-01T00:00:00'},
+    {id:'v5',plate:'1-MNO-345',typeId:'bestelwagen',brand:'Renault',model:'Master',year:'2020',chassis:'VF1MA000X64012345',fuel:'Diesel',mileage:'89600',status:'gearchiveerd',notes:'Verkocht aan garage',createdAt:'2020-01-15T00:00:00'}
+  ];
+
+  // Demo documenten met vervaldatums
+  const today=new Date();
+  const in15=new Date(today);in15.setDate(in15.getDate()+15);
+  const in45=new Date(today);in45.setDate(in45.getDate()+45);
+  const in180=new Date(today);in180.setDate(in180.getDate()+180);
+  const ago10=new Date(today);ago10.setDate(ago10.getDate()-10);
+  const in90=new Date(today);in90.setDate(in90.getDate()+90);
+  const fmt=d=>d.toISOString().split('T')[0];
+
+  documents=[
+    {id:'d1',vehicleId:'v1',typeId:'keuring',name:'Keuring 2025',expiryDate:fmt(in15),uploadDate:'2024-06-01T00:00:00',fileData:null,fileName:null},
+    {id:'d2',vehicleId:'v1',typeId:'verzekering',name:'Omnium AXA',expiryDate:fmt(in180),uploadDate:'2024-01-10T00:00:00',fileData:null,fileName:null},
+    {id:'d3',vehicleId:'v2',typeId:'keuring',name:'Keuring 2025',expiryDate:fmt(ago10),uploadDate:'2023-12-01T00:00:00',fileData:null,fileName:null},
+    {id:'d4',vehicleId:'v2',typeId:'verzekering',name:'BA Ethias',expiryDate:fmt(in90),uploadDate:'2024-03-01T00:00:00',fileData:null,fileName:null},
+    {id:'d5',vehicleId:'v3',typeId:'keuring',name:'Keuring 2025',expiryDate:fmt(in45),uploadDate:'2024-04-15T00:00:00',fileData:null,fileName:null},
+    {id:'d6',vehicleId:'v4',typeId:'inschrijving',name:'Inschrijvingsbewijs',expiryDate:fmt(in180),uploadDate:'2024-02-01T00:00:00',fileData:null,fileName:null},
+    {id:'d7',vehicleId:'v4',typeId:'verzekering',name:'Omnium AG',expiryDate:fmt(in45),uploadDate:'2024-02-01T00:00:00',fileData:null,fileName:null}
+  ];
+
+  // Demo schademeldingen
+  damages=[
+    {id:'dm1',vehicleId:'v1',personId:null,date:'2025-01-20',damageTypeId:'parkeerschade',location:'Parking Delhaize Deurne',amount:850,description:'Kras achterbumper + deuk linkerdeur, veroorzaakt op parking',status:'in_behandeling',photo:null,createdAt:'2025-01-20T00:00:00'},
+    {id:'dm2',vehicleId:'v2',personId:null,date:'2025-02-10',damageTypeId:'glasbreuk',location:'E313 Antwerpen-Hasselt',amount:350,description:'Barst in voorruit door opspattend grind',status:'gemeld',photo:null,createdAt:'2025-02-10T00:00:00'},
+    {id:'dm3',vehicleId:'v3',personId:null,date:'2024-11-05',damageTypeId:'aanrijding',location:'Industriezone Kontich',amount:2200,description:'Aanrijding bij achteruitrijden op laadkaai',status:'afgehandeld',photo:null,createdAt:'2024-11-05T00:00:00'}
+  ];
+
+  // Demo boetes
+  fines=[
+    {id:'f1',vehicleId:'v1',personId:null,date:'2025-02-01',typeId:'snelheid',amount:110,reference:'PV-2025-00412',notes:'53 km/h in zone 30, schoolomgeving',status:'ontvangen',createdAt:'2025-02-05T00:00:00'},
+    {id:'f2',vehicleId:'v2',personId:null,date:'2025-01-15',typeId:'parkeren',amount:58,reference:'GAS-2025-1891',notes:'',status:'betaald',createdAt:'2025-01-20T00:00:00'},
+    {id:'f3',vehicleId:'v4',personId:null,date:'2025-02-18',typeId:'snelheid',amount:175,reference:'PV-2025-00830',notes:'Betwist — snelheidsmeter mogelijk defect',status:'betwist',createdAt:'2025-02-22T00:00:00'}
+  ];
+
+  // Demo mutaties (chauffeur-koppeling) — zonder echte personIds zodat het ook zonder personeelbeheer werkt
+  mutations=[];
+
+  autoSave();
+}
+
+function init(){
+  restore();
+  loadDemoData();
+  autoSave();
+  updateDocBadge();
+  renderDashboard();
+  detectShell();
+}
+
+// ═══ SHELL INTEGRATIE ═══
+
+const shellPermissions={canCreate:true,canEdit:true,canDelete:true,role:'admin'};
+const isInIframe=window.self!==window.top;
+
+function detectShell(){
+  if(isInIframe){
+    const sb=document.querySelector('.sidebar');if(sb)sb.style.display='none';
+    const rb=document.querySelector('.role-bar');if(rb)rb.style.display='none';
+    const main=document.querySelector('.main');if(main){main.style.marginLeft='0';main.style.paddingTop='0';}
+  }
+}
+
+window.addEventListener('message',e=>{
+  if(e.data&&e.data.type==='shell:permissions'){
+    shellPermissions.canCreate=!!e.data.canCreate;
+    shellPermissions.canEdit=!!e.data.canEdit;
+    shellPermissions.canDelete=!!e.data.canDelete;
+    shellPermissions.role=e.data.role||'gebruiker';
+    if(e.data.allowedSections)shellPermissions.allowedSections=e.data.allowedSections;
+    applyPermissions();
+  }
+});
+
+function applyPermissions(){
+  if(isInIframe&&shellPermissions.allowedSections){
+    document.querySelectorAll('.sb-item[data-page]').forEach(el=>{
+      const page=el.getAttribute('data-page');
+      el.style.display=shellPermissions.allowedSections.includes(page)?'':'none';
+    });
+    const settingsTab=document.querySelector('[data-page="settings"]');
+    if(settingsTab)settingsTab.style.display=isAdmin()?'':'none';
+    if(shellPermissions.allowedSections.indexOf(activePage)===-1&&activePage!=='dashboard'){
+      showPage('dashboard');return;
+    }
+  }
+  if(activePage==='vehicles')renderVehicles();
+  if(activePage==='damages')renderDamages();
+  if(activePage==='fines')renderFines();
+  if(activePage==='documents')renderDocuments();
+  if(activePage==='dashboard')renderDashboard();
+  if(activePage==='settings')renderAlertSettings();
+}
+
+function canCreate(){return shellPermissions.canCreate;}
+function canEdit(){return shellPermissions.canEdit;}
+function canDelete(){return shellPermissions.canDelete;}
+function isAdmin(){return shellPermissions.role==='admin';}
+
+init();
+</script>
+</body>
+</html>
