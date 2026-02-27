@@ -459,35 +459,39 @@ function autoSave(){
     localStorage.setItem('cb_reminderSettings',JSON.stringify(reminderSettings));
     localStorage.setItem('cb_mutations',JSON.stringify(mutations));
     // Firestore sync
-    fsDb.collection('platform').doc('contractbeheer').set({
-      contracts:JSON.stringify(contracts),
-      contractTypes:JSON.stringify(contractTypes),
-      relations:JSON.stringify(relations),
-      tasks:JSON.stringify(tasks),
-      reminderSettings:JSON.stringify(reminderSettings),
-      mutations:JSON.stringify(mutations),
-      updatedAt:new Date().toISOString()
-    }).then(()=>console.log('✅ Contractbeheer → Firestore'))
-      .catch(e=>console.error('Firestore save error',e));
+    if(typeof fsDb!=='undefined'){
+      fsDb.collection('platform').doc('contractbeheer').set({
+        contracts:JSON.stringify(contracts),
+        contractTypes:JSON.stringify(contractTypes),
+        relations:JSON.stringify(relations),
+        tasks:JSON.stringify(tasks),
+        reminderSettings:JSON.stringify(reminderSettings),
+        mutations:JSON.stringify(mutations),
+        updatedAt:new Date().toISOString()
+      }).then(()=>console.log('✅ Contractbeheer → Firestore'))
+        .catch(e=>console.error('Firestore save error',e));
+    }
   }catch(e){console.error('autoSave error',e);}
 }
 
 async function restore(){
   let fromFirestore=false;
-  try{
-    const doc=await fsDb.collection('platform').doc('contractbeheer').get();
-    if(doc.exists){
-      const data=doc.data();
-      if(data.contracts)contracts=JSON.parse(data.contracts);
-      if(data.contractTypes)contractTypes=JSON.parse(data.contractTypes);
-      if(data.relations)relations=JSON.parse(data.relations);
-      if(data.tasks)tasks=JSON.parse(data.tasks);
-      if(data.reminderSettings)Object.assign(reminderSettings,JSON.parse(data.reminderSettings));
-      if(data.mutations)mutations=JSON.parse(data.mutations);
-      fromFirestore=true;
-      console.log('✅ Contractbeheer geladen van Firestore');
-    }
-  }catch(e){console.warn('Firestore read failed, fallback localStorage',e);}
+  if(typeof fsDb!=='undefined'){
+    try{
+      const doc=await fsDb.collection('platform').doc('contractbeheer').get();
+      if(doc.exists){
+        const data=doc.data();
+        if(data.contracts)contracts=JSON.parse(data.contracts);
+        if(data.contractTypes)contractTypes=JSON.parse(data.contractTypes);
+        if(data.relations)relations=JSON.parse(data.relations);
+        if(data.tasks)tasks=JSON.parse(data.tasks);
+        if(data.reminderSettings)Object.assign(reminderSettings,JSON.parse(data.reminderSettings));
+        if(data.mutations)mutations=JSON.parse(data.mutations);
+        fromFirestore=true;
+        console.log('✅ Contractbeheer geladen van Firestore');
+      }
+    }catch(e){console.warn('Firestore read failed, fallback localStorage',e);}
+  }
   if(!fromFirestore){
     try{
       const c=localStorage.getItem('cb_contracts');if(c)contracts=JSON.parse(c);
@@ -509,7 +513,7 @@ async function resetData(){
   contracts=[];contractTypes=[];relations=[];tasks=[];mutations=[];
   reminderSettings={};
   await restore();
-  fsDb.collection('platform').doc('contractbeheer').delete().catch(e=>console.warn(e));
+  if(typeof fsDb!=='undefined') fsDb.collection('platform').doc('contractbeheer').delete().catch(e=>console.warn(e));
   autoSave();
   showPage('dashboard');
   showToast('Data gereset naar standaardwaarden','success');
@@ -583,6 +587,7 @@ function getVehicleLabel(id){
 }
 // Async: Sync cross-module data from Firestore
 async function syncCrossModuleData(){
+  if(typeof fsDb==='undefined')return;
   try{
     const [pbDoc,fbDoc]=await Promise.all([
       fsDb.collection('platform').doc('personeelbeheer').get(),

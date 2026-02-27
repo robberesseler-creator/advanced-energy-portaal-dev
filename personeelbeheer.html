@@ -7,20 +7,6 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Personeelbeheer — Advanced Energy</title>
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script>
-if(!firebase.apps.length)firebase.initializeApp({
-  apiKey:"AIzaSyBKU-wCjV4Au4ngRG52Zmmxbzc3N3D8VBU",
-  authDomain:"advanced-intranet.firebaseapp.com",
-  projectId:"advanced-intranet",
-  storageBucket:"advanced-intranet.firebasestorage.app",
-  messagingSenderId:"309856938024",
-  appId:"1:309856938024:web:2108715f92c5dea2da2d1d"
-});
-const fsDb=firebase.firestore();
-</script>
 <style>
 /* ═══ CSS STYLES ═══ */
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
@@ -234,34 +220,34 @@ select.form-input{cursor:pointer;}
   </div>
   <div class="sb-nav">
     <div class="sb-section">Overzicht</div>
-    <button class="sb-item active" data-page="dashboard" onclick="showPage('dashboard')">
+    <button class="sb-item active" data-page="dashboard" onclick="try{showPage('dashboard')}catch(e){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});document.getElementById('page-dashboard').classList.add('active');document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active')});this.classList.add('active')}">
       <span class="sb-item-icon">📊</span>Dashboard
     </button>
-    <button class="sb-item" data-page="wallchart" onclick="showPage('wallchart')">
+    <button class="sb-item" data-page="wallchart" onclick="try{showPage('wallchart')}catch(e){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});document.getElementById('page-wallchart').classList.add('active');document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active')});this.classList.add('active')}">
       <span class="sb-item-icon">🗓</span>Wallchart
     </button>
     <div class="sb-section">Beheer</div>
-    <button class="sb-item" data-page="requests" onclick="showPage('requests')">
+    <button class="sb-item" data-page="requests" onclick="try{showPage('requests')}catch(e){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});document.getElementById('page-requests').classList.add('active');document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active')});this.classList.add('active')}">
       <span class="sb-item-icon">📥</span>Aanvragen
       <span class="sb-item-badge" id="badge-requests" style="display:none">0</span>
     </button>
-    <button class="sb-item" data-page="people" onclick="showPage('people')">
+    <button class="sb-item" data-page="people" onclick="try{showPage('people')}catch(e){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});document.getElementById('page-people').classList.add('active');document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active')});this.classList.add('active')}">
       <span class="sb-item-icon">👥</span>Medewerkers
     </button>
-    <button class="sb-item" data-page="departments" onclick="showPage('departments')">
+    <button class="sb-item" data-page="departments" onclick="try{showPage('departments')}catch(e){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});document.getElementById('page-departments').classList.add('active');document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active')});this.classList.add('active')}">
       <span class="sb-item-icon">📂</span>Departments
     </button>
-    <button class="sb-item" data-page="sickness" onclick="showPage('sickness')">
+    <button class="sb-item" data-page="sickness" onclick="try{showPage('sickness')}catch(e){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});document.getElementById('page-sickness').classList.add('active');document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active')});this.classList.add('active')}">
       <span class="sb-item-icon">🤒</span>Ziekte
     </button>
     <div class="sb-section">Configuratie</div>
-    <button class="sb-item" data-page="types" onclick="showPage('types')">
+    <button class="sb-item" data-page="types" onclick="try{showPage('types')}catch(e){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});document.getElementById('page-types').classList.add('active');document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active')});this.classList.add('active')}">
       <span class="sb-item-icon">🏷️</span>Afwezigheidstypes
     </button>
-    <button class="sb-item" data-page="settings" onclick="showPage('settings')">
+    <button class="sb-item" data-page="settings" onclick="try{showPage('settings')}catch(e){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});document.getElementById('page-settings').classList.add('active');document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active')});this.classList.add('active')}">
       <span class="sb-item-icon">⚙️</span>Instellingen
     </button>
-    <button class="sb-item" data-page="reports" onclick="showPage('reports')">
+    <button class="sb-item" data-page="reports" onclick="try{showPage('reports')}catch(e){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});document.getElementById('page-reports').classList.add('active');document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active')});this.classList.add('active')}">
       <span class="sb-item-icon">📈</span>Rapportage
     </button>
   </div>
@@ -272,6 +258,37 @@ select.form-input{cursor:pointer;}
     </div>
   </div>
 </nav>
+
+<!-- Navigatie via event delegation - werkt altijd, onafhankelijk van andere scripts -->
+<script>
+document.addEventListener('click',function(e){
+  var btn=e.target.closest('.sb-item[data-page]');
+  if(!btn)return;
+  var page=btn.getAttribute('data-page');
+  if(!page)return;
+  // Toggle panels
+  var panels=document.querySelectorAll('.panel');
+  for(var i=0;i<panels.length;i++)panels[i].classList.remove('active');
+  var target=document.getElementById('page-'+page);
+  if(target)target.classList.add('active');
+  // Toggle sidebar active state
+  var items=document.querySelectorAll('.sb-item');
+  for(var i=0;i<items.length;i++)items[i].classList.remove('active');
+  btn.classList.add('active');
+  // Try to call render functions if available
+  try{
+    if(page==='dashboard'&&typeof renderDashboard==='function')renderDashboard();
+    if(page==='requests'&&typeof renderRequests==='function')renderRequests();
+    if(page==='people'&&typeof renderPeople==='function')renderPeople();
+    if(page==='departments'&&typeof renderDepartments==='function')renderDepartments();
+    if(page==='sickness'&&typeof renderSickness==='function')renderSickness();
+    if(page==='wallchart'&&typeof renderWallchart==='function')renderWallchart();
+    if(page==='types'&&typeof renderTypes==='function')renderTypes();
+    if(page==='settings'&&typeof renderSettings==='function')renderSettings();
+    if(page==='reports'&&typeof renderReports==='function')renderReports();
+  }catch(ex){}
+});
+</script>
 
 <!-- Role bar -->
 <div class="role-bar">
@@ -591,7 +608,7 @@ select.form-input{cursor:pointer;}
         </div>
         <table class="tbl">
           <thead><tr><th id="req-th-check" style="width:32px;display:none"><input type="checkbox" id="req-check-all" onchange="toggleAllRequests(this.checked)" style="cursor:pointer"/></th><th>Medewerker</th><th>Type</th><th>Periode</th><th>Dagen</th><th>Status</th><th>Conflicten</th><th></th></tr></thead>
-          <tbody id="requests-table"></tbody>
+          <tbody id="requests-table"><tr><td colspan="7" style="text-align:center;padding:40px;color:#94a3b8">Aanvragen worden geladen...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -904,7 +921,6 @@ function uid(){return Date.now().toString(36)+'_'+Math.random().toString(36).sub
 
 function autoSave(){
   try{
-    // Lokale backup (snel, voor UX)
     localStorage.setItem('vb_departments',JSON.stringify(departments));
     localStorage.setItem('vb_people',JSON.stringify(people));
     localStorage.setItem('vb_leaveTypes',JSON.stringify(leaveTypes));
@@ -919,70 +935,26 @@ function autoSave(){
     localStorage.setItem('vb_werkgeverskost',JSON.stringify(werkgeverskostData));
     localStorage.setItem('vb_uurkostParams',JSON.stringify(uurkostParams));
     localStorage.setItem('vb_verlofregels',JSON.stringify(verlofregels));
-    // Firestore sync (async op achtergrond)
-    fsDb.collection('platform').doc('personeelbeheer').set({
-      departments:JSON.stringify(departments),
-      people:JSON.stringify(people),
-      leaveTypes:JSON.stringify(leaveTypes),
-      schedules:JSON.stringify(schedules),
-      requests:JSON.stringify(requests),
-      candidates:JSON.stringify(candidates),
-      channels:JSON.stringify(channels),
-      settings:JSON.stringify(settings),
-      baremaData:JSON.stringify(baremaData),
-      ancienniteitData:JSON.stringify(ancienniteitData),
-      salaryReasonTypes:JSON.stringify(salaryReasonTypes),
-      werkgeverskostData:JSON.stringify(werkgeverskostData),
-      uurkostParams:JSON.stringify(uurkostParams),
-      verlofregels:JSON.stringify(verlofregels),
-      updatedAt:new Date().toISOString()
-    }).then(()=>console.log('✅ Personeelbeheer → Firestore'))
-      .catch(e=>console.error('Firestore save error',e));
   }catch(e){showToast('Opslag fout: '+e.message,'error');}
 }
 
-async function restore(){
-  let fromFirestore=false;
+function restore(){
   try{
-    const doc=await fsDb.collection('platform').doc('personeelbeheer').get();
-    if(doc.exists){
-      const data=doc.data();
-      if(data.departments)departments=JSON.parse(data.departments);
-      if(data.people)people=JSON.parse(data.people);
-      if(data.leaveTypes)leaveTypes=JSON.parse(data.leaveTypes);
-      if(data.schedules)schedules=JSON.parse(data.schedules);
-      if(data.requests)requests=JSON.parse(data.requests);
-      if(data.candidates)candidates=JSON.parse(data.candidates);
-      if(data.channels)channels=JSON.parse(data.channels);
-      if(data.settings)Object.assign(settings,JSON.parse(data.settings));
-      if(data.baremaData)baremaData=JSON.parse(data.baremaData);
-      if(data.ancienniteitData)ancienniteitData=JSON.parse(data.ancienniteitData);
-      if(data.salaryReasonTypes)salaryReasonTypes=JSON.parse(data.salaryReasonTypes);
-      if(data.werkgeverskostData)werkgeverskostData=JSON.parse(data.werkgeverskostData);
-      if(data.uurkostParams)uurkostParams=JSON.parse(data.uurkostParams);
-      if(data.verlofregels)verlofregels=JSON.parse(data.verlofregels);
-      fromFirestore=true;
-      console.log('✅ Personeelbeheer geladen van Firestore');
-    }
-  }catch(e){console.warn('Firestore read failed, fallback localStorage',e);}
-  if(!fromFirestore){
-    try{
-      const d=localStorage.getItem('vb_departments');if(d)departments=JSON.parse(d);
-      const p=localStorage.getItem('vb_people');if(p)people=JSON.parse(p);
-      const t=localStorage.getItem('vb_leaveTypes');if(t)leaveTypes=JSON.parse(t);
-      const s=localStorage.getItem('vb_schedules');if(s)schedules=JSON.parse(s);
-      const r=localStorage.getItem('vb_requests');if(r)requests=JSON.parse(r);
-      const ca=localStorage.getItem('vb_candidates');if(ca)candidates=JSON.parse(ca);
-      const ch=localStorage.getItem('vb_channels');if(ch)channels=JSON.parse(ch);
-      const st=localStorage.getItem('vb_settings');if(st)Object.assign(settings,JSON.parse(st));
-      const ba=localStorage.getItem('vb_barema');if(ba)baremaData=JSON.parse(ba);
-      const anc=localStorage.getItem('vb_ancienniteit');if(anc)ancienniteitData=JSON.parse(anc);
-      const sr=localStorage.getItem('vb_salaryReasons');if(sr)salaryReasonTypes=JSON.parse(sr);
-      const wk=localStorage.getItem('vb_werkgeverskost');if(wk)werkgeverskostData=JSON.parse(wk);
-      const up=localStorage.getItem('vb_uurkostParams');if(up)uurkostParams=JSON.parse(up);
-      const vr=localStorage.getItem('vb_verlofregels');if(vr)verlofregels=JSON.parse(vr);
-    }catch(e){console.error('Restore error:',e);}
-  }
+    const d=localStorage.getItem('vb_departments');if(d)departments=JSON.parse(d);
+    const p=localStorage.getItem('vb_people');if(p)people=JSON.parse(p);
+    const t=localStorage.getItem('vb_leaveTypes');if(t)leaveTypes=JSON.parse(t);
+    const s=localStorage.getItem('vb_schedules');if(s)schedules=JSON.parse(s);
+    const r=localStorage.getItem('vb_requests');if(r)requests=JSON.parse(r);
+    const ca=localStorage.getItem('vb_candidates');if(ca)candidates=JSON.parse(ca);
+    const ch=localStorage.getItem('vb_channels');if(ch)channels=JSON.parse(ch);
+    const st=localStorage.getItem('vb_settings');if(st)Object.assign(settings,JSON.parse(st));
+    const ba=localStorage.getItem('vb_barema');if(ba)baremaData=JSON.parse(ba);
+    const anc=localStorage.getItem('vb_ancienniteit');if(anc)ancienniteitData=JSON.parse(anc);
+    const sr=localStorage.getItem('vb_salaryReasons');if(sr)salaryReasonTypes=JSON.parse(sr);
+    const wk=localStorage.getItem('vb_werkgeverskost');if(wk)werkgeverskostData=JSON.parse(wk);
+    const up=localStorage.getItem('vb_uurkostParams');if(up)uurkostParams=JSON.parse(up);
+    const vr=localStorage.getItem('vb_verlofregels');if(vr)verlofregels=JSON.parse(vr);
+  }catch(e){console.error('Restore error:',e);}
   if(leaveTypes.length===0){leaveTypes=[...DEFAULT_TYPES];}
   else{
     // Add missing default types (upgrade path)
@@ -4574,16 +4546,14 @@ async function resetData(){
   localStorage.removeItem('vb_werkgeverskost');
   localStorage.removeItem('vb_uurkostParams');
   localStorage.removeItem('vb_verlofregels');
-  // Wis ook Firestore
-  try{await fsDb.collection('platform').doc('personeelbeheer').delete();}catch(e){}
   location.reload();
 }
 
-(async function initApp(){
-await restore();
+restore();
 
+try{
 // Force fresh data load once (version flag prevents repeat resets)
-const SEED_VERSION='v16.1-firebase';
+const SEED_VERSION='v16.1';
 if(localStorage.getItem('vb_seed_version')!==SEED_VERSION){
   localStorage.removeItem('vb_departments');
   localStorage.removeItem('vb_people');
@@ -4600,6 +4570,9 @@ if(localStorage.getItem('vb_seed_version')!==SEED_VERSION){
   localStorage.removeItem('vb_uurkostParams');
   localStorage.removeItem('vb_verlofregels');
   localStorage.setItem('vb_seed_version',SEED_VERSION);
+  departments=[];people=[];leaveTypes=[];schedules=[];requests=[];candidates=[];channels=[];baremaData=[];ancienniteitData=[];verlofregels=[];
+}
+}catch(e){
   departments=[];people=[];leaveTypes=[];schedules=[];requests=[];candidates=[];channels=[];baremaData=[];ancienniteitData=[];verlofregels=[];
 }
 
@@ -4804,72 +4777,58 @@ function canEdit(){return shellPermissions.canEdit;}
 function canDelete(){return shellPermissions.canDelete;}
 function isAdmin(){return shellPermissions.role==='admin';}
 
-// ═══ FIRESTORE REAL-TIME LISTENER ═══
-// Luistert naar wijzigingen van bv. de remote app en ververst automatisch
-let firestoreListenerActive=false;
-function startFirestoreListener(){
-  if(firestoreListenerActive)return;
-  firestoreListenerActive=true;
-  fsDb.collection('platform').doc('personeelbeheer').onSnapshot(doc=>{
-    if(!doc.exists)return;
-    const data=doc.data();
-    let changed=false;
-    // Vergelijk alleen requests (meest waarschijnlijke wijziging van remote)
-    if(data.requests){
-      const newRequests=JSON.parse(data.requests);
-      if(JSON.stringify(newRequests)!==JSON.stringify(requests)){
-        requests=newRequests;
-        changed=true;
-        console.log('🔄 Requests bijgewerkt via Firestore real-time sync');
-      }
-    }
-    // Ook people/departments/leaveTypes meenemen
-    if(data.people){
-      const newPeople=JSON.parse(data.people);
-      if(JSON.stringify(newPeople)!==JSON.stringify(people)){
-        people=newPeople;changed=true;
-      }
-    }
-    if(data.departments){
-      const newDepts=JSON.parse(data.departments);
-      if(JSON.stringify(newDepts)!==JSON.stringify(departments)){
-        departments=newDepts;changed=true;
-      }
-    }
-    if(data.leaveTypes){
-      const newTypes=JSON.parse(data.leaveTypes);
-      if(JSON.stringify(newTypes)!==JSON.stringify(leaveTypes)){
-        leaveTypes=newTypes;changed=true;
-      }
-    }
-    if(changed){
-      // Herrender actieve pagina
-      const page=document.querySelector('.panel.active');
-      if(page){
-        const id=page.id.replace('page-','');
-        if(id==='dashboard')renderDashboard();
-        if(id==='people')renderPeople();
-        if(id==='requests')renderRequests();
-        if(id==='departments')renderDepartments();
-        if(id==='sickness')renderSickness();
-        if(id==='wallchart')renderWallchart();
-      }
-      // Update localStorage backup
-      localStorage.setItem('vb_requests',JSON.stringify(requests));
-      localStorage.setItem('vb_people',JSON.stringify(people));
-      localStorage.setItem('vb_departments',JSON.stringify(departments));
-      localStorage.setItem('vb_leaveTypes',JSON.stringify(leaveTypes));
-    }
-  },err=>{
-    console.warn('Firestore listener error:',err);
-    firestoreListenerActive=false;
-  });
-}
-startFirestoreListener();
-
 detectShell();
 renderDashboard();
-})(); // end async initApp
+
+// ═══ FIREBASE (dynamisch geladen, blokkeert NIETS) ═══
+(function(){
+  function loadScript(url,cb){var s=document.createElement('script');s.src=url;s.async=true;s.onload=cb;s.onerror=function(){};document.head.appendChild(s);}
+  loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js',function(){
+    loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js',function(){
+      try{
+        if(!firebase.apps.length)firebase.initializeApp({apiKey:"AIzaSyBKU-wCjV4Au4ngRG52Zmmxbzc3N3D8VBU",authDomain:"advanced-intranet.firebaseapp.com",projectId:"advanced-intranet",storageBucket:"advanced-intranet.firebasestorage.app",messagingSenderId:"309856938024",appId:"1:309856938024:web:2108715f92c5dea2da2d1d"});
+        var db=firebase.firestore();
+        function refresh(){var p=document.querySelector('.panel.active');if(p){var id=p.id.replace('page-','');
+          if(id==='dashboard')renderDashboard();if(id==='people')renderPeople();
+          if(id==='requests')renderRequests();if(id==='departments')renderDepartments();
+          if(id==='sickness')renderSickness();if(id==='wallchart')renderWallchart();
+        }}
+        // Lees Firestore data
+        db.collection('platform').doc('personeelbeheer').get().then(function(doc){
+          if(!doc.exists)return;var d=doc.data(),ch=false;
+          if(d.requests){var v=JSON.parse(d.requests);if(JSON.stringify(v)!==JSON.stringify(requests)){requests=v;ch=true;}}
+          if(d.people){var v=JSON.parse(d.people);if(JSON.stringify(v)!==JSON.stringify(people)){people=v;ch=true;}}
+          if(d.departments){var v=JSON.parse(d.departments);if(JSON.stringify(v)!==JSON.stringify(departments)){departments=v;ch=true;}}
+          if(d.leaveTypes){var v=JSON.parse(d.leaveTypes);if(JSON.stringify(v)!==JSON.stringify(leaveTypes)){leaveTypes=v;ch=true;}}
+          if(d.schedules){var v=JSON.parse(d.schedules);if(JSON.stringify(v)!==JSON.stringify(schedules)){schedules=v;ch=true;}}
+          if(ch)refresh();
+        }).catch(function(){});
+        // Real-time listener
+        db.collection('platform').doc('personeelbeheer').onSnapshot(function(doc){
+          if(!doc.exists)return;var d=doc.data(),ch=false;
+          if(d.requests){var v=JSON.parse(d.requests);if(JSON.stringify(v)!==JSON.stringify(requests)){requests=v;ch=true;}}
+          if(d.people){var v=JSON.parse(d.people);if(JSON.stringify(v)!==JSON.stringify(people)){people=v;ch=true;}}
+          if(d.departments){var v=JSON.parse(d.departments);if(JSON.stringify(v)!==JSON.stringify(departments)){departments=v;ch=true;}}
+          if(d.leaveTypes){var v=JSON.parse(d.leaveTypes);if(JSON.stringify(v)!==JSON.stringify(leaveTypes)){leaveTypes=v;ch=true;}}
+          if(ch)refresh();
+        },function(){});
+        // AutoSave override
+        var _orig=autoSave;autoSave=function(){_orig();
+          db.collection('platform').doc('personeelbeheer').set({
+            departments:JSON.stringify(departments),people:JSON.stringify(people),
+            leaveTypes:JSON.stringify(leaveTypes),schedules:JSON.stringify(schedules),
+            requests:JSON.stringify(requests),candidates:JSON.stringify(candidates),
+            channels:JSON.stringify(channels),settings:JSON.stringify(settings),
+            baremaData:JSON.stringify(baremaData),ancienniteitData:JSON.stringify(ancienniteitData),
+            salaryReasonTypes:JSON.stringify(salaryReasonTypes),werkgeverskostData:JSON.stringify(werkgeverskostData),
+            uurkostParams:JSON.stringify(uurkostParams),verlofregels:JSON.stringify(verlofregels),
+            updatedAt:new Date().toISOString()
+          }).catch(function(){});
+        };
+      }catch(e){}
+    });
+  });
+})();
 </script>
 </body>
 </html>

@@ -7,6 +7,16 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#1E3A5F">
 <title>Advanced Energy — Verlof</title>
+<!-- Firebase SDK via cdnjs (alternatief CDN) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-app-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+// Fallback: als cdnjs niet werkt, probeer gstatic
+if(typeof firebase==='undefined'){
+  document.write('<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"><\/script>');
+  document.write('<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"><\/script>');
+}
+</script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -21,113 +31,210 @@ input,textarea,select,button{font-family:inherit}
 </head>
 <body>
 <div id="root"></div>
+<!-- Firebase Init -->
+<script>
+console.log('🔥 Firebase check:', typeof firebase);
+if(typeof firebase!=='undefined'){
+  if(!firebase.apps.length) firebase.initializeApp({
+    apiKey:"AIzaSyBKU-wCjV4Au4ngRG52Zmmxbzc3N3D8VBU",
+    authDomain:"advanced-intranet.firebaseapp.com",
+    projectId:"advanced-intranet",
+    storageBucket:"advanced-intranet.firebasestorage.app",
+    messagingSenderId:"309856938024",
+    appId:"1:309856938024:web:2108715f92c5dea2da2d1d"
+  });
+  window.fsDb=firebase.firestore();
+  console.log('✅ Firebase + Firestore ready');
+} else {
+  console.error('❌ Firebase SDK niet geladen! Check netwerk/CDN.');
+  document.getElementById('root').innerHTML='<div style="padding:40px;text-align:center;color:red;font-family:sans-serif"><h2>Firebase kon niet laden</h2><p>Check je internetverbinding en herlaad de pagina.</p></div>';
+}
+</script>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script type="text/babel">
-const {useState, useEffect, useCallback} = React;
+const {useState, useEffect, useCallback, useRef} = React;
+const fsDb = window.fsDb;
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SYNC DATA
+// FIREBASE SYNC LAYER
 // ═══════════════════════════════════════════════════════════════════════════
 
-const MOCK_SYNC_DATA = {
-  leaveTypes: [
-    { id: "wettelijk", name: "Wettelijk verlof", color: "#3b82f6", symbol: "🏖️", paid: true, tracked: true, defaultDays: 20, category: "verlof" },
-    { id: "adv", name: "ADV", color: "#22c55e", symbol: "📅", paid: true, tracked: true, defaultDays: 12, category: "adv" },
-    { id: "ancienniteit", name: "Anciënniteitsverlof", color: "#10b981", symbol: "🏅", paid: true, tracked: true, defaultDays: 0, category: "verlof" },
-    { id: "onbetaald", name: "Onbetaald verlof", color: "#94a3b8", symbol: "⚪", paid: false, tracked: true, defaultDays: 0, category: "verlof" },
-    { id: "opleiding", name: "Opleiding", color: "#a855f7", symbol: "📚", paid: true, tracked: false, defaultDays: 0, category: "verlof" },
-    { id: "huwelijk", name: "Huwelijk medewerker", color: "#ec4899", symbol: "💒", paid: true, tracked: false, defaultDays: 2, category: "verlof" },
-    { id: "huwelijk-kind", name: "Huwelijk kind", color: "#ec4899", symbol: "💍", paid: true, tracked: false, defaultDays: 1, category: "verlof" },
-    { id: "overlijden-1", name: "Overlijden partner/kind", color: "#374151", symbol: "🕯️", paid: true, tracked: false, defaultDays: 3, category: "verlof" },
-    { id: "overlijden-2", name: "Overlijden ouder/schoonouder", color: "#374151", symbol: "🕯️", paid: true, tracked: false, defaultDays: 3, category: "verlof" },
-    { id: "overlijden-3", name: "Overlijden broer/zus/schoon-", color: "#6b7280", symbol: "🕯️", paid: true, tracked: false, defaultDays: 2, category: "verlof" },
-    { id: "geboorte", name: "Geboorteverlof", color: "#06b6d4", symbol: "👶", paid: true, tracked: false, defaultDays: 20, category: "verlof" },
-    { id: "ouderschaps", name: "Ouderschapsverlof", color: "#0891b2", symbol: "👨‍👩‍👧", paid: false, tracked: false, defaultDays: 0, category: "verlof" },
-    { id: "communie", name: "Plechtige communie kind", color: "#8b5cf6", symbol: "⛪", paid: true, tracked: false, defaultDays: 1, category: "verlof" },
-    { id: "verhuizing", name: "Verhuizing", color: "#f59e0b", symbol: "📦", paid: true, tracked: false, defaultDays: 1, category: "verlof" },
-    { id: "sollicitatie", name: "Sollicitatieverlof", color: "#64748b", symbol: "🤝", paid: true, tracked: false, defaultDays: 0, category: "verlof" },
-    { id: "familiaal", name: "Familiaal verlof", color: "#f472b6", symbol: "👪", paid: false, tracked: false, defaultDays: 0, category: "verlof" },
-    { id: "dokter", name: "Doktersbezoek", color: "#14b8a6", symbol: "🩺", paid: true, tracked: false, defaultDays: 0, category: "verlof" },
-    { id: "juridisch", name: "Juridische verplichting", color: "#78716c", symbol: "⚖️", paid: true, tracked: false, defaultDays: 0, category: "verlof" },
-    { id: "ziekte", name: "Ziekte", color: "#ef4444", symbol: "🤒", paid: true, tracked: false, defaultDays: 0, category: "ziekte" },
-    { id: "arbeidsongeval", name: "Arbeidsongeval", color: "#dc2626", symbol: "🚑", paid: true, tracked: false, defaultDays: 0, category: "ziekte" },
-    { id: "hospitalisatie", name: "Hospitalisatie", color: "#b91c1c", symbol: "🏥", paid: true, tracked: false, defaultDays: 0, category: "ziekte" },
-    { id: "tech-werkloos", name: "Technische werkloosheid", color: "#f97316", symbol: "🏭", paid: false, tracked: false, defaultDays: 0, category: "extern" },
-    { id: "weerverlet", name: "Weerverlet", color: "#0369a1", symbol: "🌧️", paid: false, tracked: false, defaultDays: 0, category: "extern" },
-    { id: "economisch", name: "Economische werkloosheid", color: "#b45309", symbol: "📉", paid: false, tracked: false, defaultDays: 0, category: "extern" },
-    { id: "collectief", name: "Collectieve sluiting", color: "#7c3aed", symbol: "🔒", paid: true, tracked: false, defaultDays: 0, category: "extern" },
-  ],
-  user: {
-    id: "x1", firstName: "Enderson", lastName: "Molla", email: "enderson@advancedenergy.be",
-    departmentId: "dept-install", departmentName: "Installatie", role: "user", statuut: "arbeider",
-    gsm: "+32 467 70 90 49", tel: "", werkGsm: "", scheduleId: "fulltime", startDate: "2020-03-15",
-    noodNaam: "Greet Lemmens", noodRelatie: "vriend(in)", noodGsm: "+32 467 70 90 49",
-    iban: "BE71 0000 1234 5678", birthDate: "1995-08-22", rrn: "95.08.22-123.45",
-  },
-  balances: {
-    2026: { wettelijk: { allowance: 20, used: 6, remaining: 14 }, adv: { allowance: 12, used: 3, remaining: 9 }, ancienniteit: { allowance: 1, used: 0, remaining: 1 }, onbetaald: { allowance: 0, used: 0, remaining: 0 } },
-    2025: { wettelijk: { allowance: 20, used: 20, remaining: 0 }, adv: { allowance: 12, used: 12, remaining: 0 }, ancienniteit: { allowance: 0, used: 0, remaining: 0 }, onbetaald: { allowance: 0, used: 0, remaining: 0 } },
-  },
-  requests: [
-    { id: "r-p1", personId: "x1", type: "adv", startDate: "2026-04-02", endDate: "2026-04-02", halfDay: true, halfDayPeriod: "VM", status: "pending", days: 0.5, comment: "Doktersafspraak", requestDate: "2026-02-20" },
-    { id: "r-a1", personId: "x1", type: "wettelijk", startDate: "2026-03-15", endDate: "2026-03-20", halfDay: false, halfDayPeriod: null, status: "approved", days: 5, comment: "Vakantie", requestDate: "2026-02-10" },
-    { id: "r-a2", personId: "x1", type: "wettelijk", startDate: "2026-02-03", endDate: "2026-02-04", halfDay: false, halfDayPeriod: null, status: "approved", days: 2, comment: "", requestDate: "2026-01-20" },
-    { id: "r-a3", personId: "x1", type: "ziekte", startDate: "2026-01-27", endDate: "2026-01-28", halfDay: false, halfDayPeriod: null, status: "approved", days: 2, comment: "Griep", requestDate: "2026-01-27" },
-    { id: "r-a4", personId: "x1", type: "weerverlet", startDate: "2026-01-22", endDate: "2026-01-22", halfDay: false, halfDayPeriod: null, status: "approved", days: 1, comment: "Vorst op werf", requestDate: "2026-01-22" },
-    { id: "r-a5", personId: "x1", type: "opleiding", startDate: "2026-01-10", endDate: "2026-01-10", halfDay: false, halfDayPeriod: null, status: "approved", days: 1, comment: "Daikin training", requestDate: "2026-01-08" },
-    { id: "r-a6", personId: "x1", type: "adv", startDate: "2026-01-06", endDate: "2026-01-06", halfDay: false, halfDayPeriod: null, status: "approved", days: 1, comment: "", requestDate: "2026-01-02" },
-    { id: "r-r1", personId: "x1", type: "wettelijk", startDate: "2026-01-15", endDate: "2026-01-17", halfDay: false, halfDayPeriod: null, status: "rejected", days: 3, comment: "", rejectReason: "Te veel collega's afwezig", requestDate: "2026-01-05" },
-  ],
-  requestsPreviousYear: [
-    { id: "r-25a", personId: "x1", type: "wettelijk", startDate: "2025-12-18", endDate: "2025-12-19", halfDay: false, halfDayPeriod: null, status: "approved", days: 2, comment: "", requestDate: "2025-12-01" },
-    { id: "r-25b", personId: "x1", type: "weerverlet", startDate: "2025-12-18", endDate: "2025-12-18", halfDay: false, halfDayPeriod: null, status: "approved", days: 1, comment: "", requestDate: "2025-12-18" },
-    { id: "r-25c", personId: "x1", type: "onbetaald", startDate: "2025-12-02", endDate: "2025-12-02", halfDay: false, halfDayPeriod: null, status: "approved", days: 1, comment: "", requestDate: "2025-12-01" },
-    { id: "r-25d", personId: "x1", type: "wettelijk", startDate: "2025-11-11", endDate: "2025-11-14", halfDay: false, halfDayPeriod: null, status: "approved", days: 4, comment: "", requestDate: "2025-10-25" },
-    { id: "r-25e", personId: "x1", type: "ziekte", startDate: "2025-10-06", endDate: "2025-10-08", halfDay: false, halfDayPeriod: null, status: "approved", days: 3, comment: "", requestDate: "2025-10-06" },
-    { id: "r-25f", personId: "x1", type: "wettelijk", startDate: "2025-08-04", endDate: "2025-08-15", halfDay: false, halfDayPeriod: null, status: "approved", days: 10, comment: "Zomervakantie", requestDate: "2025-06-20" },
-    { id: "r-25g", personId: "x1", type: "weerverlet", startDate: "2025-07-15", endDate: "2025-07-15", halfDay: false, halfDayPeriod: null, status: "approved", days: 1, comment: "", requestDate: "2025-07-15" },
-    { id: "r-25h", personId: "x1", type: "opleiding", startDate: "2025-06-10", endDate: "2025-06-11", halfDay: false, halfDayPeriod: null, status: "approved", days: 2, comment: "Plenion opleiding", requestDate: "2025-05-28" },
-    { id: "r-25i", personId: "x1", type: "adv", startDate: "2025-04-18", endDate: "2025-04-18", halfDay: true, halfDayPeriod: "VM", status: "approved", days: 0.5, comment: "", requestDate: "2025-04-10" },
-    { id: "r-25j", personId: "x1", type: "wettelijk", startDate: "2025-02-24", endDate: "2025-02-28", halfDay: false, halfDayPeriod: null, status: "approved", days: 5, comment: "Krokusvakantie", requestDate: "2025-02-05" },
-    { id: "r-25r1", personId: "x1", type: "wettelijk", startDate: "2025-12-24", endDate: "2025-12-31", halfDay: false, halfDayPeriod: null, status: "rejected", days: 6, comment: "", rejectReason: "Kerstperiode volzet", requestDate: "2025-11-20" },
-    { id: "r-25r2", personId: "x1", type: "wettelijk", startDate: "2025-07-21", endDate: "2025-07-25", halfDay: false, halfDayPeriod: null, status: "rejected", days: 5, comment: "", rejectReason: "Te veel overlapping met team", requestDate: "2025-06-15" },
-  ],
-  team: [
-    { id: "x2", firstName: "Jarno", lastName: "Vranckx", departmentId: "dept-install", departmentName: "Installatie" },
-    { id: "x3", firstName: "Rens", lastName: "Deschryver", departmentId: "dept-install", departmentName: "Installatie" },
-    { id: "x4", firstName: "Gaëtan", lastName: "Bosmans", departmentId: "dept-install", departmentName: "Installatie" },
-    { id: "x10", firstName: "Kinza", lastName: "Janssens", departmentId: "dept-install", departmentName: "Installatie" },
-    { id: "x11", firstName: "Kenji", lastName: "Van Hees", departmentId: "dept-install", departmentName: "Installatie" },
-  ],
-  teamAbsences: [
-    { personId: "x2", firstName: "Jarno", lastName: "Vranckx", type: "wettelijk", startDate: "2026-02-24", endDate: "2026-02-26" },
-    { personId: "x3", firstName: "Rens", lastName: "Deschryver", type: "ziekte", startDate: "2026-02-25", endDate: "2026-02-25" },
-    { personId: "x10", firstName: "Kinza", lastName: "Janssens", type: "opleiding", startDate: "2026-02-25", endDate: "2026-02-27" },
-    { personId: "x4", firstName: "Gaëtan", lastName: "Bosmans", type: "wettelijk", startDate: "2026-02-28", endDate: "2026-03-04" },
-    { personId: "x11", firstName: "Kenji", lastName: "Van Hees", type: "adv", startDate: "2026-03-01", endDate: "2026-03-01" },
-  ],
-  notifications: [
-    { id: 1, type: "approved", message: "Wettelijk verlof 15-20 maart goedgekeurd", time: "2 uur geleden", read: false },
-    { id: 2, type: "info", message: "Jarno Vranckx is afwezig vandaag", time: "Vandaag 08:00", read: false },
-    { id: 3, type: "rejected", message: "Verlof 15-17 jan afgewezen: te veel collega's afwezig", time: "Gisteren", read: true },
-    { id: 4, type: "change", message: "Teamrooster maart bijgewerkt", time: "3 dagen geleden", read: true },
-  ],
-  lastSync: "2026-02-25T09:15:00",
+// Voorlopig hardcoded user ID — wordt later vervangen door Firebase Auth
+const CURRENT_USER_ID = null; // auto-detect eerste persoon, of stel in op specifiek id
+
+const EMPTY_SYNC_DATA = {
+  leaveTypes: [], user: null, balances: {}, requests: [], requestsPreviousYear: [],
+  team: [], teamAbsences: [], notifications: [], lastSync: null
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
-// SYNC LAYER
-// ═══════════════════════════════════════════════════════════════════════════
+// Bereken saldo's op basis van personeelbeheer logica
+function calcBalances(person, leaveTypes, requests) {
+  const currentYear = new Date().getFullYear();
+  const prevYear = currentYear - 1;
+  const balances = {};
+
+  [currentYear, prevYear].forEach(year => {
+    balances[year] = {};
+    leaveTypes.filter(t => t.tracked).forEach(t => {
+      let allowance = t.defaultDays || 0;
+      if (person.allowanceAdjustments) {
+        person.allowanceAdjustments.forEach(a => {
+          if (a.typeId === t.id) allowance += a.days;
+        });
+      }
+      const used = requests
+        .filter(r => r.personId === person.id && r.type === t.id &&
+          (r.status === 'approved' || r.type === 'ziekte') &&
+          new Date(r.startDate).getFullYear() === year)
+        .reduce((sum, r) => sum + (r.halfDay ? 0.5 : (r.days || 0)), 0);
+      balances[year][t.id] = { allowance, used, remaining: allowance - used };
+    });
+  });
+  return balances;
+}
+
+// Bouw syncData op uit Firestore personeelbeheer document
+function buildSyncData(people, departments, leaveTypes, allRequests, person) {
+  if (!person) return EMPTY_SYNC_DATA;
+
+  const dept = departments.find(d => d.id === person.departmentId);
+  const currentYear = new Date().getFullYear();
+  const prevYear = currentYear - 1;
+
+  // Eigen requests splitsen per jaar
+  const myRequests = allRequests.filter(r => r.personId === person.id);
+  const requestsCurrent = myRequests.filter(r => new Date(r.startDate).getFullYear() === currentYear);
+  const requestsPrev = myRequests.filter(r => new Date(r.startDate).getFullYear() === prevYear);
+
+  // Team = zelfde department
+  const team = people.filter(p => p.id !== person.id && p.departmentId === person.departmentId)
+    .map(p => ({ id: p.id, firstName: p.firstName, lastName: p.lastName, departmentId: p.departmentId, departmentName: dept ? dept.name : '' }));
+
+  // Team absences = goedgekeurde/pending requests van teamleden rond vandaag
+  const today = new Date();
+  const twoWeeksAgo = new Date(today); twoWeeksAgo.setDate(today.getDate() - 7);
+  const twoWeeksAhead = new Date(today); twoWeeksAhead.setDate(today.getDate() + 14);
+  const teamAbsences = [];
+  team.forEach(t => {
+    allRequests.filter(r => r.personId === t.id && (r.status === 'approved' || r.status === 'pending') &&
+      new Date(r.endDate) >= twoWeeksAgo && new Date(r.startDate) <= twoWeeksAhead)
+      .forEach(r => {
+        teamAbsences.push({ personId: t.id, firstName: t.firstName, lastName: t.lastName, type: r.type, startDate: r.startDate, endDate: r.endDate });
+      });
+  });
+
+  const balances = calcBalances(person, leaveTypes, allRequests);
+
+  return {
+    leaveTypes,
+    user: {
+      id: person.id, firstName: person.firstName, lastName: person.lastName,
+      email: person.email || '', departmentId: person.departmentId,
+      departmentName: dept ? dept.name : '', role: 'user',
+      statuut: person.statuut || 'arbeider',
+      gsm: person.gsm || '', tel: person.tel || '', werkGsm: person.werkGsm || '',
+      scheduleId: person.scheduleId || 'fulltime', startDate: person.startDate || '',
+      noodNaam: person.noodNaam || '', noodRelatie: person.noodRelatie || '', noodGsm: person.noodGsm || '',
+      iban: person.iban || '', birthDate: person.birthDate || '', rrn: person.rrn || '',
+    },
+    balances,
+    requests: requestsCurrent.sort((a, b) => new Date(b.requestDate || b.startDate) - new Date(a.requestDate || a.startDate)),
+    requestsPreviousYear: requestsPrev.sort((a, b) => new Date(b.requestDate || b.startDate) - new Date(a.requestDate || a.startDate)),
+    team, teamAbsences,
+    notifications: [],
+    lastSync: new Date().toISOString()
+  };
+}
 
 function useSyncData() {
-  const [syncData, setSyncData] = useState(MOCK_SYNC_DATA);
-  const [syncing, setSyncing] = useState(false);
-  const refreshSync = useCallback(async () => { setSyncing(true); await new Promise(r => setTimeout(r, 800)); setSyncing(false); }, []);
-  const submitRequest = useCallback(async (request) => { setSyncData(prev => ({ ...prev, requests: [request, ...prev.requests] })); return { success: true }; }, []);
-  const cancelRequest = useCallback(async (requestId) => { setSyncData(prev => ({ ...prev, requests: prev.requests.filter(r => r.id !== requestId) })); return { success: true }; }, []);
-  return { syncData, syncing, refreshSync, submitRequest, cancelRequest };
+  const [syncData, setSyncData] = useState(EMPTY_SYNC_DATA);
+  const [syncing, setSyncing] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const rawRef = useRef({ people: [], departments: [], leaveTypes: [], requests: [], person: null });
+
+  const loadFromFirestore = useCallback(async () => {
+    setSyncing(true);
+    try {
+      const doc = await fsDb.collection('platform').doc('personeelbeheer').get();
+      if (!doc.exists) { setError('Geen personeelbeheer data gevonden in Firestore'); setSyncing(false); setLoading(false); return; }
+      const data = doc.data();
+      const people = data.people ? JSON.parse(data.people) : [];
+      const departments = data.departments ? JSON.parse(data.departments) : [];
+      const leaveTypes = data.leaveTypes ? JSON.parse(data.leaveTypes) : [];
+      const requests = data.requests ? JSON.parse(data.requests) : [];
+
+      // Zoek huidige gebruiker — later via Firebase Auth
+      let person = null;
+      if (CURRENT_USER_ID) {
+        person = people.find(p => p.id === CURRENT_USER_ID);
+      } else {
+        // Auto-detect: neem eerste actieve persoon
+        person = people.find(p => p.active !== false) || people[0];
+      }
+
+      rawRef.current = { people, departments, leaveTypes, requests, person };
+      const sd = buildSyncData(people, departments, leaveTypes, requests, person);
+      setSyncData(sd);
+      setError(null);
+      console.log('✅ Remote app: data geladen van Firestore', person ? `(${person.firstName} ${person.lastName})` : '');
+    } catch (e) {
+      console.error('Remote Firestore load error', e);
+      setError('Kan niet verbinden met Firestore: ' + e.message);
+    }
+    setSyncing(false);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { loadFromFirestore(); }, [loadFromFirestore]);
+
+  const refreshSync = useCallback(async () => { await loadFromFirestore(); }, [loadFromFirestore]);
+
+  const submitRequest = useCallback(async (request) => {
+    try {
+      const { people, departments, leaveTypes, requests, person } = rawRef.current;
+      // Voeg request toe
+      const newRequest = { ...request, id: 'r-' + Date.now().toString(36), personId: person.id, status: 'pending', requestDate: new Date().toISOString().split('T')[0] };
+      const updatedRequests = [newRequest, ...requests];
+      // Schrijf naar Firestore
+      await fsDb.collection('platform').doc('personeelbeheer').update({
+        requests: JSON.stringify(updatedRequests),
+        updatedAt: new Date().toISOString()
+      });
+      // Update lokale state
+      rawRef.current.requests = updatedRequests;
+      const sd = buildSyncData(people, departments, leaveTypes, updatedRequests, person);
+      setSyncData(sd);
+      console.log('✅ Remote: aanvraag opgeslagen in Firestore');
+      return { success: true };
+    } catch (e) {
+      console.error('Submit request error', e);
+      return { success: false, error: e.message };
+    }
+  }, []);
+
+  const cancelRequest = useCallback(async (requestId) => {
+    try {
+      const { people, departments, leaveTypes, requests, person } = rawRef.current;
+      const updatedRequests = requests.filter(r => r.id !== requestId);
+      await fsDb.collection('platform').doc('personeelbeheer').update({
+        requests: JSON.stringify(updatedRequests),
+        updatedAt: new Date().toISOString()
+      });
+      rawRef.current.requests = updatedRequests;
+      const sd = buildSyncData(people, departments, leaveTypes, updatedRequests, person);
+      setSyncData(sd);
+      console.log('✅ Remote: aanvraag geannuleerd in Firestore');
+      return { success: true };
+    } catch (e) {
+      console.error('Cancel request error', e);
+      return { success: false, error: e.message };
+    }
+  }, []);
+
+  return { syncData, syncing, loading, error, refreshSync, submitRequest, cancelRequest };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -613,13 +720,41 @@ function Toast({message, visible}) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function App() {
-  const {syncData, syncing, refreshSync, submitRequest, cancelRequest} = useSyncData();
+  const {syncData, syncing, loading, error, refreshSync, submitRequest, cancelRequest} = useSyncData();
   const [screen, setScreen] = useState("home");
   const [showNewRequest, setShowNewRequest] = useState(false);
-  const [notifications, setNotifications] = useState(syncData.notifications);
+  const [notifications, setNotifications] = useState([]);
   const [toast, setToast] = useState({message:"",visible:false});
 
+  // Update notifications wanneer syncData verandert
+  useEffect(() => {
+    if(syncData.notifications && syncData.notifications.length) setNotifications(syncData.notifications);
+  }, [syncData.notifications]);
+
   const showToast = useCallback((msg) => { setToast({message:msg,visible:true}); setTimeout(() => setToast(t=>({...t,visible:false})),2500); }, []);
+
+  // Loading screen
+  if (loading) {
+    return (
+      <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100vh",gap:16,background:"linear-gradient(135deg,#1E3A5F 0%,#2D5A87 100%)"}}>
+        <div style={{fontSize:40}}>⏳</div>
+        <div style={{color:"#fff",fontSize:16,fontWeight:600}}>Data laden...</div>
+        <div style={{color:"rgba(255,255,255,0.6)",fontSize:13}}>Verbinden met Firestore</div>
+      </div>
+    );
+  }
+
+  // Error screen
+  if (error || !syncData.user) {
+    return (
+      <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100vh",gap:16,padding:32,textAlign:"center"}}>
+        <div style={{fontSize:40}}>⚠️</div>
+        <div style={{fontSize:16,fontWeight:600,color:"#1F2937"}}>{error || "Geen gebruiker gevonden"}</div>
+        <div style={{fontSize:13,color:"#6B7280"}}>Zorg ervoor dat personeelbeheer minstens één keer is geladen zodat de data in Firestore beschikbaar is.</div>
+        <button onClick={refreshSync} style={{marginTop:8,padding:"10px 24px",background:"#1E3A5F",color:"#fff",border:"none",borderRadius:10,fontSize:14,fontWeight:600,cursor:"pointer"}}>Opnieuw proberen</button>
+      </div>
+    );
+  }
 
   const handleSubmitRequest = async (req) => {
     const result = await submitRequest(req);

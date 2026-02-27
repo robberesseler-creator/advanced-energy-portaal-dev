@@ -651,7 +651,7 @@ function autoSave(){
     localStorage.setItem('fb_mutations',JSON.stringify(mutations));
     localStorage.setItem('fb_settings',JSON.stringify(settings));
     // Firestore sync
-    fsDb.collection('platform').doc('fleetbeheer').set({
+    if(typeof fsDb!=='undefined') fsDb.collection('platform').doc('fleetbeheer').set({
       vehicles:JSON.stringify(vehicles),
       vehicleTypes:JSON.stringify(vehicleTypes),
       damageTypes:JSON.stringify(damageTypes),
@@ -669,23 +669,25 @@ function autoSave(){
 
 async function restore(){
   let fromFirestore=false;
-  try{
-    const doc=await fsDb.collection('platform').doc('fleetbeheer').get();
-    if(doc.exists){
-      const data=doc.data();
-      if(data.vehicles)vehicles=JSON.parse(data.vehicles);
-      if(data.vehicleTypes)vehicleTypes=JSON.parse(data.vehicleTypes);
-      if(data.damageTypes)damageTypes=JSON.parse(data.damageTypes);
-      if(data.fineTypes)fineTypes=JSON.parse(data.fineTypes);
-      if(data.damages)damages=JSON.parse(data.damages);
-      if(data.fines)fines=JSON.parse(data.fines);
-      if(data.documents)documents=JSON.parse(data.documents);
-      if(data.mutations)mutations=JSON.parse(data.mutations);
-      if(data.settings)Object.assign(settings,JSON.parse(data.settings));
-      fromFirestore=true;
-      console.log('✅ Fleetbeheer geladen van Firestore');
-    }
-  }catch(e){console.warn('Firestore read failed, fallback localStorage',e);}
+  if(typeof fsDb!=='undefined'){
+    try{
+      const doc=await fsDb.collection('platform').doc('fleetbeheer').get();
+      if(doc.exists){
+        const data=doc.data();
+        if(data.vehicles)vehicles=JSON.parse(data.vehicles);
+        if(data.vehicleTypes)vehicleTypes=JSON.parse(data.vehicleTypes);
+        if(data.damageTypes)damageTypes=JSON.parse(data.damageTypes);
+        if(data.fineTypes)fineTypes=JSON.parse(data.fineTypes);
+        if(data.damages)damages=JSON.parse(data.damages);
+        if(data.fines)fines=JSON.parse(data.fines);
+        if(data.documents)documents=JSON.parse(data.documents);
+        if(data.mutations)mutations=JSON.parse(data.mutations);
+        if(data.settings)Object.assign(settings,JSON.parse(data.settings));
+        fromFirestore=true;
+        console.log('✅ Fleetbeheer geladen van Firestore');
+      }
+    }catch(e){console.warn('Firestore read failed, fallback localStorage',e);}
+  }
   if(!fromFirestore){
     try{
       const v=localStorage.getItem('fb_vehicles');if(v)vehicles=JSON.parse(v);
@@ -712,7 +714,7 @@ async function resetData(){
   settings={alertDays:30};
   await restore();
   // Wis ook Firestore
-  fsDb.collection('platform').doc('fleetbeheer').delete().catch(e=>console.warn(e));
+  if(typeof fsDb!=='undefined') fsDb.collection('platform').doc('fleetbeheer').delete().catch(e=>console.warn(e));
   autoSave();
   showPage('dashboard');
   showToast('Data gereset naar standaardwaarden','success');
@@ -735,6 +737,7 @@ function getDepartments(){
 }
 // Async: Haal people/departments van Firestore en cache lokaal
 async function syncPeopleFromFirestore(){
+  if(typeof fsDb==='undefined')return;
   try{
     const doc=await fsDb.collection('platform').doc('personeelbeheer').get();
     if(doc.exists){

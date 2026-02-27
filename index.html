@@ -99,7 +99,7 @@ input,select,textarea{font-family:inherit;font-size:13px;}
   display:flex;flex-direction:column;overflow:hidden;}
 
 /* Module iframe */
-.module-frame{width:100%;height:100%;border:3px solid red;display:none;flex-shrink:0;}
+.module-frame{width:100%;height:100%;border:none;display:none;flex-shrink:0;}
 .module-frame.active{display:block;}
 
 /* Internal pages (dashboard, admin) */
@@ -471,25 +471,27 @@ function autoSave(){
     // Lokale backup
     localStorage.setItem('sh_users',JSON.stringify(users));
     // Firestore sync
-    fsDb.collection('platform').doc('shell_users').set({
+    if(typeof fsDb!=="undefined") fsDb.collection('platform').doc('shell_users').set({
       users:JSON.stringify(users),
       updatedAt:new Date().toISOString()
     }).catch(e=>console.error('Firestore save error',e));
   }catch(e){}
 }
 async function restore(){
-  try{
-    // Probeer eerst Firestore
-    const doc=await fsDb.collection('platform').doc('shell_users').get();
-    if(doc.exists&&doc.data().users){
-      users=JSON.parse(doc.data().users);
-      console.log('✅ Shell users geladen van Firestore');
-    }else{
-      // Fallback naar localStorage
-      const u=localStorage.getItem('sh_users');if(u)users=JSON.parse(u);
+  let fromFirestore=false;
+  if(typeof fsDb!=='undefined'){
+    try{
+      const doc=await fsDb.collection('platform').doc('shell_users').get();
+      if(doc.exists&&doc.data().users){
+        users=JSON.parse(doc.data().users);
+        fromFirestore=true;
+        console.log('✅ Shell users geladen van Firestore');
+      }
+    }catch(e){
+      console.warn('Firestore read failed, fallback naar localStorage',e);
     }
-  }catch(e){
-    console.warn('Firestore read failed, fallback naar localStorage',e);
+  }
+  if(!fromFirestore){
     try{const u=localStorage.getItem('sh_users');if(u)users=JSON.parse(u);}catch(e2){}
   }
   if(!users.length)users=JSON.parse(JSON.stringify(DEFAULT_USERS));
@@ -1027,7 +1029,7 @@ function addAuditEntry(action,detail){
     if(log.length>200)log=log.slice(0,200);
     localStorage.setItem('sh_audit',JSON.stringify(log));
     // Firestore sync
-    fsDb.collection('platform').doc('shell_audit').set({
+    if(typeof fsDb!=="undefined") fsDb.collection('platform').doc('shell_audit').set({
       log:JSON.stringify(log),
       updatedAt:new Date().toISOString()
     }).catch(e=>console.error('Audit save error',e));
@@ -1040,14 +1042,16 @@ function getAuditLog(){
 }
 
 async function loadAuditFromFirestore(){
-  try{
-    const doc=await fsDb.collection('platform').doc('shell_audit').get();
-    if(doc.exists&&doc.data().log){
-      const log=JSON.parse(doc.data().log);
-      localStorage.setItem('sh_audit',JSON.stringify(log));
-      return log;
-    }
-  }catch(e){console.warn('Audit Firestore load failed',e);}
+  if(typeof fsDb!=='undefined'){
+    try{
+      const doc=await fsDb.collection('platform').doc('shell_audit').get();
+      if(doc.exists&&doc.data().log){
+        const log=JSON.parse(doc.data().log);
+        localStorage.setItem('sh_audit',JSON.stringify(log));
+        return log;
+      }
+    }catch(e){console.warn('Audit Firestore load failed',e);}
+  }
   return getAuditLog();
 }
 
