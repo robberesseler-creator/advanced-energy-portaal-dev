@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wallchart — Personeelbeheer</title>
+<style>
+:root{--bg:#f1f5f9;--card:#fff;--border:#e2e8f0;--text1:#0f172a;--text2:#475569;--text3:#94a3b8;--accent:#3b82f6;--radius:10px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text1)}
+.header{background:var(--card);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
+.header h1{font-size:18px;font-weight:700}
+.nav{display:flex;gap:6px;align-items:center}
+.nav button{padding:6px 14px;border:1px solid var(--border);border-radius:7px;background:var(--card);font-size:12px;font-weight:600;cursor:pointer;color:var(--text2)}
+.nav button:hover{background:#f8fafc}
+.month-label{font-weight:700;font-size:14px;min-width:140px;text-align:center}
+.chart{padding:16px 24px;overflow-x:auto}
+.chart-card{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden}
+table{border-collapse:collapse;width:100%;min-width:900px}
+th,td{padding:0;text-align:center;font-size:11px}
+th{padding:6px 2px;color:var(--text3);font-weight:600;border-bottom:1px solid var(--border)}
+th.weekend{background:#fef2f2}
+th.today{background:#eff6ff;color:var(--accent);font-weight:700}
+td.name-cell{text-align:left;padding:6px 10px;font-weight:600;font-size:12px;white-space:nowrap;border-right:1px solid var(--border);position:sticky;left:0;background:var(--card);z-index:1}
+td.day-cell{width:28px;min-width:28px;height:32px;padding:2px;border-right:1px solid #f1f5f9;border-bottom:1px solid #f1f5f9}
+td.weekend{background:#fafafa}
+td.today-col{background:#eff6ff22}
+.block{width:100%;height:24px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff}
+.legend{padding:12px 24px;display:flex;gap:14px;flex-wrap:wrap;font-size:11px}
+.legend-item{display:flex;align-items:center;gap:4px}
+.legend-dot{width:12px;height:12px;border-radius:3px}
+.loading{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.dept-header td{background:#f8fafc;padding:6px 10px;font-weight:700;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)}
+</style>
+</head>
+<body>
+<div id="app"><div class="loading"><div class="spinner"></div><p style="color:#64748b;font-size:14px;margin-top:16px">Laden...</p></div></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+firebase.initializeApp({apiKey:"AIzaSyBKU-wCjV4Au4ngRG52Zmmxbzc3N3D8VBU",authDomain:"advanced-intranet.firebaseapp.com",projectId:"advanced-intranet",storageBucket:"advanced-intranet.firebasestorage.app",messagingSenderId:"309856938024",appId:"1:309856938024:web:2108715f92c5dea2da2d1d"});
+var db=firebase.firestore();
+var people=[],departments=[],leaveTypes=[],requests=[];
+var viewDate=new Date();
+
+var COLORS=["#3b82f6","#22c55e","#a855f7","#ef4444","#eab308","#ec4899","#06b6d4","#f97316"];
+function ac(n){var h=0;for(var i=0;i<n.length;i++)h=n.charCodeAt(i)+((h<<5)-h);return COLORS[Math.abs(h)%COLORS.length]}
+function gN(id){var p=people.find(function(x){return x.id===id});return p?p.firstName+' '+p.lastName:'?'}
+function gT(id){return leaveTypes.find(function(t){return t.id===id})||{name:id,symbol:'📋',color:'#94a3b8'}}
+
+var BE_HOLIDAYS=['2026-01-01','2026-04-06','2026-05-01','2026-05-14','2026-05-25','2026-07-21','2026-07-11','2026-08-15','2026-11-01','2026-11-11','2026-12-25'];
+
+function render(){
+  var year=viewDate.getFullYear(),month=viewDate.getMonth();
+  var daysInMonth=new Date(year,month+1,0).getDate();
+  var todayStr=new Date().toISOString().split('T')[0];
+  var monthNames=['Januari','Februari','Maart','April','Mei','Juni','Juli','Augustus','September','Oktober','November','December'];
+  var dayNames=['zo','ma','di','wo','do','vr','za'];
+
+  // Group people by department
+  var activePeople=people.filter(function(p){return !p.archived});
+  var grouped={};
+  departments.forEach(function(d){grouped[d.id]={name:d.name,people:[]};});
+  activePeople.forEach(function(p){
+    if(grouped[p.departmentId])grouped[p.departmentId].people.push(p);
+  });
+
+  var h='<div class="header"><h1>🗓 Wallchart</h1><div class="nav">';
+  h+='<button onclick="prevMonth()">◀</button>';
+  h+='<div class="month-label">'+monthNames[month]+' '+year+'</div>';
+  h+='<button onclick="nextMonth()">▶</button>';
+  h+='<button onclick="goToday()" style="margin-left:8px">Vandaag</button>';
+  h+='</div></div>';
+
+  // Legend
+  h+='<div class="legend">';
+  leaveTypes.filter(function(t){return t.id!=='ziekte'}).slice(0,6).forEach(function(t){
+    h+='<div class="legend-item"><div class="legend-dot" style="background:'+t.color+'"></div>'+t.symbol+' '+t.name+'</div>';
+  });
+  h+='<div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>🤒 Ziekte</div>';
+  h+='</div>';
+
+  h+='<div class="chart"><div class="chart-card"><table>';
+  // Header row with days
+  h+='<thead><tr><th style="text-align:left;padding:6px 10px;min-width:140px">Medewerker</th>';
+  for(var d=1;d<=daysInMonth;d++){
+    var dt=new Date(year,month,d);
+    var dStr=dt.toISOString().split('T')[0];
+    var dow=dt.getDay();
+    var isWeekend=dow===0||dow===6;
+    var isToday=dStr===todayStr;
+    h+='<th class="'+(isWeekend?'weekend ':'')+(isToday?'today':'')+'">'+dayNames[dow]+'<br>'+d+'</th>';
+  }
+  h+='</tr></thead><tbody>';
+
+  // Rows per department
+  Object.keys(grouped).forEach(function(deptId){
+    var dept=grouped[deptId];
+    if(dept.people.length===0)return;
+    h+='<tr class="dept-header"><td colspan="'+(daysInMonth+1)+'">'+dept.name+' ('+dept.people.length+')</td></tr>';
+    dept.people.forEach(function(p){
+      var name=p.firstName+' '+p.lastName;
+      h+='<tr><td class="name-cell">'+name+'</td>';
+      for(var d=1;d<=daysInMonth;d++){
+        var dt=new Date(year,month,d);
+        var dStr=dt.toISOString().split('T')[0];
+        var dow=dt.getDay();
+        var isWeekend=dow===0||dow===6;
+        var isToday=dStr===todayStr;
+        var isHoliday=BE_HOLIDAYS.indexOf(dStr)!==-1;
+        // Find request for this person on this day
+        var req=requests.find(function(r){return r.personId===p.id&&r.status==='approved'&&r.startDate<=dStr&&r.endDate>=dStr});
+        var cls='day-cell'+(isWeekend?' weekend':'')+(isToday?' today-col':'');
+        if(isHoliday){
+          h+='<td class="'+cls+'"><div class="block" style="background:#94a3b8">🇧🇪</div></td>';
+        }else if(req){
+          var t=gT(req.type);
+          h+='<td class="'+cls+'"><div class="block" style="background:'+(req.type==='ziekte'?'#ef4444':t.color)+'" title="'+t.name+'">'+t.symbol+'</div></td>';
+        }else{
+          h+='<td class="'+cls+'"></td>';
+        }
+      }
+      h+='</tr>';
+    });
+  });
+
+  h+='</tbody></table></div></div>';
+  document.getElementById('app').innerHTML=h;
+}
+
+function prevMonth(){viewDate.setMonth(viewDate.getMonth()-1);render()}
+function nextMonth(){viewDate.setMonth(viewDate.getMonth()+1);render()}
+function goToday(){viewDate=new Date();render()}
+
+db.collection('platform').doc('personeelbeheer').onSnapshot(function(doc){
+  if(!doc.exists)return;var d=doc.data();
+  if(d.people)people=JSON.parse(d.people);
+  if(d.departments)departments=JSON.parse(d.departments);
+  if(d.leaveTypes)leaveTypes=JSON.parse(d.leaveTypes);
+  if(d.requests)requests=JSON.parse(d.requests);
+  render();
+});
+</script>
+</body>
+</html>
