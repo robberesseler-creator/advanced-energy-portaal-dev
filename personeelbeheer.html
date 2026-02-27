@@ -220,34 +220,34 @@ select.form-input{cursor:pointer;}
   </div>
   <div class="sb-nav">
     <div class="sb-section">Overzicht</div>
-    <button class="sb-item active" data-page="dashboard" onclick="showPage('dashboard')">
+    <button class="sb-item active" data-page="dashboard" onclick="try{showPage('dashboard')}catch(e){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});document.getElementById('page-dashboard').classList.add('active');document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active')});this.classList.add('active')}">
       <span class="sb-item-icon">📊</span>Dashboard
     </button>
-    <button class="sb-item" data-page="wallchart" onclick="showPage('wallchart')">
+    <button class="sb-item" data-page="wallchart" onclick="try{showPage('wallchart')}catch(e){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});document.getElementById('page-wallchart').classList.add('active');document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active')});this.classList.add('active')}">
       <span class="sb-item-icon">🗓</span>Wallchart
     </button>
     <div class="sb-section">Beheer</div>
-    <button class="sb-item" data-page="requests" onclick="showPage('requests')">
+    <button class="sb-item" data-page="requests" onclick="try{showPage('requests')}catch(e){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});document.getElementById('page-requests').classList.add('active');document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active')});this.classList.add('active')}">
       <span class="sb-item-icon">📥</span>Aanvragen
       <span class="sb-item-badge" id="badge-requests" style="display:none">0</span>
     </button>
-    <button class="sb-item" data-page="people" onclick="showPage('people')">
+    <button class="sb-item" data-page="people" onclick="try{showPage('people')}catch(e){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});document.getElementById('page-people').classList.add('active');document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active')});this.classList.add('active')}">
       <span class="sb-item-icon">👥</span>Medewerkers
     </button>
-    <button class="sb-item" data-page="departments" onclick="showPage('departments')">
+    <button class="sb-item" data-page="departments" onclick="try{showPage('departments')}catch(e){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});document.getElementById('page-departments').classList.add('active');document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active')});this.classList.add('active')}">
       <span class="sb-item-icon">📂</span>Departments
     </button>
-    <button class="sb-item" data-page="sickness" onclick="showPage('sickness')">
+    <button class="sb-item" data-page="sickness" onclick="try{showPage('sickness')}catch(e){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});document.getElementById('page-sickness').classList.add('active');document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active')});this.classList.add('active')}">
       <span class="sb-item-icon">🤒</span>Ziekte
     </button>
     <div class="sb-section">Configuratie</div>
-    <button class="sb-item" data-page="types" onclick="showPage('types')">
+    <button class="sb-item" data-page="types" onclick="try{showPage('types')}catch(e){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});document.getElementById('page-types').classList.add('active');document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active')});this.classList.add('active')}">
       <span class="sb-item-icon">🏷️</span>Afwezigheidstypes
     </button>
-    <button class="sb-item" data-page="settings" onclick="showPage('settings')">
+    <button class="sb-item" data-page="settings" onclick="try{showPage('settings')}catch(e){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});document.getElementById('page-settings').classList.add('active');document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active')});this.classList.add('active')}">
       <span class="sb-item-icon">⚙️</span>Instellingen
     </button>
-    <button class="sb-item" data-page="reports" onclick="showPage('reports')">
+    <button class="sb-item" data-page="reports" onclick="try{showPage('reports')}catch(e){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});document.getElementById('page-reports').classList.add('active');document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active')});this.classList.add('active')}">
       <span class="sb-item-icon">📈</span>Rapportage
     </button>
   </div>
@@ -258,6 +258,37 @@ select.form-input{cursor:pointer;}
     </div>
   </div>
 </nav>
+
+<!-- Navigatie via event delegation - werkt altijd, onafhankelijk van andere scripts -->
+<script>
+document.addEventListener('click',function(e){
+  var btn=e.target.closest('.sb-item[data-page]');
+  if(!btn)return;
+  var page=btn.getAttribute('data-page');
+  if(!page)return;
+  // Toggle panels
+  var panels=document.querySelectorAll('.panel');
+  for(var i=0;i<panels.length;i++)panels[i].classList.remove('active');
+  var target=document.getElementById('page-'+page);
+  if(target)target.classList.add('active');
+  // Toggle sidebar active state
+  var items=document.querySelectorAll('.sb-item');
+  for(var i=0;i<items.length;i++)items[i].classList.remove('active');
+  btn.classList.add('active');
+  // Try to call render functions if available
+  try{
+    if(page==='dashboard'&&typeof renderDashboard==='function')renderDashboard();
+    if(page==='requests'&&typeof renderRequests==='function')renderRequests();
+    if(page==='people'&&typeof renderPeople==='function')renderPeople();
+    if(page==='departments'&&typeof renderDepartments==='function')renderDepartments();
+    if(page==='sickness'&&typeof renderSickness==='function')renderSickness();
+    if(page==='wallchart'&&typeof renderWallchart==='function')renderWallchart();
+    if(page==='types'&&typeof renderTypes==='function')renderTypes();
+    if(page==='settings'&&typeof renderSettings==='function')renderSettings();
+    if(page==='reports'&&typeof renderReports==='function')renderReports();
+  }catch(ex){}
+});
+</script>
 
 <!-- Role bar -->
 <div class="role-bar">
@@ -275,7 +306,31 @@ select.form-input{cursor:pointer;}
 
   <!-- Dashboard -->
   <div class="panel active" id="page-dashboard">
-    <iframe src="dashboard-standalone.html" style="width:100%;height:calc(100vh - 44px);border:none"></iframe>
+    <div class="page">
+      <div class="page-header">
+        <div><div class="page-title">Dashboard</div><div class="page-subtitle">Overzicht verlof en afwezigheden</div></div>
+      </div>
+      <div class="card-grid card-grid-3" style="margin-bottom:20px">
+        <div class="card" style="cursor:pointer" onclick="highlightCard('card-absent')"><div class="stat"><div class="stat-value" id="st-absent">0</div><div class="stat-label">Afwezig vandaag</div></div></div>
+        <div class="card" style="cursor:pointer" onclick="highlightCard('card-absent')"><div class="stat"><div class="stat-value" id="st-sick" style="color:var(--danger)">0</div><div class="stat-label">Ziek vandaag</div></div></div>
+        <div class="card" style="cursor:pointer" onclick="highlightCard('card-pending')"><div class="stat"><div class="stat-value" id="st-pending" style="color:var(--warn)">0</div><div class="stat-label">Openstaande aanvragen</div></div></div>
+      </div>
+      <div class="card-grid card-grid-2">
+        <div class="card" id="card-absent">
+          <div class="card-title">📅 Afwezig vandaag</div>
+          <div id="dash-absent"><span style="font-size:13px;color:var(--text3)">Niemand afwezig</span></div>
+          <div id="dash-sick-section"></div>
+        </div>
+        <div class="card" id="card-pending">
+          <div class="card-title">📥 Openstaande aanvragen</div>
+          <div id="dash-pending"><span style="font-size:13px;color:var(--text3)">Geen openstaande aanvragen</span></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="card-title">🇧🇪 Aankomende feestdagen</div>
+        <div id="dash-holidays"></div>
+      </div>
+    </div>
   </div>
 
   <!-- Medewerkers -->
@@ -500,16 +555,413 @@ select.form-input{cursor:pointer;}
         </div>
       </div>
     </div>
+  </div>
   <div class="panel" id="page-wallchart">
-    <iframe src="wallchart-standalone.html" style="width:100%;height:calc(100vh - 44px);border:none"></iframe>
+    <div class="page" style="max-width:1400px">
+      <div class="page-header">
+        <div><div class="page-title">Wallchart</div><div class="page-subtitle" id="wc-subtitle">Planningsoverzicht</div></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select class="form-input" style="width:160px" id="wc-dept" onchange="renderWallchart()">
+            <option value="">Alle departments</option>
+          </select>
+          <button class="btn btn-sm" onclick="wcPrev()">◀</button>
+          <button class="btn btn-sm" onclick="wcToday()">Vandaag</button>
+          <button class="btn btn-sm" onclick="wcNext()">▶</button>
+          <button class="btn btn-sm" id="wc-mode-btn" onclick="toggleWcMode()">Maand</button>
+        </div>
+      </div>
+      <div class="card" style="overflow-x:auto;padding:12px">
+        <div id="wc-legend" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;font-size:11px"></div>
+        <table class="tbl" id="wc-table" style="font-size:11px;min-width:800px">
+          <thead id="wc-thead"></thead>
+          <tbody id="wc-tbody"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
   <!-- Aanvragen -->
   <div class="panel" id="page-requests">
-    <iframe src="aanvragen-standalone.html" style="width:100%;height:calc(100vh - 44px);border:none"></iframe>
+    <div id="requests-app" style="min-height:100vh;background:#f0f4ff;font-family:'DM Sans',-apple-system,sans-serif"></div>
+    <script>
+    (function(){
+      // ═══ ZELFSTANDIGE AANVRAGEN MODULE ═══
+      const RA_COLORS=["#3b82f6","#22c55e","#a855f7","#ef4444","#eab308","#ec4899","#06b6d4","#f97316","#8b5cf6","#10b981"];
+      function raColor(n){let h=0;for(let i=0;i<n.length;i++)h=n.charCodeAt(i)+((h<<5)-h);return RA_COLORS[Math.abs(h)%RA_COLORS.length];}
+      function raIni(n){return n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);}
+      function raFD(d){return new Date(d).toLocaleDateString('nl-BE',{day:'2-digit',month:'short'});}
+      function raFmt(d){return d.toISOString().split('T')[0];}
+      function raAddD(d,n){const r=new Date(d);r.setDate(r.getDate()+n);return r;}
+
+      const raToday=new Date();
+      const raTd=raFmt(raToday);
+
+      // Gebruik app data als beschikbaar, anders eigen demo data
+      function raPeople(){return(typeof people!=='undefined'&&people.length>0)?people:[
+        {id:'x1',firstName:'Bert',lastName:'Resseler',departmentId:'dept-directie'},
+        {id:'x2',firstName:'Enderson',lastName:'Molla',departmentId:'dept-install'},
+        {id:'x3',firstName:'Jarno',lastName:'Vranckx',departmentId:'dept-install'},
+        {id:'x4',firstName:'Jarne',lastName:'Boudt',departmentId:'dept-install'},
+        {id:'x5',firstName:'Gaëtan',lastName:'Bosmans',departmentId:'dept-install'},
+        {id:'x6',firstName:'Charly',lastName:'Vanderstappen',departmentId:'dept-service'},
+        {id:'x7',firstName:'Chris',lastName:'Vanroelen',departmentId:'dept-verkoop'},
+        {id:'x8',firstName:'Kinza',lastName:'Janssens',departmentId:'dept-install'},
+        {id:'x9',firstName:'Lukas',lastName:'Cornet',departmentId:'dept-install'},
+        {id:'x10',firstName:'Nicolas',lastName:'Voorspoels',departmentId:'dept-verkoop'},
+        {id:'x11',firstName:'Rens',lastName:'Deschryver',departmentId:'dept-onderhoud'},
+        {id:'x12',firstName:'Wout',lastName:'Verbaenen',departmentId:'dept-install'},
+        {id:'x13',firstName:'Pieter-Jan',lastName:'De Clercq',departmentId:'dept-onderhoud'},
+        {id:'x14',firstName:'Mien',lastName:'Puttemans',departmentId:'dept-back'},
+        {id:'x15',firstName:'Amber',lastName:'Van Meerbeek',departmentId:'dept-back'},
+        {id:'x16',firstName:'Cedric',lastName:'Bosteels',departmentId:'dept-install'},
+        {id:'x17',firstName:'Glenn',lastName:'De Smedt',departmentId:'dept-service'},
+        {id:'x18',firstName:'Kevin',lastName:'Janssen',departmentId:'dept-onderhoud'},
+        {id:'x19',firstName:'Mohamed',lastName:'Vassallo',departmentId:'dept-install'},
+        {id:'x20',firstName:'Stijn',lastName:'Vandenberghe',departmentId:'dept-verkoop'}
+      ];}
+      function raDepts(){return(typeof departments!=='undefined'&&departments.length>0)?departments:[
+        {id:'dept-install',name:'Installatie'},{id:'dept-service',name:'Service'},
+        {id:'dept-back',name:'Backoffice'},{id:'dept-directie',name:'Directie'},
+        {id:'dept-verkoop',name:'Verkoop'},{id:'dept-onderhoud',name:'Onderhoud'}
+      ];}
+      function raTypes(){return(typeof leaveTypes!=='undefined'&&leaveTypes.length>0)?leaveTypes:[
+        {id:'wettelijk',name:'Wettelijk verlof',symbol:'🏖',color:'#3b82f6'},
+        {id:'adv',name:'ADV',symbol:'🏗',color:'#22c55e'},
+        {id:'ziekte',name:'Ziekte',symbol:'🤒',color:'#ef4444'},
+        {id:'familiaal',name:'Familiaal verlof',symbol:'👨‍👩‍👧',color:'#a855f7'},
+        {id:'ancienniteit',name:'Anciënniteit',symbol:'⭐',color:'#eab308'},
+        {id:'dokter',name:'Doktersbezoek',symbol:'🩺',color:'#06b6d4'},
+        {id:'hospitalisatie',name:'Hospitalisatie',symbol:'🏥',color:'#f97316'},
+        {id:'opleiding',name:'Opleiding',symbol:'📚',color:'#8b5cf6'},
+        {id:'verhuizing',name:'Verhuizing',symbol:'📦',color:'#f472b6'},
+        {id:'geboorte',name:'Geboorteverlof',symbol:'👶',color:'#10b981'},
+        {id:'tech-werkloos',name:'Tech. werkloosheid',symbol:'🏭',color:'#78716c'},
+        {id:'weerverlet',name:'Weerverlet',symbol:'🌧',color:'#0ea5e9'},
+        {id:'arbeidsongeval',name:'Arbeidsongeval',symbol:'⚠️',color:'#dc2626'},
+        {id:'juridisch',name:'Juridisch verlof',symbol:'⚖️',color:'#78716c'},
+        {id:'communie',name:'Communie/feest',symbol:'⛪',color:'#6366f1'}
+      ];}
+
+      function raRequests(){
+        if(typeof requests!=='undefined'&&requests.length>0)return requests.map(r=>({...r}));
+        const t=raToday;
+        return[
+          {id:'r1',personId:'x4',type:'wettelijk',startDate:raFmt(t),endDate:raFmt(raAddD(t,1)),days:2,halfDay:false,status:'approved',comment:'Gezinsuitstap'},
+          {id:'r2',personId:'x6',type:'wettelijk',startDate:raFmt(t),endDate:raFmt(t),days:1,halfDay:false,status:'approved',comment:''},
+          {id:'r3',personId:'x9',type:'ziekte',startDate:raFmt(raAddD(t,-2)),endDate:raFmt(raAddD(t,1)),days:4,halfDay:false,status:'approved',comment:'Griep'},
+          {id:'r4',personId:'x3',type:'wettelijk',startDate:raFmt(raAddD(t,19)),endDate:raFmt(raAddD(t,20)),days:2,halfDay:false,status:'pending',comment:'Citytrip'},
+          {id:'r5',personId:'x8',type:'wettelijk',startDate:raFmt(raAddD(t,11)),endDate:raFmt(raAddD(t,15)),days:5,halfDay:false,status:'pending',comment:'Vakantie'},
+          {id:'r6',personId:'x7',type:'ancienniteit',startDate:raFmt(raAddD(t,4)),endDate:raFmt(raAddD(t,4)),days:1,halfDay:false,status:'pending',comment:''},
+          {id:'r7',personId:'x10',type:'wettelijk',startDate:raFmt(raAddD(t,19)),endDate:raFmt(raAddD(t,19)),days:1,halfDay:false,status:'pending',comment:''},
+          {id:'r8',personId:'x11',type:'wettelijk',startDate:raFmt(raAddD(t,19)),endDate:raFmt(raAddD(t,19)),days:1,halfDay:false,status:'pending',comment:''},
+          {id:'r9',personId:'x1',type:'adv',startDate:raFmt(raAddD(t,7)),endDate:raFmt(raAddD(t,7)),days:1,halfDay:false,status:'pending',comment:''},
+          {id:'r10',personId:'x12',type:'familiaal',startDate:raFmt(raAddD(t,-5)),endDate:raFmt(raAddD(t,-5)),days:1,halfDay:false,status:'approved',comment:'Ziek kind'},
+          {id:'r11',personId:'x13',type:'wettelijk',startDate:raFmt(raAddD(t,-10)),endDate:raFmt(raAddD(t,-8)),days:3,halfDay:false,status:'approved',comment:''},
+          {id:'r12',personId:'x2',type:'wettelijk',startDate:raFmt(raAddD(t,1)),endDate:raFmt(raAddD(t,1)),days:1,halfDay:false,status:'pending',comment:'Vakantie'},
+          {id:'r13',personId:'x5',type:'wettelijk',startDate:raFmt(raAddD(t,-1)),endDate:raFmt(raAddD(t,3)),days:5,halfDay:false,status:'approved',comment:'Ski'},
+          {id:'r14',personId:'x14',type:'dokter',startDate:raFmt(raAddD(t,8)),endDate:raFmt(raAddD(t,8)),days:1,halfDay:true,halfDayPeriod:'NM',status:'pending',comment:'Controle huisarts'},
+          {id:'r15',personId:'x4',type:'wettelijk',startDate:raFmt(raAddD(t,-20)),endDate:raFmt(raAddD(t,-18)),days:3,halfDay:false,status:'rejected',comment:'Te veel overlap'},
+          {id:'r16',personId:'x16',type:'adv',startDate:raFmt(raAddD(t,-3)),endDate:raFmt(raAddD(t,-3)),days:1,halfDay:false,status:'approved',comment:''},
+          {id:'r17',personId:'x17',type:'wettelijk',startDate:raFmt(raAddD(t,5)),endDate:raFmt(raAddD(t,5)),days:1,halfDay:false,status:'approved',comment:''},
+          {id:'r18',personId:'x18',type:'opleiding',startDate:raFmt(raAddD(t,14)),endDate:raFmt(raAddD(t,15)),days:2,halfDay:false,status:'approved',comment:'HVAC opleiding'},
+          {id:'r19',personId:'x19',type:'wettelijk',startDate:raFmt(raAddD(t,21)),endDate:raFmt(raAddD(t,25)),days:5,halfDay:false,status:'pending',comment:'Zomervakantie'},
+          {id:'r20',personId:'x20',type:'dokter',startDate:raFmt(raAddD(t,3)),endDate:raFmt(raAddD(t,3)),days:1,halfDay:true,halfDayPeriod:'VM',status:'pending',comment:'Tandarts'}
+        ];
+      }
+
+      // State
+      let raState={filter:'pending',tab:'aanvragen',search:'',dept:'',reqs:raRequests(),selected:new Set(),detail:null};
+
+      function raGN(id){const p=raPeople().find(x=>x.id===id);return p?p.firstName+' '+p.lastName:'?';}
+      function raGD(id){const p=raPeople().find(x=>x.id===id);if(!p)return'';const d=raDepts().find(x=>x.id===p.departmentId);return d?d.name:'';}
+      function raGT(id){return raTypes().find(t=>t.id===id)||{name:id,symbol:'📋',color:'#94a3b8'};}
+
+      function raConflicts(r){
+        const p=raPeople().find(x=>x.id===r.personId);if(!p)return[];
+        const same=raPeople().filter(x=>x.departmentId===p.departmentId&&x.id!==p.id);
+        const c=[];
+        same.forEach(s=>{
+          raState.reqs.filter(x=>x.personId===s.id&&x.status==='approved'&&x.startDate<=r.endDate&&x.endDate>=r.startDate)
+            .forEach(x=>{const t=raGT(x.type);c.push(raGN(s.id)+' ('+t.name+': '+raFD(x.startDate)+'–'+raFD(x.endDate)+')');});
+        });
+        return c;
+      }
+
+      function raAction(id,status){
+        raState.reqs=raState.reqs.map(r=>r.id===id?Object.assign({},r,{status:status}):r);
+        // Sync terug naar globale requests als beschikbaar
+        if(typeof requests!=='undefined'){
+          const idx=requests.findIndex(r=>r.id===id);
+          if(idx>=0)requests[idx].status=status;
+          try{if(typeof autoSave==='function')autoSave();}catch(e){}
+          try{if(typeof renderDashboard==='function')renderDashboard();}catch(e){}
+        }
+        raState.selected.delete(id);
+        raShowToast((status==='approved'?'✅ Goedgekeurd':'❌ Geweigerd')+': '+raGN(raState.reqs.find(r=>r.id===id)?.personId||''));
+        raRender();
+      }
+
+      function raBulk(status){
+        raState.selected.forEach(id=>{
+          raState.reqs=raState.reqs.map(r=>r.id===id?Object.assign({},r,{status:status}):r);
+          if(typeof requests!=='undefined'){const idx=requests.findIndex(r=>r.id===id);if(idx>=0)requests[idx].status=status;}
+        });
+        raShowToast((status==='approved'?'✅':'❌')+' '+raState.selected.size+' aanvragen '+(status==='approved'?'goedgekeurd':'geweigerd'));
+        raState.selected=new Set();
+        try{if(typeof autoSave==='function')autoSave();}catch(e){}
+        try{if(typeof renderDashboard==='function')renderDashboard();}catch(e){}
+        raRender();
+      }
+
+      let raToastTimer;
+      function raShowToast(msg){
+        let el=document.getElementById('ra-toast');
+        if(!el){el=document.createElement('div');el.id='ra-toast';document.getElementById('requests-app').appendChild(el);}
+        el.style.cssText='position:fixed;top:16px;right:16px;background:#0f172a;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:999;box-shadow:0 4px 16px rgba(0,0,0,.2);animation:raSlide .3s ease';
+        el.textContent=msg;
+        clearTimeout(raToastTimer);
+        raToastTimer=setTimeout(()=>{el.style.display='none';},2500);
+      }
+
+      function raRender(){
+        const app=document.getElementById('requests-app');
+        const S=raState;
+        const pp=raPeople(),dd=raDepts();
+        const nonS=S.reqs.filter(r=>r.type!=='ziekte'),sick=S.reqs.filter(r=>r.type==='ziekte');
+        const pend=nonS.filter(r=>r.status==='pending').length;
+        const absT=S.reqs.filter(r=>r.status==='approved'&&r.startDate<=raTd&&r.endDate>=raTd).length;
+        const sickT=sick.filter(r=>r.startDate<=raTd&&r.endDate>=raTd).length;
+        let fl=S.tab==='ziekte'?sick:nonS;
+        if(S.filter!=='all')fl=fl.filter(r=>r.status===S.filter);
+        if(S.dept)fl=fl.filter(r=>{const p=pp.find(x=>x.id===r.personId);return p&&p.departmentId===S.dept;});
+        if(S.search){const q=S.search.toLowerCase();fl=fl.filter(r=>raGN(r.personId).toLowerCase().includes(q));}
+        fl.sort((a,b)=>new Date(b.startDate)-new Date(a.startDate));
+        const pendInView=fl.filter(r=>r.status==='pending');
+        const showCheck=S.filter==='pending'&&pendInView.length>1;
+
+        // Update sidebar badge
+        try{const br=document.getElementById('badge-requests');if(br){if(pend>0){br.textContent=pend;br.style.display='';}else br.style.display='none';}}catch(e){}
+
+        let h=`<style>
+          @keyframes raSlide{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+          #requests-app table tr:hover td{background:#f8faff!important}
+          #requests-app .ra-sel td{background:#eff6ff!important}
+          #requests-app button:active{transform:scale(.97)}
+          #requests-app *{box-sizing:border-box}
+        </style>`;
+
+        // Stats
+        h+=`<div style="background:#fff;border-bottom:1px solid #e2e8f4;padding:16px 24px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+            <div style="font-size:20px">📋</div>
+            <div><div style="font-size:17px;font-weight:700;color:#1e293b">Aanvragen</div>
+            <div style="font-size:11px;color:#94a3b8">Verlofaanvragen beheren</div></div>
+            <button onclick="try{openRequestModal()}catch(e){}" style="margin-left:auto;padding:7px 14px;border-radius:8px;border:1px solid rgba(59,130,246,.35);background:rgba(59,130,246,.08);color:#3b82f6;font-size:12px;font-weight:600;cursor:pointer">➕ Nieuwe aanvraag</button>
+          </div>
+          <div style="display:flex;gap:10px">`;
+        [{v:pend,l:'Openstaand',c:'#eab308',bg:'#fefce8',i:'⏳'},
+         {v:absT,l:'Afwezig vandaag',c:'#3b82f6',bg:'#eff6ff',i:'🏖'},
+         {v:sickT,l:'Ziek vandaag',c:'#ef4444',bg:'#fef2f2',i:'🤒'},
+         {v:S.reqs.length,l:'Totaal',c:'#64748b',bg:'#f8fafc',i:'📊'}
+        ].forEach(s=>{
+          h+=`<div style="flex:1;background:${s.bg};border-radius:10px;padding:10px 14px;border:1px solid ${s.c}18">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div style="font-size:22px;font-weight:700;color:${s.c}">${s.v}</div>
+              <div style="font-size:18px;opacity:.5">${s.i}</div>
+            </div>
+            <div style="font-size:9px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-top:1px">${s.l}</div>
+          </div>`;
+        });
+        h+=`</div></div>`;
+
+        // Tabs
+        h+=`<div style="display:flex;background:#fff;border-bottom:1px solid #e2e8f4;padding:0 24px">`;
+        [{id:'aanvragen',l:'📥 Aanvragen',b:pend},{id:'ziekte',l:'🤒 Ziekte',b:sickT}].forEach(t=>{
+          const act=S.tab===t.id;
+          h+=`<button onclick="raSetTab('${t.id}')" style="padding:10px 16px;border:none;border-bottom:2px solid ${act?'#3b82f6':'transparent'};background:none;color:${act?'#3b82f6':'#64748b'};font-weight:600;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px">
+            ${t.l}${t.b>0?`<span style="background:#ef4444;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px">${t.b}</span>`:''}
+          </button>`;
+        });
+        h+=`</div>`;
+
+        // Filters
+        h+=`<div style="padding:12px 24px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">`;
+        const filters=S.tab==='aanvragen'?[
+          {id:'pending',l:'⏳ Openstaand'},{id:'approved',l:'✅ Goedgekeurd'},{id:'rejected',l:'❌ Geweigerd'},{id:'all',l:'Alles'}
+        ]:[{id:'all',l:'Alle meldingen'},{id:'approved',l:'Actief'}];
+        filters.forEach(f=>{
+          const act=S.filter===f.id;
+          h+=`<button onclick="raSetFilter('${f.id}')" style="padding:5px 12px;border-radius:8px;border:1px solid ${act?'#3b82f6':'#e2e8f0'};background:${act?'rgba(59,130,246,.08)':'#fff'};color:${act?'#3b82f6':'#475569'};font-size:12px;font-weight:500;cursor:pointer">${f.l}</button>`;
+        });
+        h+=`<select onchange="raSetDept(this.value)" style="padding:5px 10px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font-size:12px;color:#475569;cursor:pointer;margin-left:4px">
+          <option value="">Alle afdelingen</option>`;
+        dd.forEach(d=>{h+=`<option value="${d.id}"${S.dept===d.id?' selected':''}>${d.name}</option>`;});
+        h+=`</select>
+          <input type="text" placeholder="🔍 Zoek op naam..." value="${S.search}" oninput="raSetSearch(this.value)" style="margin-left:auto;padding:6px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;width:170px;outline:none;background:#fff"/>
+        </div>`;
+
+        // Bulk bar
+        if(S.selected.size>0){
+          h+=`<div style="margin:0 24px 8px;padding:10px 16px;background:#3b82f6;border-radius:10px;display:flex;align-items:center;gap:12px;color:#fff;font-size:13px">
+            <span style="font-weight:700">${S.selected.size} geselecteerd</span>
+            <div style="margin-left:auto;display:flex;gap:6px">
+              <button onclick="raBulk('approved')" style="padding:5px 14px;border-radius:6px;border:none;background:#fff;color:#166534;font-size:12px;font-weight:600;cursor:pointer">✅ Goedkeuren</button>
+              <button onclick="raBulk('rejected')" style="padding:5px 14px;border-radius:6px;border:none;background:#fff;color:#991b1b;font-size:12px;font-weight:600;cursor:pointer">❌ Weigeren</button>
+              <button onclick="raClearSel()" style="padding:5px 14px;border-radius:6px;border:1px solid rgba(255,255,255,.4);background:transparent;color:#fff;font-size:12px;cursor:pointer">Annuleren</button>
+            </div>
+          </div>`;
+        }
+
+        // Table
+        h+=`<div style="padding:0 24px 24px"><div style="background:#fff;border-radius:14px;border:1px solid #e2e8f4;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.04)">`;
+        if(fl.length===0){
+          h+=`<div style="text-align:center;padding:48px;color:#94a3b8"><div style="font-size:36px;margin-bottom:8px">📭</div><div style="font-weight:500">Geen aanvragen gevonden</div></div>`;
+        }else{
+          h+=`<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="border-bottom:2px solid #e2e8f4">`;
+          if(showCheck)h+=`<th style="width:36px;padding:10px 0 10px 14px"><input type="checkbox" ${S.selected.size===pendInView.length&&pendInView.length>0?'checked':''} onchange="raToggleAll()" style="cursor:pointer"/></th>`;
+          ['Medewerker','Afdeling','Type','Periode','Dagen','Status','Conflicten',''].forEach((hd,i)=>{
+            h+=`<th style="text-align:${i===7?'right':'left'};padding:10px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8">${hd}</th>`;
+          });
+          h+=`</tr></thead><tbody>`;
+          fl.forEach(r=>{
+            const n=raGN(r.personId),t=raGT(r.type),conflicts=raConflicts(r),isSel=S.selected.has(r.id);
+            const stMap={pending:['#fef3c7','#92400e','⏳ Openstaand'],approved:['#dcfce7','#166534','✅ Goedgekeurd'],rejected:['#fee2e2','#991b1b','❌ Geweigerd']};
+            const[sbg,sc,sl]=stMap[r.status]||stMap.pending;
+            h+=`<tr class="${isSel?'ra-sel':''}" style="border-bottom:1px solid #f1f5f9">`;
+            if(showCheck)h+=`<td style="padding:10px 0 10px 14px">${r.status==='pending'?`<input type="checkbox" ${isSel?'checked':''} onchange="raToggle('${r.id}')" style="cursor:pointer"/>`:''}</td>`;
+            h+=`<td style="padding:10px 12px"><div style="display:flex;align-items:center;gap:8px">
+              <div style="width:30px;height:30px;border-radius:50%;background:${raColor(n)};display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;flex-shrink:0">${raIni(n)}</div>
+              <div><div style="font-weight:600;font-size:13px">${n}</div>${r.comment?`<div style="font-size:11px;color:#94a3b8;margin-top:1px">💬 ${r.comment}</div>`:''}</div>
+            </div></td>`;
+            h+=`<td style="padding:10px 12px;color:#64748b;font-size:12px">${raGD(r.personId)}</td>`;
+            h+=`<td style="padding:10px 12px"><span style="background:${t.color}15;color:${t.color};padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600">${t.symbol} ${t.name}</span></td>`;
+            h+=`<td style="padding:10px 12px;font-size:12px;white-space:nowrap;color:#475569">${raFD(r.startDate)}${r.startDate!==r.endDate?' → '+raFD(r.endDate):''}</td>`;
+            h+=`<td style="padding:10px 12px;font-weight:600;font-size:13px">${r.halfDay?'½ dag ('+(r.halfDayPeriod||'')+')':((r.days||1)+'d')}</td>`;
+            h+=`<td style="padding:10px 12px"><span style="background:${sbg};color:${sc};padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;white-space:nowrap">${sl}</span></td>`;
+            h+=`<td style="padding:10px 12px">${conflicts.length>0?
+              `<span style="background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:600;cursor:help" title="${conflicts.join('\\n')}">⚠️ ${conflicts.length}</span>`:
+              '<span style="color:#cbd5e1;font-size:12px">—</span>'}</td>`;
+            h+=`<td style="padding:10px 12px;text-align:right"><div style="display:flex;gap:4px;justify-content:flex-end">`;
+            if(r.status==='pending'){
+              h+=`<button onclick="raAction('${r.id}','approved')" title="Goedkeuren" style="width:30px;height:30px;border-radius:8px;border:none;background:#dcfce7;color:#166534;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center">✅</button>`;
+              h+=`<button onclick="raAction('${r.id}','rejected')" title="Weigeren" style="width:30px;height:30px;border-radius:8px;border:none;background:#fee2e2;color:#991b1b;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center">❌</button>`;
+            }
+            h+=`<button onclick="raDetail('${r.id}')" title="Detail" style="width:30px;height:30px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center">👁</button>`;
+            h+=`</div></td></tr>`;
+          });
+          h+=`</tbody></table>`;
+        }
+        h+=`</div><div style="margin-top:8px;font-size:11px;color:#94a3b8;display:flex;justify-content:space-between">
+          <span>${fl.length} aanvra${fl.length===1?'ag':'gen'}</span>
+          <span style="display:flex;align-items:center;gap:6px">
+            <span style="width:7px;height:7px;border-radius:50%;background:${typeof firebaseReady!=='undefined'&&firebaseReady?'#22c55e':'#eab308'}"></span>
+            ${typeof firebaseReady!=='undefined'&&firebaseReady?'Firebase sync actief':'Verbinden...'}
+            · Personeelbeheer · Advanced Energy
+          </span>
+        </div></div>`;
+
+        // Detail modal
+        if(S.detail){
+          const r=S.reqs.find(x=>x.id===S.detail);
+          if(r){
+            const t=raGT(r.type),conflicts=raConflicts(r);
+            const[sbg,sc,sl]=({pending:['#fef3c7','#92400e','⏳ Openstaand'],approved:['#dcfce7','#166534','✅ Goedgekeurd'],rejected:['#fee2e2','#991b1b','❌ Geweigerd']})[r.status]||['#fef3c7','#92400e','⏳'];
+            h+=`<div onclick="raCloseDetail()" style="position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:500;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px)">
+              <div onclick="event.stopPropagation()" style="background:#fff;border-radius:14px;padding:24px;width:420px;max-width:90vw;box-shadow:0 20px 60px rgba(0,0,0,.15)">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+                  <h3 style="margin:0;font-size:16px;font-weight:700">Aanvraag detail</h3>
+                  <button onclick="raCloseDetail()" style="width:28px;height:28px;border-radius:50%;border:1px solid #e2e8f0;background:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">✕</button>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+                  <div style="width:40px;height:40px;border-radius:50%;background:${raColor(raGN(r.personId))};display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700">${raIni(raGN(r.personId))}</div>
+                  <div><div style="font-weight:600;font-size:15px">${raGN(r.personId)}</div><div style="font-size:12px;color:#64748b">${raGD(r.personId)}</div></div>
+                  <div style="margin-left:auto"><span style="background:${sbg};color:${sc};padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600">${sl}</span></div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+                  <div style="background:#f8fafc;border-radius:8px;padding:10px 12px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;margin-bottom:4px">Type</div><span style="background:${t.color}15;color:${t.color};padding:2px 8px;border-radius:6px;font-size:12px">${t.symbol} ${t.name}</span></div>
+                  <div style="background:#f8fafc;border-radius:8px;padding:10px 12px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;margin-bottom:4px">Periode</div><span style="font-size:13px">${raFD(r.startDate)}${r.startDate!==r.endDate?' → '+raFD(r.endDate):''}</span></div>
+                  <div style="background:#f8fafc;border-radius:8px;padding:10px 12px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;margin-bottom:4px">Dagen</div><span style="font-weight:600">${r.halfDay?'½ dag ('+(r.halfDayPeriod||'')+')':((r.days||1)+'d')}</span></div>
+                  <div style="background:#f8fafc;border-radius:8px;padding:10px 12px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;margin-bottom:4px">Opmerking</div><span style="font-size:12px;color:${r.comment?'#334155':'#94a3b8'}">${r.comment||'—'}</span></div>
+                </div>`;
+            if(conflicts.length>0){
+              h+=`<div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:12px;margin-bottom:16px">
+                <div style="font-size:11px;font-weight:700;color:#92400e;margin-bottom:6px">⚠️ ${conflicts.length} conflict${conflicts.length>1?'en':''}</div>
+                ${conflicts.map(c=>`<div style="font-size:12px;color:#78350f;margin-bottom:2px">${c}</div>`).join('')}
+              </div>`;
+            }
+            if(r.status==='pending'){
+              h+=`<div style="display:flex;gap:8px">
+                <button onclick="raAction('${r.id}','approved');raCloseDetail()" style="flex:1;padding:9px 0;border-radius:8px;border:none;background:#dcfce7;color:#166534;font-size:13px;font-weight:600;cursor:pointer">✅ Goedkeuren</button>
+                <button onclick="raAction('${r.id}','rejected');raCloseDetail()" style="flex:1;padding:9px 0;border-radius:8px;border:none;background:#fee2e2;color:#991b1b;font-size:13px;font-weight:600;cursor:pointer">❌ Weigeren</button>
+              </div>`;
+            }
+            h+=`</div></div>`;
+          }
+        }
+
+        app.innerHTML=h;
+      }
+
+      // Global functions
+      window.raSetTab=function(t){raState.tab=t;raState.filter=t==='ziekte'?'all':'pending';raState.search='';raState.dept='';raRender();};
+      window.raSetFilter=function(f){raState.filter=f;raRender();};
+      window.raSetDept=function(d){raState.dept=d;raRender();};
+      window.raSetSearch=function(q){raState.search=q;raRender();};
+      window.raToggle=function(id){if(raState.selected.has(id))raState.selected.delete(id);else raState.selected.add(id);raRender();};
+      window.raToggleAll=function(){
+        const pp=raPeople();const nonS=raState.reqs.filter(r=>r.type!=='ziekte');
+        let fl=nonS;if(raState.filter!=='all')fl=fl.filter(r=>r.status===raState.filter);
+        const pending=fl.filter(r=>r.status==='pending');
+        if(raState.selected.size===pending.length)raState.selected=new Set();
+        else raState.selected=new Set(pending.map(r=>r.id));
+        raRender();
+      };
+      window.raClearSel=function(){raState.selected=new Set();raRender();};
+      window.raAction=raAction;
+      window.raBulk=raBulk;
+      window.raDetail=function(id){raState.detail=id;raRender();};
+      window.raCloseDetail=function(){raState.detail=null;raRender();};
+
+      // Expose render for external calls
+      window.renderRequests=function(){
+        // Sync van globale requests als die bestaan
+        if(typeof requests!=='undefined'&&requests.length>0)raState.reqs=requests.map(r=>({...r}));
+        raRender();
+      };
+
+      // Initial render
+      raRender();
+    })();
+    </script>
   </div>
   <!-- Ziekte -->
   <div class="panel" id="page-sickness">
-    <iframe src="ziekte-standalone.html" style="width:100%;height:calc(100vh - 44px);border:none"></iframe>
+    <div class="page">
+      <div class="page-header">
+        <div><div class="page-title">Ziekte</div><div class="page-subtitle">Ziekmeldingen en doktersbriefjes</div></div>
+        <button class="btn btn-sm btn-primary-outline" onclick="openSicknessModal()">➕ Ziekmelding registreren</button>
+      </div>
+      <div class="tabs">
+        <button class="tab active" onclick="filterSickness('active',this)">🤒 Actief ziek</button>
+        <button class="tab" onclick="filterSickness('all',this)">Alle meldingen</button>
+      </div>
+      <div class="card">
+        <table class="tbl">
+          <thead><tr><th>Medewerker</th><th>Van</th><th>Tot</th><th>Dagen</th><th>Briefje</th><th>Notificaties</th><th></th></tr></thead>
+          <tbody id="sickness-table"></tbody>
+        </table>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="card-title">📊 Bradford Factor <span style="font-weight:400;font-size:11px;color:var(--text3)">(S² × D — rollende 52 weken)</span></div>
+        <table class="tbl">
+          <thead><tr>
+            <th>Medewerker</th><th>Periodes (S)</th><th>Totaal dagen (D)</th>
+            <th style="cursor:pointer;user-select:none" onclick="sortBradford()">Bradford Score <span id="sort-bradford" style="display:inline-block;width:12px;text-align:center">↓</span></th>
+            <th>Risico</th>
+          </tr></thead>
+          <tbody id="bradford-table"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
   <!-- Rapportage -->
   <div class="panel" id="page-reports">
@@ -789,6 +1241,7 @@ function uid(){return Date.now().toString(36)+'_'+Math.random().toString(36).sub
 
 function autoSave(){
   try{
+    if(typeof localStorage==='undefined')return;
     localStorage.setItem('vb_departments',JSON.stringify(departments));
     localStorage.setItem('vb_people',JSON.stringify(people));
     localStorage.setItem('vb_leaveTypes',JSON.stringify(leaveTypes));
@@ -803,7 +1256,7 @@ function autoSave(){
     localStorage.setItem('vb_werkgeverskost',JSON.stringify(werkgeverskostData));
     localStorage.setItem('vb_uurkostParams',JSON.stringify(uurkostParams));
     localStorage.setItem('vb_verlofregels',JSON.stringify(verlofregels));
-  }catch(e){showToast('Opslag fout: '+e.message,'error');}
+  }catch(e){}
 }
 
 function restore(){
@@ -1811,144 +2264,7 @@ function renderDashboard(){
   else{br.style.display='none';}
 }
 
-let reqFilter='pending';
-let reqSearch='';
-
-let selectedRequests=new Set();
-
-function renderRequests(){
-  const tbody=document.getElementById('requests-table');
-  const deptFilter=document.getElementById('req-dept-filter').value;
-  // Update dept filter options
-  const deptSelect=document.getElementById('req-dept-filter');
-  const currentVal=deptSelect.value;
-  deptSelect.innerHTML='<option value="">Alle departments</option>'+departments.map(d=>`<option value="${d.id}">${d.name}</option>`).join('');
-  deptSelect.value=currentVal;
-
-  let filtered=requests.filter(r=>r.type!=='ziekte');
-  if(reqFilter!=='all')filtered=filtered.filter(r=>r.status===reqFilter);
-  if(deptFilter){
-    filtered=filtered.filter(r=>{
-      const p=people.find(x=>x.id===r.personId);
-      return p&&p.departmentId===deptFilter;
-    });
-  }
-  if(reqSearch){
-    const q=reqSearch.toLowerCase();
-    filtered=filtered.filter(r=>{
-      const p=people.find(x=>x.id===r.personId);
-      return p&&fullName(p).toLowerCase().includes(q);
-    });
-  }
-  filtered.sort((a,b)=>new Date(b.startDate)-new Date(a.startDate));
-
-  const pendingCount=requests.filter(r=>r.status==='pending'&&r.type!=='ziekte').length;
-  document.getElementById('req-badge-pending').textContent=pendingCount>0?` (${pendingCount})`:'';
-
-  // Show checkboxes only when viewing pending and more than 1
-  const showCheck=reqFilter==='pending'&&filtered.length>1;
-  document.getElementById('req-th-check').style.display=showCheck?'':'none';
-  updateBulkBar();
-
-  if(filtered.length===0){
-    tbody.innerHTML=`<tr>${showCheck?'<td></td>':''}<td colspan="7" style="text-align:center;padding:40px;color:var(--text3)">Geen aanvragen gevonden</td></tr>`;
-    return;
-  }
-  tbody.innerHTML=filtered.map(r=>{
-    const person=people.find(p=>p.id===r.personId);
-    const type=leaveTypes.find(t=>t.id===r.type);
-    const conflicts=getConflicts(r);
-    const statusBadge=r.status==='pending'?'badge-yellow':r.status==='approved'?'badge-green':'badge-red';
-    const statusText=r.status==='pending'?'⏳ Openstaand':r.status==='approved'?'✅ Goedgekeurd':'❌ Geweigerd';
-    const dayLabel=r.halfDay?'½ dag ('+r.halfDayPeriod+')':r.days+'d';
-    const isChecked=selectedRequests.has(r.id);
-    return `<tr style="${isChecked?'background:var(--accent-bg);':''}">
-      ${showCheck?`<td><input type="checkbox" ${isChecked?'checked':''} onchange="toggleRequestSelect('${r.id}',this.checked)" style="cursor:pointer"/></td>`:''}
-      <td><div style="display:flex;align-items:center;gap:10px">
-        <div class="avatar" style="background:${person?getAvatarColor(fullName(person)):'#ccc'};width:28px;height:28px;font-size:11px">${person?getInitials(fullName(person)):'?'}</div>
-        <div style="font-weight:600;font-size:13px">${person?fullName(person):'Onbekend'}</div>
-      </div></td>
-      <td><span class="badge" style="background:${type?type.color+'1a':'#eee'};color:${type?type.color:'#999'}">${type?type.symbol+' '+type.name:'?'}</span></td>
-      <td style="font-size:12px">${formatDate(r.startDate)}${r.startDate!==r.endDate?' → '+formatDate(r.endDate):''}</td>
-      <td style="font-weight:600">${dayLabel}</td>
-      <td><span class="badge ${statusBadge}">${statusText}</span></td>
-      <td>${conflicts.length>0?`<span class="badge badge-yellow" title="${conflicts.join(', ')}">⚠️ ${conflicts.length}</span>`:
-        '<span style="color:var(--text3);font-size:12px">—</span>'}</td>
-      <td style="text-align:right">
-        ${r.status==='pending'?`
-          <button class="btn btn-sm btn-primary" onclick="approveRequest('${r.id}')" style="background:var(--success);border-color:var(--success)">✅</button>
-          <button class="btn btn-sm btn-danger" onclick="rejectRequest('${r.id}')">❌</button>
-        `:''}
-        <button class="btn btn-sm" onclick="viewRequest('${r.id}')">👁</button>
-        <button class="btn btn-sm btn-danger" onclick="deleteRequest('${r.id}')">🗑</button>
-      </td>
-    </tr>`;
-  }).join('');
-}
-
-function toggleRequestSelect(id,checked){
-  if(checked)selectedRequests.add(id);
-  else selectedRequests.delete(id);
-  updateBulkBar();
-  renderRequests();
-}
-
-function toggleAllRequests(checked){
-  const pending=requests.filter(r=>r.status==='pending'&&r.type!=='ziekte');
-  if(checked)pending.forEach(r=>selectedRequests.add(r.id));
-  else selectedRequests.clear();
-  updateBulkBar();
-  renderRequests();
-}
-
-function updateBulkBar(){
-  const bar=document.getElementById('req-bulk-bar');
-  if(selectedRequests.size>0){
-    bar.style.display='flex';
-    document.getElementById('req-bulk-count').textContent=selectedRequests.size+' geselecteerd';
-  }else{
-    bar.style.display='none';
-  }
-}
-
-function clearSelection(){
-  selectedRequests.clear();
-  document.getElementById('req-check-all').checked=false;
-  updateBulkBar();
-  renderRequests();
-}
-
-async function bulkApprove(){
-  if(!await confirmDialog(`${selectedRequests.size} aanvra${selectedRequests.size===1?'ag':'gen'} goedkeuren?`))return;
-  selectedRequests.forEach(id=>{
-    const r=requests.find(x=>x.id===id);
-    if(r&&r.status==='pending'){r.status='approved';r.decidedDate=new Date().toISOString().split('T')[0];}
-  });
-  selectedRequests.clear();
-  autoSave();renderRequests();renderDashboard();
-  showToast('Aanvragen goedgekeurd ✅');
-}
-
-async function bulkReject(){
-  const reason=await promptDialog('Reden van weigering (optioneel):','Bv. onvoldoende bezetting');
-  if(reason===null)return;
-  selectedRequests.forEach(id=>{
-    const r=requests.find(x=>x.id===id);
-    if(r&&r.status==='pending'){r.status='rejected';r.rejectReason=reason;r.decidedDate=new Date().toISOString().split('T')[0];}
-  });
-  selectedRequests.clear();
-  autoSave();renderRequests();renderDashboard();
-  showToast('Aanvragen geweigerd');
-}
-
-function filterRequests(status,btn){
-  reqFilter=status;
-  btn.parentElement.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  btn.classList.add('active');
-  renderRequests();
-}
-
-function searchRequests(q){reqSearch=q;renderRequests();}
+// Old request functions removed — now handled by the self-contained requests-app module
 
 function getConflicts(request){
   const person=people.find(p=>p.id===request.personId);
@@ -4419,8 +4735,9 @@ async function resetData(){
 
 restore();
 
+try{
 // Force fresh data load once (version flag prevents repeat resets)
-const SEED_VERSION='v16.1';
+const SEED_VERSION='v17.0';
 if(localStorage.getItem('vb_seed_version')!==SEED_VERSION){
   localStorage.removeItem('vb_departments');
   localStorage.removeItem('vb_people');
@@ -4437,6 +4754,9 @@ if(localStorage.getItem('vb_seed_version')!==SEED_VERSION){
   localStorage.removeItem('vb_uurkostParams');
   localStorage.removeItem('vb_verlofregels');
   localStorage.setItem('vb_seed_version',SEED_VERSION);
+  departments=[];people=[];leaveTypes=[];schedules=[];requests=[];candidates=[];channels=[];baremaData=[];ancienniteitData=[];verlofregels=[];
+}
+}catch(e){
   departments=[];people=[];leaveTypes=[];schedules=[];requests=[];candidates=[];channels=[];baremaData=[];ancienniteitData=[];verlofregels=[];
 }
 
@@ -4643,6 +4963,123 @@ function isAdmin(){return shellPermissions.role==='admin';}
 
 detectShell();
 renderDashboard();
+// Pre-render all pages so tables are filled even before user navigates
+try{renderRequests();}catch(e){}
+try{renderSickness();}catch(e){}
+
+// ═══ FIREBASE (dynamisch geladen, blokkeert NIETS) ═══
+var firebaseReady=false;
+var firebaseDb=null;
+(function(){
+  function loadScript(url,cb){var s=document.createElement('script');s.src=url;s.async=true;s.onload=cb;s.onerror=function(){console.warn('Firebase script load failed:',url);};document.head.appendChild(s);}
+  loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js',function(){
+    loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js',function(){
+      try{
+        if(!firebase.apps.length)firebase.initializeApp({apiKey:"AIzaSyBKU-wCjV4Au4ngRG52Zmmxbzc3N3D8VBU",authDomain:"advanced-intranet.firebaseapp.com",projectId:"advanced-intranet",storageBucket:"advanced-intranet.firebasestorage.app",messagingSenderId:"309856938024",appId:"1:309856938024:web:2108715f92c5dea2da2d1d"});
+        var db=firebase.firestore();
+        firebaseDb=db;
+        firebaseReady=true;
+        console.log('🔥 Firebase connected');
+
+        // Refresh alle zichtbare pagina's
+        function refresh(){
+          var p=document.querySelector('.panel.active');
+          if(p){
+            var id=p.id.replace('page-','');
+            try{if(id==='dashboard'&&typeof renderDashboard==='function')renderDashboard();}catch(e){}
+            try{if(id==='requests'&&typeof renderRequests==='function')renderRequests();}catch(e){}
+            try{if(id==='people'&&typeof renderPeople==='function')renderPeople();}catch(e){}
+            try{if(id==='departments'&&typeof renderDepartments==='function')renderDepartments();}catch(e){}
+            try{if(id==='sickness'&&typeof renderSickness==='function')renderSickness();}catch(e){}
+            try{if(id==='wallchart'&&typeof renderWallchart==='function')renderWallchart();}catch(e){}
+            try{if(id==='reports'&&typeof renderReports==='function')renderReports();}catch(e){}
+          }
+        }
+
+        // Parse Firestore data veilig
+        function parseField(d,field,current){
+          try{
+            if(!d[field])return null;
+            var v=JSON.parse(d[field]);
+            if(!Array.isArray(v)||v.length===0)return null;
+            if(JSON.stringify(v)===JSON.stringify(current))return null;
+            return v;
+          }catch(e){return null;}
+        }
+
+        function applyFirestoreData(d){
+          var ch=false;
+          var v;
+          v=parseField(d,'requests',requests);if(v){requests=v;ch=true;}
+          v=parseField(d,'people',people);if(v){people=v;ch=true;}
+          v=parseField(d,'departments',departments);if(v){departments=v;ch=true;}
+          v=parseField(d,'leaveTypes',leaveTypes);if(v){leaveTypes=v;ch=true;}
+          v=parseField(d,'schedules',schedules);if(v){schedules=v;ch=true;}
+          // Niet-array velden
+          try{if(d.candidates){var cv=JSON.parse(d.candidates);if(cv.length>0)candidates=cv;}}catch(e){}
+          try{if(d.channels){var cv=JSON.parse(d.channels);if(cv.length>0)channels=cv;}}catch(e){}
+          try{if(d.settings){Object.assign(settings,JSON.parse(d.settings));}}catch(e){}
+          try{if(d.baremaData){var cv=JSON.parse(d.baremaData);if(cv.length>0)baremaData=cv;}}catch(e){}
+          try{if(d.ancienniteitData){var cv=JSON.parse(d.ancienniteitData);if(cv.length>0)ancienniteitData=cv;}}catch(e){}
+          try{if(d.verlofregels){var cv=JSON.parse(d.verlofregels);if(Array.isArray(cv))verlofregels=cv;}}catch(e){}
+          return ch;
+        }
+
+        // Eerste keer: lees Firestore data
+        db.collection('platform').doc('personeelbeheer').get().then(function(doc){
+          if(!doc.exists){
+            console.log('🔥 Geen bestaande data in Firestore, seed data uploaden...');
+            autoSave(); // Push seed data naar Firestore
+            return;
+          }
+          var d=doc.data();
+          if(applyFirestoreData(d)){
+            console.log('🔥 Data geladen uit Firestore');
+            refresh();
+          }
+        }).catch(function(e){console.warn('🔥 Firestore read failed:',e);});
+
+        // Real-time listener voor live sync
+        db.collection('platform').doc('personeelbeheer').onSnapshot(function(doc){
+          if(!doc.exists)return;
+          var d=doc.data();
+          if(applyFirestoreData(d)){
+            console.log('🔥 Live update ontvangen');
+            refresh();
+          }
+        },function(e){console.warn('🔥 Snapshot listener error:',e);});
+
+        // AutoSave override — schrijf naar Firestore bij elke wijziging
+        var _orig=autoSave;
+        autoSave=function(){
+          _orig(); // localStorage backup
+          if(!firebaseReady)return;
+          db.collection('platform').doc('personeelbeheer').set({
+            departments:JSON.stringify(departments),
+            people:JSON.stringify(people),
+            leaveTypes:JSON.stringify(leaveTypes),
+            schedules:JSON.stringify(schedules),
+            requests:JSON.stringify(requests),
+            candidates:JSON.stringify(candidates),
+            channels:JSON.stringify(channels),
+            settings:JSON.stringify(settings),
+            baremaData:JSON.stringify(baremaData),
+            ancienniteitData:JSON.stringify(ancienniteitData),
+            salaryReasonTypes:JSON.stringify(typeof salaryReasonTypes!=='undefined'?salaryReasonTypes:[]),
+            werkgeverskostData:JSON.stringify(typeof werkgeverskostData!=='undefined'?werkgeverskostData:[]),
+            uurkostParams:JSON.stringify(typeof uurkostParams!=='undefined'?uurkostParams:{}),
+            verlofregels:JSON.stringify(typeof verlofregels!=='undefined'?verlofregels:[]),
+            updatedAt:new Date().toISOString()
+          }).then(function(){
+            console.log('🔥 Firestore saved');
+          }).catch(function(e){console.warn('🔥 Firestore save failed:',e);});
+        };
+
+        console.log('🔥 Firebase real-time sync actief');
+      }catch(e){console.error('🔥 Firebase init error:',e);}
+    });
+  });
+})();
 </script>
 </body>
 </html>
