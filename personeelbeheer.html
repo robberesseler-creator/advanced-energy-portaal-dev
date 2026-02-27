@@ -220,34 +220,34 @@ select.form-input{cursor:pointer;}
   </div>
   <div class="sb-nav">
     <div class="sb-section">Overzicht</div>
-    <button class="sb-item active" data-page="dashboard" onclick="try{showPage('dashboard')}catch(e){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});document.getElementById('page-dashboard').classList.add('active');document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active')});this.classList.add('active')}">
+    <button class="sb-item active" data-page="dashboard" onclick="showPage('dashboard')">
       <span class="sb-item-icon">📊</span>Dashboard
     </button>
-    <button class="sb-item" data-page="wallchart" onclick="try{showPage('wallchart')}catch(e){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});document.getElementById('page-wallchart').classList.add('active');document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active')});this.classList.add('active')}">
+    <button class="sb-item" data-page="wallchart" onclick="showPage('wallchart')">
       <span class="sb-item-icon">🗓</span>Wallchart
     </button>
     <div class="sb-section">Beheer</div>
-    <button class="sb-item" data-page="requests" onclick="try{showPage('requests')}catch(e){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});document.getElementById('page-requests').classList.add('active');document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active')});this.classList.add('active')}">
+    <button class="sb-item" data-page="requests" onclick="showPage('requests')">
       <span class="sb-item-icon">📥</span>Aanvragen
       <span class="sb-item-badge" id="badge-requests" style="display:none">0</span>
     </button>
-    <button class="sb-item" data-page="people" onclick="try{showPage('people')}catch(e){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});document.getElementById('page-people').classList.add('active');document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active')});this.classList.add('active')}">
+    <button class="sb-item" data-page="people" onclick="showPage('people')">
       <span class="sb-item-icon">👥</span>Medewerkers
     </button>
-    <button class="sb-item" data-page="departments" onclick="try{showPage('departments')}catch(e){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});document.getElementById('page-departments').classList.add('active');document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active')});this.classList.add('active')}">
+    <button class="sb-item" data-page="departments" onclick="showPage('departments')">
       <span class="sb-item-icon">📂</span>Departments
     </button>
-    <button class="sb-item" data-page="sickness" onclick="try{showPage('sickness')}catch(e){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});document.getElementById('page-sickness').classList.add('active');document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active')});this.classList.add('active')}">
+    <button class="sb-item" data-page="sickness" onclick="showPage('sickness')">
       <span class="sb-item-icon">🤒</span>Ziekte
     </button>
     <div class="sb-section">Configuratie</div>
-    <button class="sb-item" data-page="types" onclick="try{showPage('types')}catch(e){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});document.getElementById('page-types').classList.add('active');document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active')});this.classList.add('active')}">
+    <button class="sb-item" data-page="types" onclick="showPage('types')">
       <span class="sb-item-icon">🏷️</span>Afwezigheidstypes
     </button>
-    <button class="sb-item" data-page="settings" onclick="try{showPage('settings')}catch(e){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});document.getElementById('page-settings').classList.add('active');document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active')});this.classList.add('active')}">
+    <button class="sb-item" data-page="settings" onclick="showPage('settings')">
       <span class="sb-item-icon">⚙️</span>Instellingen
     </button>
-    <button class="sb-item" data-page="reports" onclick="try{showPage('reports')}catch(e){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});document.getElementById('page-reports').classList.add('active');document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active')});this.classList.add('active')}">
+    <button class="sb-item" data-page="reports" onclick="showPage('reports')">
       <span class="sb-item-icon">📈</span>Rapportage
     </button>
   </div>
@@ -258,37 +258,6 @@ select.form-input{cursor:pointer;}
     </div>
   </div>
 </nav>
-
-<!-- Navigatie via event delegation - werkt altijd, onafhankelijk van andere scripts -->
-<script>
-document.addEventListener('click',function(e){
-  var btn=e.target.closest('.sb-item[data-page]');
-  if(!btn)return;
-  var page=btn.getAttribute('data-page');
-  if(!page)return;
-  // Toggle panels
-  var panels=document.querySelectorAll('.panel');
-  for(var i=0;i<panels.length;i++)panels[i].classList.remove('active');
-  var target=document.getElementById('page-'+page);
-  if(target)target.classList.add('active');
-  // Toggle sidebar active state
-  var items=document.querySelectorAll('.sb-item');
-  for(var i=0;i<items.length;i++)items[i].classList.remove('active');
-  btn.classList.add('active');
-  // Try to call render functions if available
-  try{
-    if(page==='dashboard'&&typeof renderDashboard==='function')renderDashboard();
-    if(page==='requests'&&typeof renderRequests==='function')renderRequests();
-    if(page==='people'&&typeof renderPeople==='function')renderPeople();
-    if(page==='departments'&&typeof renderDepartments==='function')renderDepartments();
-    if(page==='sickness'&&typeof renderSickness==='function')renderSickness();
-    if(page==='wallchart'&&typeof renderWallchart==='function')renderWallchart();
-    if(page==='types'&&typeof renderTypes==='function')renderTypes();
-    if(page==='settings'&&typeof renderSettings==='function')renderSettings();
-    if(page==='reports'&&typeof renderReports==='function')renderReports();
-  }catch(ex){}
-});
-</script>
 
 <!-- Role bar -->
 <div class="role-bar">
@@ -306,31 +275,7 @@ document.addEventListener('click',function(e){
 
   <!-- Dashboard -->
   <div class="panel active" id="page-dashboard">
-    <div class="page">
-      <div class="page-header">
-        <div><div class="page-title">Dashboard</div><div class="page-subtitle">Overzicht verlof en afwezigheden</div></div>
-      </div>
-      <div class="card-grid card-grid-3" style="margin-bottom:20px">
-        <div class="card" style="cursor:pointer" onclick="highlightCard('card-absent')"><div class="stat"><div class="stat-value" id="st-absent">0</div><div class="stat-label">Afwezig vandaag</div></div></div>
-        <div class="card" style="cursor:pointer" onclick="highlightCard('card-absent')"><div class="stat"><div class="stat-value" id="st-sick" style="color:var(--danger)">0</div><div class="stat-label">Ziek vandaag</div></div></div>
-        <div class="card" style="cursor:pointer" onclick="highlightCard('card-pending')"><div class="stat"><div class="stat-value" id="st-pending" style="color:var(--warn)">0</div><div class="stat-label">Openstaande aanvragen</div></div></div>
-      </div>
-      <div class="card-grid card-grid-2">
-        <div class="card" id="card-absent">
-          <div class="card-title">📅 Afwezig vandaag</div>
-          <div id="dash-absent"><span style="font-size:13px;color:var(--text3)">Niemand afwezig</span></div>
-          <div id="dash-sick-section"></div>
-        </div>
-        <div class="card" id="card-pending">
-          <div class="card-title">📥 Openstaande aanvragen</div>
-          <div id="dash-pending"><span style="font-size:13px;color:var(--text3)">Geen openstaande aanvragen</span></div>
-        </div>
-      </div>
-      <div class="card" style="margin-top:16px">
-        <div class="card-title">🇧🇪 Aankomende feestdagen</div>
-        <div id="dash-holidays"></div>
-      </div>
-    </div>
+    <iframe src="dashboard-standalone.html" style="width:100%;height:calc(100vh - 44px);border:none"></iframe>
   </div>
 
   <!-- Medewerkers -->
@@ -556,92 +501,15 @@ document.addEventListener('click',function(e){
       </div>
     </div>
   <div class="panel" id="page-wallchart">
-    <div class="page" style="max-width:1400px">
-      <div class="page-header">
-        <div><div class="page-title">Wallchart</div><div class="page-subtitle" id="wc-subtitle">Planningsoverzicht</div></div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <select class="form-input" style="width:160px" id="wc-dept" onchange="renderWallchart()">
-            <option value="">Alle departments</option>
-          </select>
-          <button class="btn btn-sm" onclick="wcPrev()">◀</button>
-          <button class="btn btn-sm" onclick="wcToday()">Vandaag</button>
-          <button class="btn btn-sm" onclick="wcNext()">▶</button>
-          <button class="btn btn-sm" id="wc-mode-btn" onclick="toggleWcMode()">Maand</button>
-        </div>
-      </div>
-      <div class="card" style="overflow-x:auto;padding:12px">
-        <div id="wc-legend" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;font-size:11px"></div>
-        <table class="tbl" id="wc-table" style="font-size:11px;min-width:800px">
-          <thead id="wc-thead"></thead>
-          <tbody id="wc-tbody"></tbody>
-        </table>
-      </div>
-    </div>
+    <iframe src="wallchart-standalone.html" style="width:100%;height:calc(100vh - 44px);border:none"></iframe>
   </div>
   <!-- Aanvragen -->
   <div class="panel" id="page-requests">
-    <div class="page">
-      <div class="page-header">
-        <div><div class="page-title">Aanvragen</div><div class="page-subtitle" id="req-count">Verlofaanvragen beheren</div></div>
-        <button class="btn btn-sm btn-primary-outline" onclick="openRequestModal()">➕ Nieuwe aanvraag</button>
-      </div>
-      <div class="tabs">
-        <button class="tab active" onclick="filterRequests('pending',this)">⏳ Openstaand <span id="req-badge-pending"></span></button>
-        <button class="tab" onclick="filterRequests('approved',this)">✅ Goedgekeurd</button>
-        <button class="tab" onclick="filterRequests('rejected',this)">❌ Geweigerd</button>
-        <button class="tab" onclick="filterRequests('all',this)">Alles</button>
-      </div>
-      <div class="card">
-        <div style="display:flex;gap:12px;margin-bottom:16px">
-          <div class="search-box" style="flex:1"><input class="form-input" placeholder="Zoek op naam..." oninput="searchRequests(this.value)"/></div>
-          <select class="form-input" style="width:180px" id="req-dept-filter" onchange="renderRequests()">
-            <option value="">Alle departments</option>
-          </select>
-        </div>
-        <div id="req-bulk-bar" style="display:none;padding:10px 14px;background:var(--accent);color:#fff;border-radius:var(--radius-sm);margin-bottom:12px;display:none;align-items:center;gap:12px;font-size:13px">
-          <span id="req-bulk-count" style="font-weight:700"></span>
-          <div style="margin-left:auto;display:flex;gap:8px">
-            <button class="btn btn-sm" onclick="bulkApprove()" style="background:#fff;color:var(--success);border:none;font-weight:700">✅ Goedkeuren</button>
-            <button class="btn btn-sm" onclick="bulkReject()" style="background:#fff;color:var(--danger);border:none;font-weight:700">❌ Weigeren</button>
-            <button class="btn btn-sm" onclick="clearSelection()" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4)">Annuleren</button>
-          </div>
-        </div>
-        <table class="tbl">
-          <thead><tr><th id="req-th-check" style="width:32px;display:none"><input type="checkbox" id="req-check-all" onchange="toggleAllRequests(this.checked)" style="cursor:pointer"/></th><th>Medewerker</th><th>Type</th><th>Periode</th><th>Dagen</th><th>Status</th><th>Conflicten</th><th></th></tr></thead>
-          <tbody id="requests-table"><tr><td colspan="7" style="text-align:center;padding:40px;color:#94a3b8">Aanvragen worden geladen...</td></tr></tbody>
-        </table>
-      </div>
-    </div>
+    <iframe src="aanvragen-standalone.html" style="width:100%;height:calc(100vh - 44px);border:none"></iframe>
   </div>
   <!-- Ziekte -->
   <div class="panel" id="page-sickness">
-    <div class="page">
-      <div class="page-header">
-        <div><div class="page-title">Ziekte</div><div class="page-subtitle">Ziekmeldingen en doktersbriefjes</div></div>
-        <button class="btn btn-sm btn-primary-outline" onclick="openSicknessModal()">➕ Ziekmelding registreren</button>
-      </div>
-      <div class="tabs">
-        <button class="tab active" onclick="filterSickness('active',this)">🤒 Actief ziek</button>
-        <button class="tab" onclick="filterSickness('all',this)">Alle meldingen</button>
-      </div>
-      <div class="card">
-        <table class="tbl">
-          <thead><tr><th>Medewerker</th><th>Van</th><th>Tot</th><th>Dagen</th><th>Briefje</th><th>Notificaties</th><th></th></tr></thead>
-          <tbody id="sickness-table"></tbody>
-        </table>
-      </div>
-      <div class="card" style="margin-top:16px">
-        <div class="card-title">📊 Bradford Factor <span style="font-weight:400;font-size:11px;color:var(--text3)">(S² × D — rollende 52 weken)</span></div>
-        <table class="tbl">
-          <thead><tr>
-            <th>Medewerker</th><th>Periodes (S)</th><th>Totaal dagen (D)</th>
-            <th style="cursor:pointer;user-select:none" onclick="sortBradford()">Bradford Score <span id="sort-bradford" style="display:inline-block;width:12px;text-align:center">↓</span></th>
-            <th>Risico</th>
-          </tr></thead>
-          <tbody id="bradford-table"></tbody>
-        </table>
-      </div>
-    </div>
+    <iframe src="ziekte-standalone.html" style="width:100%;height:calc(100vh - 44px);border:none"></iframe>
   </div>
   <!-- Rapportage -->
   <div class="panel" id="page-reports">
@@ -4551,7 +4419,6 @@ async function resetData(){
 
 restore();
 
-try{
 // Force fresh data load once (version flag prevents repeat resets)
 const SEED_VERSION='v16.1';
 if(localStorage.getItem('vb_seed_version')!==SEED_VERSION){
@@ -4570,9 +4437,6 @@ if(localStorage.getItem('vb_seed_version')!==SEED_VERSION){
   localStorage.removeItem('vb_uurkostParams');
   localStorage.removeItem('vb_verlofregels');
   localStorage.setItem('vb_seed_version',SEED_VERSION);
-  departments=[];people=[];leaveTypes=[];schedules=[];requests=[];candidates=[];channels=[];baremaData=[];ancienniteitData=[];verlofregels=[];
-}
-}catch(e){
   departments=[];people=[];leaveTypes=[];schedules=[];requests=[];candidates=[];channels=[];baremaData=[];ancienniteitData=[];verlofregels=[];
 }
 
@@ -4779,56 +4643,6 @@ function isAdmin(){return shellPermissions.role==='admin';}
 
 detectShell();
 renderDashboard();
-
-// ═══ FIREBASE (dynamisch geladen, blokkeert NIETS) ═══
-(function(){
-  function loadScript(url,cb){var s=document.createElement('script');s.src=url;s.async=true;s.onload=cb;s.onerror=function(){};document.head.appendChild(s);}
-  loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js',function(){
-    loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js',function(){
-      try{
-        if(!firebase.apps.length)firebase.initializeApp({apiKey:"AIzaSyBKU-wCjV4Au4ngRG52Zmmxbzc3N3D8VBU",authDomain:"advanced-intranet.firebaseapp.com",projectId:"advanced-intranet",storageBucket:"advanced-intranet.firebasestorage.app",messagingSenderId:"309856938024",appId:"1:309856938024:web:2108715f92c5dea2da2d1d"});
-        var db=firebase.firestore();
-        function refresh(){var p=document.querySelector('.panel.active');if(p){var id=p.id.replace('page-','');
-          if(id==='dashboard')renderDashboard();if(id==='people')renderPeople();
-          if(id==='requests')renderRequests();if(id==='departments')renderDepartments();
-          if(id==='sickness')renderSickness();if(id==='wallchart')renderWallchart();
-        }}
-        // Lees Firestore data
-        db.collection('platform').doc('personeelbeheer').get().then(function(doc){
-          if(!doc.exists)return;var d=doc.data(),ch=false;
-          if(d.requests){var v=JSON.parse(d.requests);if(JSON.stringify(v)!==JSON.stringify(requests)){requests=v;ch=true;}}
-          if(d.people){var v=JSON.parse(d.people);if(JSON.stringify(v)!==JSON.stringify(people)){people=v;ch=true;}}
-          if(d.departments){var v=JSON.parse(d.departments);if(JSON.stringify(v)!==JSON.stringify(departments)){departments=v;ch=true;}}
-          if(d.leaveTypes){var v=JSON.parse(d.leaveTypes);if(JSON.stringify(v)!==JSON.stringify(leaveTypes)){leaveTypes=v;ch=true;}}
-          if(d.schedules){var v=JSON.parse(d.schedules);if(JSON.stringify(v)!==JSON.stringify(schedules)){schedules=v;ch=true;}}
-          if(ch)refresh();
-        }).catch(function(){});
-        // Real-time listener
-        db.collection('platform').doc('personeelbeheer').onSnapshot(function(doc){
-          if(!doc.exists)return;var d=doc.data(),ch=false;
-          if(d.requests){var v=JSON.parse(d.requests);if(JSON.stringify(v)!==JSON.stringify(requests)){requests=v;ch=true;}}
-          if(d.people){var v=JSON.parse(d.people);if(JSON.stringify(v)!==JSON.stringify(people)){people=v;ch=true;}}
-          if(d.departments){var v=JSON.parse(d.departments);if(JSON.stringify(v)!==JSON.stringify(departments)){departments=v;ch=true;}}
-          if(d.leaveTypes){var v=JSON.parse(d.leaveTypes);if(JSON.stringify(v)!==JSON.stringify(leaveTypes)){leaveTypes=v;ch=true;}}
-          if(ch)refresh();
-        },function(){});
-        // AutoSave override
-        var _orig=autoSave;autoSave=function(){_orig();
-          db.collection('platform').doc('personeelbeheer').set({
-            departments:JSON.stringify(departments),people:JSON.stringify(people),
-            leaveTypes:JSON.stringify(leaveTypes),schedules:JSON.stringify(schedules),
-            requests:JSON.stringify(requests),candidates:JSON.stringify(candidates),
-            channels:JSON.stringify(channels),settings:JSON.stringify(settings),
-            baremaData:JSON.stringify(baremaData),ancienniteitData:JSON.stringify(ancienniteitData),
-            salaryReasonTypes:JSON.stringify(salaryReasonTypes),werkgeverskostData:JSON.stringify(werkgeverskostData),
-            uurkostParams:JSON.stringify(uurkostParams),verlofregels:JSON.stringify(verlofregels),
-            updatedAt:new Date().toISOString()
-          }).catch(function(){});
-        };
-      }catch(e){}
-    });
-  });
-})();
 </script>
 </body>
 </html>
