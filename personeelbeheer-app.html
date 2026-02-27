@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Personeelbeheer · Advanced Energy</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F5F6F8;color:#1F2937}
+#app{max-width:430px;margin:0 auto;min-height:100vh;position:relative;overflow:hidden;display:flex;flex-direction:column}
+.screen{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:80px}
+
+/* Header */
+.hdr{padding:16px 20px 14px;background:linear-gradient(135deg,#1E3A5F 0%,#2D5A87 100%);color:#fff}
+.hdr h1{font-size:22px;font-weight:800;letter-spacing:-0.5px}
+.hdr .sub{font-size:13px;opacity:.8;margin-top:2px}
+.hdr-row{display:flex;justify-content:space-between;align-items:flex-start}
+
+/* Cards */
+.card{background:#fff;border-radius:14px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.06),0 4px 12px rgba(0,0,0,.04);border:1px solid #F0F0F0;margin-bottom:12px}
+.card.clickable{cursor:pointer}
+
+/* Bottom nav */
+.bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:rgba(255,255,255,.92);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border-top:1px solid #E5E7EB;display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom,8px)}
+.bnav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 0 6px;background:none;border:none;cursor:pointer;color:#9CA3AF;transition:color .2s;position:relative;font-family:inherit}
+.bnav button.act{color:#1E3A5F}
+.bnav .icon{font-size:20px;line-height:1}
+.bnav .lbl{font-size:10px;font-weight:500;letter-spacing:.2px}
+.bnav button.act .lbl{font-weight:700}
+.bnav .dot{position:absolute;top:0;left:25%;right:25%;height:2px;background:#1E3A5F;border-radius:2px}
+.bnav .badge{position:absolute;top:4px;right:calc(50% - 16px);width:16px;height:16px;border-radius:50%;background:#EF4444;color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center}
+
+/* Status badges */
+.sbadge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.3px;display:inline-block}
+.sbadge-pending{background:#FEF3C7;color:#92400E}
+.sbadge-approved{background:#D1FAE5;color:#065F46}
+.sbadge-rejected{background:#FEE2E2;color:#991B1B}
+
+/* Avatar */
+.av{border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;flex-shrink:0}
+
+/* Form */
+.finput{width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid #E5E7EB;font-size:14px;font-weight:600;color:#1F2937;font-family:inherit;box-sizing:border-box}
+textarea.finput{min-height:60px;resize:vertical;font-size:13px;font-weight:400}
+.lbl-sm{font-size:11px;color:#9CA3AF;display:block;margin-bottom:4px}
+
+/* Type button */
+.tbtn{padding:12px 10px;border-radius:12px;border:2px solid #E5E7EB;background:#FAFAFA;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all .2s;font-family:inherit;text-align:left;width:100%}
+.tbtn.sel{background:var(--tc)10}
+
+/* Toggle */
+.toggle{width:48px;height:28px;border-radius:14px;border:none;cursor:pointer;position:relative;background:#D1D5DB;transition:background .3s}
+.toggle.on{background:#1E3A5F}
+.toggle .knob{width:22px;height:22px;border-radius:50%;background:#fff;position:absolute;top:3px;left:3px;transition:left .3s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle.on .knob{left:23px}
+
+/* Toast */
+#toast{position:fixed;top:-60px;left:50%;transform:translateX(-50%);z-index:200;background:#1F2937;color:#fff;padding:10px 24px;border-radius:12px;font-size:13px;font-weight:600;box-shadow:0 8px 30px rgba(0,0,0,.2);transition:top .4s cubic-bezier(.34,1.56,.64,1);white-space:nowrap}
+#toast.show{top:60px}
+
+/* Sync bar */
+#syncbar{position:fixed;top:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;height:3px;background:#E5E7EB;z-index:300;overflow:hidden;display:none}
+#syncbar.show{display:block}
+#syncbar .bar{height:100%;background:linear-gradient(90deg,#3b82f6,#1E3A5F,#3b82f6);width:40%;animation:syncAnim 1.2s ease-in-out infinite}
+@keyframes syncAnim{0%{transform:translateX(-100%)}100%{transform:translateX(350%)}}
+
+/* Loading overlay */
+#loading{position:fixed;inset:0;background:rgba(255,255,255,.95);z-index:250;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+#loading .fire{font-size:40px;animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.15);opacity:.7}}
+@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* Section title */
+.stitle{margin:0 0 10px 4px;font-size:14px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.6px}
+.stitle-sm{margin:0 0 8px 4px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+
+/* Utility */
+.row{display:flex;align-items:center;gap:12px}
+.col{display:flex;flex-direction:column;gap:8px}
+.flex1{flex:1}
+.hidden{display:none!important}
+.mt8{margin-top:8px}.mt12{margin-top:12px}.mb12{margin-bottom:12px}
+.p16{padding:16px 16px 100px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="syncbar"><div class="bar"></div></div>
+  <div id="loading">
+    <div class="fire">🔥</div>
+    <div style="font-size:15px;font-weight:700;color:#1E3A5F">Verbinden met Firebase...</div>
+    <div style="font-size:12px;color:#9CA3AF">Data laden van personeelbeheer</div>
+  </div>
+  <div id="toast"></div>
+
+  <!-- Screens rendered by JS -->
+  <div id="screen-home" class="screen hidden"></div>
+  <div id="screen-absences" class="screen hidden"></div>
+  <div id="screen-notifications" class="screen hidden"></div>
+  <div id="screen-profile" class="screen hidden"></div>
+  <div id="screen-newrequest" class="screen hidden"></div>
+
+  <!-- Bottom Nav -->
+  <nav class="bnav" id="bnav">
+    <button onclick="nav('home')" data-nav="home" class="act">
+      <span class="icon">🏠</span><span class="lbl">Home</span><div class="dot"></div>
+    </button>
+    <button onclick="nav('absences')" data-nav="absences">
+      <span class="icon">📋</span><span class="lbl">Afwezigheden</span>
+    </button>
+    <button onclick="nav('notifications')" data-nav="notifications">
+      <span class="icon">🔔</span><span class="lbl">Meldingen</span>
+      <span class="badge hidden" id="notif-badge">0</span>
+    </button>
+    <button onclick="nav('profile')" data-nav="profile">
+      <span class="icon">⚙️</span><span class="lbl">Profiel</span>
+    </button>
+  </nav>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<script>
+// ═══ FIREBASE ═══
+var db=null;
+try{
+  firebase.initializeApp({apiKey:"AIzaSyBKU-wCjV4Au4ngRG52Zmmxbzc3N3D8VBU",authDomain:"advanced-intranet.firebaseapp.com",projectId:"advanced-intranet",storageBucket:"advanced-intranet.firebasestorage.app",messagingSenderId:"309856938024",appId:"1:309856938024:web:2108715f92c5dea2da2d1d"});
+  db=firebase.firestore();
+}catch(e){console.warn('Firebase niet beschikbaar:',e);}
+
+// ═══ LEAVE TYPES FALLBACK ═══
+const FALLBACK_LT=[
+  {id:"wettelijk",name:"Wettelijk verlof",color:"#3b82f6",symbol:"🏖️",tracked:true,defaultDays:20,category:"verlof"},
+  {id:"adv",name:"ADV",color:"#22c55e",symbol:"📅",tracked:true,defaultDays:12,category:"adv"},
+  {id:"ancienniteit",name:"Anciënniteitsverlof",color:"#10b981",symbol:"🏅",tracked:true,defaultDays:0,category:"verlof"},
+  {id:"onbetaald",name:"Onbetaald verlof",color:"#94a3b8",symbol:"⚪",tracked:true,defaultDays:0,category:"verlof"},
+  {id:"opleiding",name:"Opleiding",color:"#a855f7",symbol:"📚",category:"verlof"},
+  {id:"huwelijk",name:"Huwelijk",color:"#ec4899",symbol:"💒",defaultDays:2,category:"verlof"},
+  {id:"geboorte",name:"Geboorteverlof",color:"#06b6d4",symbol:"👶",defaultDays:20,category:"verlof"},
+  {id:"communie",name:"Communie kind",color:"#8b5cf6",symbol:"⛪",defaultDays:1,category:"verlof"},
+  {id:"verhuizing",name:"Verhuizing",color:"#f59e0b",symbol:"📦",defaultDays:1,category:"verlof"},
+  {id:"familiaal",name:"Familiaal verlof",color:"#f472b6",symbol:"👪",category:"verlof"},
+  {id:"dokter",name:"Doktersbezoek",color:"#14b8a6",symbol:"🩺",category:"verlof"},
+  {id:"juridisch",name:"Juridische verplichting",color:"#78716c",symbol:"⚖️",category:"verlof"},
+  {id:"overlijden-1",name:"Overlijden partner/kind",color:"#374151",symbol:"🕯️",defaultDays:3,category:"verlof"},
+  {id:"overlijden-2",name:"Overlijden ouder",color:"#374151",symbol:"🕯️",defaultDays:3,category:"verlof"},
+  {id:"ziekte",name:"Ziekte",color:"#ef4444",symbol:"🤒",category:"ziekte"},
+  {id:"arbeidsongeval",name:"Arbeidsongeval",color:"#dc2626",symbol:"🚑",category:"ziekte"},
+  {id:"hospitalisatie",name:"Hospitalisatie",color:"#b91c1c",symbol:"🏥",category:"ziekte"},
+  {id:"tech-werkloos",name:"Tech. werkloosheid",color:"#f97316",symbol:"🏭",category:"extern"},
+  {id:"weerverlet",name:"Weerverlet",color:"#0369a1",symbol:"🌧️",category:"extern"},
+];
+
+// ═══ STATE ═══
+const urlP=new URLSearchParams(location.search);
+const userId=urlP.get('user')||'x1';
+let S={screen:'home',syncing:true,connected:false,lastSync:null,
+  leaveTypes:FALLBACK_LT,user:{id:userId,firstName:'Laden...',lastName:''},
+  balances:{},requests:[],requestsPrev:[],team:[],teamAbs:[],notifications:[],
+  // New request form
+  nrType:'',nrStart:'',nrEnd:'',nrHalf:false,nrHalfP:'VM',nrComment:'',nrStep:1,
+  // Absences year
+  absYear:new Date().getFullYear(),
+  // Read notifications
+  readNotifs:new Set()
+};
+
+// ═══ UTILS ═══
+const fN=p=>p?(p.firstName+' '+p.lastName).trim():'?';
+const fI=p=>{const n=fN(p);return n.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);};
+const fD=d=>new Date(d+'T00:00:00').toLocaleDateString('nl-BE',{day:'numeric',month:'short'});
+const fDF=d=>new Date(d+'T00:00:00').toLocaleDateString('nl-BE',{weekday:'short',day:'numeric',month:'long',year:'numeric'});
+const today=()=>new Date().toISOString().split('T')[0];
+const ACOL=["#3b82f6","#22c55e","#a855f7","#ef4444","#eab308","#ec4899","#06b6d4","#f97316"];
+const aCol=n=>{let h=0;for(let i=0;i<n.length;i++)h=((h<<5)-h+n.charCodeAt(i))|0;return ACOL[Math.abs(h)%ACOL.length];};
+const gLT=id=>S.leaveTypes.find(t=>t.id===id)||{name:id,symbol:'📋',color:'#94a3b8',category:'verlof'};
+const esc=s=>s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):'';
+
+function avatar(p,size){
+  const n=fN(p),c=aCol(n);
+  return `<div class="av" style="width:${size}px;height:${size}px;background:linear-gradient(135deg,${c},${c}dd);font-size:${size*.35}px;box-shadow:0 2px 8px ${c}40">${fI(p)}</div>`;
+}
+function statusBadge(st){
+  const m={approved:['sbadge-approved','Goedgekeurd'],pending:['sbadge-pending','In afwachting'],rejected:['sbadge-rejected','Afgewezen']};
+  const[cls,lbl]=m[st]||m.pending;
+  return `<span class="sbadge ${cls}">${lbl}</span>`;
+}
+
+// ═══ TOAST ═══
+let toastTimer;
+function showToast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.classList.remove('show'),2500);
+}
+
+// ═══ FIREBASE DATA → STATE ═══
+function buildState(data){
+  const parse=f=>{try{return JSON.parse(data[f]||'[]')}catch{return[]}};
+  const allP=parse('people'),allD=parse('departments'),allR=parse('requests'),allLT=parse('leaveTypes');
+  const lt=allLT.length>0?allLT.map(t=>({...t,tracked:t.tracked||false,defaultDays:t.defaultDays||0,
+    category:t.category||(t.id==='ziekte'||t.id==='arbeidsongeval'||t.id==='hospitalisatie'?'ziekte':
+    t.id==='tech-werkloos'||t.id==='weerverlet'||t.id==='economisch'||t.id==='collectief'?'extern':'verlof')
+  })):FALLBACK_LT;
+  const user=allP.find(p=>p.id===userId);
+  if(!user)return false;
+  const dept=allD.find(d=>d.id===user.departmentId);
+  const yr=new Date().getFullYear();
+  const myReq=allR.filter(r=>r.personId===userId&&new Date(r.startDate).getFullYear()===yr).sort((a,b)=>(b.startDate||'').localeCompare(a.startDate||''));
+  const myPrev=allR.filter(r=>r.personId===userId&&new Date(r.startDate).getFullYear()===yr-1).sort((a,b)=>(b.startDate||'').localeCompare(a.startDate||''));
+
+  // Balances
+  const compBal=y=>{
+    const yReq=allR.filter(r=>r.personId===userId&&new Date(r.startDate).getFullYear()===y&&r.status==='approved');
+    const b={};
+    lt.filter(t=>t.tracked).forEach(t=>{
+      const allow=user.verlofSaldo&&user.verlofSaldo[t.id]!==undefined?user.verlofSaldo[t.id]:t.defaultDays;
+      const used=yReq.filter(r=>r.type===t.id).reduce((s,r)=>s+(r.days||1),0);
+      b[t.id]={allowance:allow,used,remaining:Math.max(0,allow-used)};
+    });
+    return b;
+  };
+
+  // Team
+  const team=allP.filter(p=>p.departmentId===user.departmentId&&p.id!==userId);
+  const td=today(),tw=new Date();tw.setDate(tw.getDate()+14);const tws=tw.toISOString().split('T')[0];
+  const teamAbs=[];
+  team.forEach(tm=>{
+    allR.filter(r=>r.personId===tm.id&&r.status==='approved'&&r.endDate>=td&&r.startDate<=tws)
+      .forEach(r=>teamAbs.push({personId:tm.id,firstName:tm.firstName,lastName:tm.lastName,type:r.type,startDate:r.startDate,endDate:r.endDate}));
+  });
+
+  // Notifications
+  const notifs=[];
+  myReq.forEach(r=>{
+    const tName=gLT(r.type).name;
+    if(r.status==='approved')notifs.push({id:'n-'+r.id+'-a',type:'approved',message:tName+' '+fD(r.startDate)+(r.startDate!==r.endDate?' → '+fD(r.endDate):'')+' goedgekeurd',time:r.decidedDate||r.requestDate||'',read:true});
+    else if(r.status==='rejected')notifs.push({id:'n-'+r.id+'-r',type:'rejected',message:tName+' '+fD(r.startDate)+' afgewezen'+(r.rejectReason?': '+r.rejectReason:''),time:r.decidedDate||r.requestDate||'',read:true});
+  });
+  teamAbs.filter(t=>t.startDate<=td&&t.endDate>=td).forEach(t=>{
+    notifs.push({id:'n-team-'+t.personId,type:'info',message:t.firstName+' '+t.lastName+' is afwezig vandaag',time:'Vandaag',read:false});
+  });
+  notifs.sort((a,b)=>(b.time||'').localeCompare(a.time||''));
+
+  S.leaveTypes=lt;
+  S.user={...user,departmentName:dept?dept.name:''};
+  S.balances={[yr]:compBal(yr),[yr-1]:compBal(yr-1)};
+  S.requests=myReq;S.requestsPrev=myPrev;
+  S.team=team;S.teamAbs=teamAbs;
+  S.notifications=notifs.slice(0,20);
+  S.lastSync=data.updatedAt||new Date().toISOString();
+  S.connected=true;S.syncing=false;
+  return true;
+}
+
+// ═══ FIREBASE LISTENER ═══
+if(db){
+  db.collection('platform').doc('personeelbeheer').onSnapshot(doc=>{
+    if(!doc.exists)return;
+    if(buildState(doc.data())){
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('syncbar').classList.remove('show');
+      render();
+      console.log('🔥 Live data ontvangen');
+    }
+  },err=>{
+    console.warn('Firestore error:',err);
+    S.syncing=false;
+    document.getElementById('loading').innerHTML='<div style="text-align:center"><div style="font-size:40px;margin-bottom:12px">⚠️</div><div style="font-size:15px;font-weight:700;color:#991b1b">Kan niet verbinden</div><div style="font-size:12px;color:#9CA3AF;margin-top:8px">Controleer je internetverbinding</div><button onclick="location.reload()" style="margin-top:16px;padding:10px 24px;border-radius:10px;border:none;background:#1E3A5F;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Opnieuw proberen</button></div>';
+  });
+}else{
+  // Firebase niet beschikbaar (lokaal bestand) — toon foutmelding
+  document.getElementById('loading').innerHTML='<div style="text-align:center"><div style="font-size:40px;margin-bottom:12px">📱</div><div style="font-size:15px;font-weight:700;color:#1E3A5F">Open via GitHub Pages</div><div style="font-size:12px;color:#9CA3AF;margin-top:8px;max-width:280px">Deze app heeft een internetverbinding nodig.<br>Open de app via:<br><code style="background:#F3F4F6;padding:2px 6px;border-radius:4px;font-size:11px">https://robberesseler-creator.github.io/advanced-energy-portaal-dev/personeelbeheer-app.html</code></div></div>';
+}
+
+// ═══ NAVIGATION ═══
+function nav(screen){
+  if(screen==='newrequest'){S.nrType='';S.nrStart='';S.nrEnd='';S.nrHalf=false;S.nrComment='';S.nrStep=1;}
+  S.screen=screen;
+  document.getElementById('bnav').classList.toggle('hidden',screen==='newrequest');
+  render();
+}
+
+// ═══ ACTIONS ═══
+async function submitRequest(){
+  if(!db){showToast('❌ Geen Firebase verbinding');return;}
+  const r={id:'r-'+Date.now(),personId:userId,type:S.nrType,startDate:S.nrStart,endDate:S.nrEnd,
+    halfDay:S.nrHalf,halfDayPeriod:S.nrHalf?S.nrHalfP:null,status:'pending',
+    days:S.nrHalf?0.5:Math.max(1,Math.round((new Date(S.nrEnd)-new Date(S.nrStart))/864e5)+1),
+    comment:S.nrComment,requestDate:today()};
+  document.getElementById('syncbar').classList.add('show');
+  try{
+    const doc=await db.collection('platform').doc('personeelbeheer').get();
+    if(!doc.exists)return;
+    const allR=JSON.parse(doc.data().requests||'[]');
+    allR.push(r);
+    await db.collection('platform').doc('personeelbeheer').update({requests:JSON.stringify(allR),updatedAt:new Date().toISOString()});
+    showToast('✅ Verlofaanvraag ingediend!');
+    nav('absences');
+  }catch(e){showToast('❌ Fout: '+e.message);}
+  document.getElementById('syncbar').classList.remove('show');
+}
+
+async function cancelRequest(id){
+  if(!db){showToast('❌ Geen Firebase verbinding');return;}
+  if(!confirm('Aanvraag annuleren?'))return;
+  document.getElementById('syncbar').classList.add('show');
+  try{
+    const doc=await db.collection('platform').doc('personeelbeheer').get();
+    if(!doc.exists)return;
+    const allR=JSON.parse(doc.data().requests||'[]');
+    const idx=allR.findIndex(r=>r.id===id);
+    if(idx>=0&&allR[idx].status==='pending'){allR.splice(idx,1);
+      await db.collection('platform').doc('personeelbeheer').update({requests:JSON.stringify(allR),updatedAt:new Date().toISOString()});
+      showToast('Aanvraag geannuleerd');
+    }
+  }catch(e){showToast('❌ Fout: '+e.message);}
+  document.getElementById('syncbar').classList.remove('show');
+}
+
+function markRead(id){S.readNotifs.add(id);render();}
+
+// ═══ RENDER ═══
+function render(){
+  const screens=['home','absences','notifications','profile','newrequest'];
+  screens.forEach(s=>{
+    const el=document.getElementById('screen-'+s);
+    el.classList.toggle('hidden',S.screen!==s);
+  });
+  // Nav active state
+  document.querySelectorAll('.bnav button').forEach(b=>{
+    const n=b.dataset.nav;
+    b.classList.toggle('act',n===S.screen);
+    const dot=b.querySelector('.dot');
+    if(dot)dot.style.display=n===S.screen?'':'none';
+    else if(n===S.screen){const d=document.createElement('div');d.className='dot';b.appendChild(d);}
+  });
+  // Notification badge
+  const unread=S.notifications.filter(n=>!n.read&&!S.readNotifs.has(n.id)).length;
+  const nb=document.getElementById('notif-badge');
+  nb.textContent=unread;nb.classList.toggle('hidden',unread===0);
+
+  // Render active screen
+  if(S.screen==='home')renderHome();
+  else if(S.screen==='absences')renderAbsences();
+  else if(S.screen==='notifications')renderNotifications();
+  else if(S.screen==='profile')renderProfile();
+  else if(S.screen==='newrequest')renderNewRequest();
+}
+
+// ═══ HOME SCREEN ═══
+function renderHome(){
+  const el=document.getElementById('screen-home');
+  const yr=new Date().getFullYear(),bal=S.balances[yr]||{},td=today();
+  const tracked=S.leaveTypes.filter(t=>t.tracked&&bal[t.id]&&(bal[t.id].allowance>0||bal[t.id].used>0));
+  const upcoming=S.requests.filter(r=>r.status==='approved'&&r.startDate>=td).sort((a,b)=>a.startDate.localeCompare(b.startDate));
+  const todayAbs=S.teamAbs.filter(t=>t.startDate<=td&&t.endDate>=td);
+
+  let h=`<div class="hdr"><div class="hdr-row"><div>
+    <h1>Hallo, ${esc(S.user.firstName)} 👋</h1>
+    <div class="sub">${fDF(td)}</div>
+  </div>
+  <button onclick="nav('newrequest')" style="background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);border-radius:12px;color:#fff;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit">
+    <span style="font-size:18px;line-height:1">+</span> Aanvragen
+  </button></div></div>`;
+
+  h+=`<div class="p16">`;
+
+  // Saldo cards
+  if(tracked.length>0){
+    h+=`<div class="card" style="background:linear-gradient(135deg,#F0F7FF,#E8F4FD);border:1px solid #D0E8F7;padding:12px"><div style="display:flex;gap:10px;flex-wrap:wrap">`;
+    tracked.forEach(t=>{
+      const b=bal[t.id],pct=b.allowance>0?Math.min(100,(b.remaining/b.allowance)*100):0;
+      const ac=b.remaining>5?'#10B981':b.remaining>0?'#F59E0B':'#EF4444';
+      h+=`<div style="flex:1;min-width:0;background:#fff;border-radius:12px;padding:12px 14px;border:1px solid #E5E7EB">
+        <div style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.symbol} ${esc(t.name)}</div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+          <span style="font-size:11px;color:#9CA3AF">Recht</span><span style="font-size:16px;font-weight:800;color:#9CA3AF">${b.allowance}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <span style="font-size:11px;color:${ac};font-weight:600">Resterend</span><span style="font-size:22px;font-weight:800;color:${ac}">${b.remaining}</span>
+        </div>
+        <div style="margin-top:8px;height:4px;border-radius:2px;background:#F3F4F6;overflow:hidden"><div style="height:100%;border-radius:2px;background:${ac};width:${pct}%"></div></div>
+      </div>`;
+    });
+    h+=`</div></div>`;
+  }
+
+  // Upcoming
+  h+=`<h3 class="stitle">📅 Aankomend Verlof</h3>`;
+  if(upcoming.length===0)h+=`<div class="card"><p style="color:#9CA3AF;font-size:13px;text-align:center;padding:8px">Geen gepland verlof</p></div>`;
+  else upcoming.slice(0,3).forEach(r=>{
+    const lt=gLT(r.type);
+    h+=`<div class="card clickable" onclick="nav('absences')"><div class="row">
+      <div style="width:42px;height:42px;border-radius:12px;background:${lt.color}15;display:flex;align-items:center;justify-content:center;font-size:20px">${lt.symbol}</div>
+      <div class="flex1"><div style="font-weight:700;font-size:14px">${esc(lt.name)}</div>
+        <div style="font-size:12px;color:#6B7280;margin-top:2px">${fD(r.startDate)} → ${fD(r.endDate)} · ${r.halfDay?'½ dag':(r.days||1)+' dag'+(r.days>1?'en':'')}</div>
+      </div>${statusBadge(r.status)}</div></div>`;
+  });
+
+  // Team absent
+  h+=`<h3 class="stitle">👥 Team Afwezig Vandaag</h3>`;
+  if(todayAbs.length===0)h+=`<div class="card"><p style="color:#9CA3AF;font-size:13px;text-align:center;padding:8px">Iedereen is aanwezig</p></div>`;
+  else{h+=`<div class="card"><div class="col" style="gap:10px">`;
+    todayAbs.forEach((t,i)=>{
+      const lt=gLT(t.type);
+      h+=`<div class="row" style="padding:4px 0;${i<todayAbs.length-1?'border-bottom:1px solid #F3F4F6':''}">
+        ${avatar(t,36)}<div class="flex1"><div style="font-weight:600;font-size:13px">${esc(fN(t))}</div>
+        <div style="font-size:11px;color:#6B7280">${lt.symbol} ${esc(lt.name)}</div></div>
+        <span style="font-size:11px;color:#9CA3AF">tot ${fD(t.endDate)}</span></div>`;
+    });
+    h+=`</div></div>`;}
+
+  h+=`</div>`;
+  el.innerHTML=h;
+}
+
+// ═══ NEW REQUEST SCREEN ═══
+function renderNewRequest(){
+  const el=document.getElementById('screen-newrequest');
+  const requestable=S.leaveTypes.filter(t=>t.category!=='ziekte'&&t.category!=='extern');
+  const defaultIds=['wettelijk','adv','onbetaald'];
+  const yr=new Date().getFullYear(),bal=(S.balances[yr]||{})[S.nrType];
+  const days=S.nrStart&&S.nrEnd?(S.nrHalf?0.5:Math.max(1,Math.round((new Date(S.nrEnd)-new Date(S.nrStart))/864e5)+1)):0;
+  const showBal=bal&&bal.allowance>0;
+  const canSubmit=S.nrType&&S.nrStart&&S.nrEnd&&(!showBal||days<=bal.remaining);
+
+  let h=`<div style="padding:16px 20px 12px;background:linear-gradient(135deg,#1E3A5F,#2D5A87);color:#fff;display:flex;align-items:center;gap:12px">
+    <button onclick="nav('home')" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:4px">←</button>
+    <h1 style="font-size:20px;font-weight:800">Verlof Aanvragen</h1>
+  </div><div class="p16">`;
+
+  // Step 1: Type
+  h+=`<div class="card"><label style="font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;display:block">① Type Verlof</label>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">`;
+  const showTypes=requestable.filter(t=>defaultIds.includes(t.id)||(S.nrType&&t.id===S.nrType));
+  showTypes.forEach(lt=>{
+    const sel=S.nrType===lt.id;
+    h+=`<button onclick="S.nrType='${lt.id}';S.nrStep=2;render()" class="tbtn${sel?' sel':''}" style="border-color:${sel?lt.color:'#E5E7EB'}${sel?';background:'+lt.color+'10':''}">
+      <span style="font-size:20px">${lt.symbol}</span><div style="font-size:12px;font-weight:600">${esc(lt.name)}</div></button>`;
+  });
+  h+=`</div>`;
+  const extra=requestable.filter(t=>!defaultIds.includes(t.id)&&t.id!==S.nrType);
+  if(extra.length>0)h+=`<button onclick="document.getElementById('nr-extra').classList.toggle('hidden')" style="margin-top:10px;width:100%;padding:10px;border-radius:10px;border:1.5px dashed #D1D5DB;background:transparent;cursor:pointer;font-size:12px;font-weight:600;color:#6B7280;font-family:inherit">➕ Meer types (${extra.length})</button>
+    <div id="nr-extra" class="hidden" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">${extra.map(lt=>{
+      const sel=S.nrType===lt.id;
+      return`<button onclick="S.nrType='${lt.id}';S.nrStep=2;render()" class="tbtn${sel?' sel':''}" style="border-color:${sel?lt.color:'#E5E7EB'}">
+        <span style="font-size:20px">${lt.symbol}</span><div style="font-size:12px;font-weight:600">${esc(lt.name)}</div></button>`;
+    }).join('')}</div>`;
+  h+=`</div>`;
+
+  // Step 2: Dates
+  if(S.nrStep>=2){
+    h+=`<div class="card" style="animation:slideUp .3s ease">
+      <label style="font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;display:block">② Datums</label>
+      <div style="display:flex;gap:10px;margin-bottom:12px">
+        <div class="flex1"><span class="lbl-sm">Startdatum</span>
+          <input type="date" class="finput" value="${S.nrStart}" min="${today()}" onchange="S.nrStart=this.value;if(!S.nrEnd||this.value>S.nrEnd)S.nrEnd=this.value;S.nrStep=Math.max(S.nrStep,3);render()"/></div>
+        <div class="flex1"><span class="lbl-sm">Einddatum</span>
+          <input type="date" class="finput" value="${S.nrEnd}" min="${S.nrStart||today()}" onchange="S.nrEnd=this.value;S.nrStep=Math.max(S.nrStep,3);render()"/></div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid #F3F4F6">
+        <span style="font-size:13px;font-weight:600;color:#374151">Halve dag?</span>
+        <button onclick="S.nrHalf=!S.nrHalf;render()" class="toggle${S.nrHalf?' on':''}"><div class="knob"></div></button>
+      </div>`;
+    if(S.nrHalf)h+=`<div style="display:flex;gap:8px;margin-top:8px">${['VM','NM'].map(k=>`<button onclick="S.nrHalfP='${k}';render()" style="flex:1;padding:10px;border-radius:10px;border:2px solid ${S.nrHalfP===k?'#1E3A5F':'#E5E7EB'};background:${S.nrHalfP===k?'#1E3A5F10':'#FAFAFA'};cursor:pointer;font-weight:600;font-size:13px;color:${S.nrHalfP===k?'#1E3A5F':'#6B7280'};font-family:inherit">${k==='VM'?'☀️ Voormiddag':'🌙 Namiddag'}</button>`).join('')}</div>`;
+    h+=`</div>`;
+
+    // Comment
+    h+=`<div class="card" style="animation:slideUp .3s ease">
+      <label style="font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;display:block">💬 Opmerking (optioneel)</label>
+      <textarea class="finput" placeholder="Bv. reden, extra info..." oninput="S.nrComment=this.value">${esc(S.nrComment)}</textarea>
+    </div>`;
+  }
+
+  // Step 3: Summary
+  if(S.nrStep>=3&&S.nrStart&&S.nrEnd){
+    const ok=!showBal||canSubmit;
+    h+=`<div class="card" style="animation:slideUp .3s ease;background:${ok?'linear-gradient(135deg,#F0FDF4,#ECFDF5)':'linear-gradient(135deg,#FEF2F2,#FEE2E2)'}">
+      <label style="font-size:12px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;display:block">③ Overzicht</label>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:13px;color:#6B7280">Aantal dagen</span><span style="font-size:18px;font-weight:800">${days}</span></div>`;
+    if(showBal){
+      const rem=bal.remaining-days,remC=rem<0?'#DC2626':'#059669';
+      h+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:13px;color:#6B7280">Huidig saldo</span><span style="font-size:14px;font-weight:600">${bal.remaining} dagen</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0 0;border-top:1px solid rgba(0,0,0,.06)">
+        <span style="font-size:13px;font-weight:600;color:${remC}">Resterend na aanvraag</span><span style="font-size:16px;font-weight:800;color:${remC}">${rem}</span></div>`;
+      if(rem<0)h+=`<p style="color:#DC2626;font-size:12px;font-weight:600;margin:10px 0 0;text-align:center">⚠️ Onvoldoende saldo</p>`;
+    }
+    h+=`</div>`;
+
+    // Team overlap warning
+    const overlap=S.teamAbs.filter(t=>t.startDate<=S.nrEnd&&t.endDate>=S.nrStart);
+    if(overlap.length>0){
+      const warn=overlap.length>=2;
+      h+=`<div class="card" style="animation:slideUp .3s ease;background:${warn?'linear-gradient(135deg,#FFFBEB,#FEF3C7)':'linear-gradient(135deg,#F0F9FF,#E0F2FE)'};border:1px solid ${warn?'#F59E0B':'#7DD3FC'}">
+        <div class="row" style="align-items:flex-start"><span style="font-size:22px;line-height:1">${warn?'⚠️':'ℹ️'}</span><div class="flex1">
+        <p style="margin:0 0 6px;font-size:13px;font-weight:700;color:${warn?'#92400E':'#0C4A6E'}">${warn?'Meerdere collega\'s al afwezig':overlap.length+' collega ook afwezig'}</p>
+        <div class="col" style="gap:6px">${overlap.map(t=>`<div class="row" style="gap:8px">${avatar(t,24)}<span style="font-size:12px;font-weight:600">${esc(fN(t))}</span><span style="font-size:11px;color:#6B7280;margin-left:6px">${fD(t.startDate)} → ${fD(t.endDate)}</span></div>`).join('')}</div>
+        </div></div></div>`;
+    }
+  }
+
+  // Submit button
+  h+=`<button onclick="submitRequest()" ${canSubmit?'':'disabled'} style="padding:16px;border-radius:14px;border:none;font-size:16px;font-weight:800;width:100%;
+    background:${canSubmit?'linear-gradient(135deg,#1E3A5F,#2D5A87)':'#D1D5DB'};color:${canSubmit?'#fff':'#9CA3AF'};cursor:${canSubmit?'pointer':'not-allowed'};
+    box-shadow:${canSubmit?'0 4px 14px rgba(30,58,95,.35)':'none'};font-family:inherit;letter-spacing:.3px">Indienen</button>`;
+
+  h+=`</div>`;
+  el.innerHTML=h;
+}
+
+// ═══ ABSENCES SCREEN ═══
+function renderAbsences(){
+  const el=document.getElementById('screen-absences');
+  const yr=new Date().getFullYear(),selYr=S.absYear;
+  const reqs=selYr===yr?S.requests:S.requestsPrev;
+  const pending=selYr===yr?reqs.filter(r=>r.status==='pending'):[];
+  const history=reqs.filter(r=>r.status!=='pending').sort((a,b)=>b.startDate.localeCompare(a.startDate));
+  const bal=S.balances[selYr]||{};
+  const tracked=S.leaveTypes.filter(t=>t.tracked&&bal[t.id]&&(bal[t.id].allowance>0||bal[t.id].used>0));
+
+  let h=`<div class="hdr"><h1>Afwezigheden</h1><div class="sub">${reqs.length} registraties</div></div><div class="p16">`;
+
+  // Year selector
+  h+=`<div style="display:flex;gap:8px;margin-bottom:16px">${[yr,yr-1].map(y=>{
+    const act=selYr===y;
+    return`<button onclick="S.absYear=${y};render()" style="flex:1;padding:10px 0;border-radius:12px;border:none;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;
+      background:${act?'linear-gradient(135deg,#1E3A5F,#2D5A87)':'#F3F4F6'};color:${act?'#fff':'#6B7280'};
+      box-shadow:${act?'0 2px 8px rgba(30,58,95,.25)':'none'}">${y===yr?y+' (huidig)':y}</button>`;
+  }).join('')}</div>`;
+
+  // Saldo summary
+  if(tracked.length>0){
+    h+=`<div class="card" style="background:${selYr===yr?'linear-gradient(135deg,#F0F7FF,#E8F4FD)':'linear-gradient(135deg,#F9FAFB,#F3F4F6)'};padding:12px"><div style="display:flex;gap:10px;flex-wrap:wrap">`;
+    tracked.forEach(t=>{
+      const b=bal[t.id],ac=b.remaining>5?'#10B981':b.remaining>0?'#F59E0B':'#EF4444';
+      h+=`<div style="flex:1;min-width:90px;background:#fff;border-radius:10px;padding:10px 12px;border:1px solid #E5E7EB">
+        <div style="font-size:10px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.symbol} ${esc(t.name)}</div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#9CA3AF;margin-bottom:2px"><span>Recht</span><span style="font-weight:700">${b.allowance}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:${ac};font-weight:700"><span>Rest</span><span style="font-size:16px;font-weight:800">${b.remaining}</span></div>
+      </div>`;
+    });
+    h+=`</div></div>`;
+  }
+
+  // Pending
+  if(pending.length>0){
+    h+=`<h3 class="stitle-sm" style="color:#92400E;display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:#F59E0B;display:inline-block"></span> In afwachting (${pending.length})</h3>`;
+    pending.forEach(r=>h+=absRow(r,true));
+  }
+
+  // History
+  h+=`<h3 class="stitle-sm" style="color:#6B7280">Historiek</h3>`;
+  if(history.length===0)h+=`<div class="card"><p style="color:#9CA3AF;font-size:13px;text-align:center;padding:8px">Nog geen historiek</p></div>`;
+  else history.forEach(r=>h+=absRow(r,false));
+
+  h+=`</div>`;
+  el.innerHTML=h;
+}
+
+function absRow(r,showCancel){
+  const lt=gLT(r.type),isA=r.status==='approved',bCol=r.status==='pending'?'#F59E0B':isA?'#10B981':'#EF4444';
+  let h=`<div class="card" style="border-left:4px solid ${bCol}"><div class="row">
+    <div style="width:40px;height:40px;border-radius:10px;background:${lt.color}12;display:flex;align-items:center;justify-content:center;font-size:18px">${lt.symbol}</div>
+    <div class="flex1"><div style="display:flex;justify-content:space-between;align-items:center">
+      <span style="font-weight:700;font-size:13px">${esc(lt.name)}</span>`;
+  if(r.status==='pending')h+=statusBadge('pending');
+  else h+=`<span style="font-size:11px;font-weight:700;color:${isA?'#059669':'#DC2626'}">${isA?'✓ Goedgekeurd':'✗ Afgewezen'}</span>`;
+  h+=`</div><div style="font-size:12px;color:#6B7280;margin-top:2px">${fD(r.startDate)}${r.startDate!==r.endDate?' → '+fD(r.endDate):''} · ${r.halfDay?'½ dag':(r.days||1)+' dag'+(r.days!==1?'en':'')}</div>`;
+  if(r.comment)h+=`<div style="font-size:11px;color:#6B7280;margin-top:2px;font-style:italic">💬 ${esc(r.comment)}</div>`;
+  if(r.rejectReason)h+=`<div style="font-size:11px;color:#DC2626;margin-top:3px;font-style:italic">Reden: ${esc(r.rejectReason)}</div>`;
+  h+=`</div></div>`;
+  if(showCancel)h+=`<button onclick="cancelRequest('${r.id}')" style="margin-top:10px;width:100%;padding:9px;border-radius:10px;border:1.5px solid #FCA5A5;background:#FEF2F2;color:#DC2626;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Annuleren</button>`;
+  h+=`</div>`;
+  return h;
+}
+
+// ═══ NOTIFICATIONS SCREEN ═══
+function renderNotifications(){
+  const el=document.getElementById('screen-notifications');
+  const unread=S.notifications.filter(n=>!n.read&&!S.readNotifs.has(n.id)).length;
+  const icons={approved:'✅',rejected:'❌',info:'ℹ️',change:'🔄'};
+  const colors={approved:'#10B981',rejected:'#EF4444',info:'#3B82F6',change:'#F59E0B'};
+
+  let h=`<div class="hdr"><h1>Meldingen</h1><div class="sub">${unread} ongelezen</div></div><div class="p16">`;
+  if(S.notifications.length===0)h+=`<div class="card"><p style="color:#9CA3AF;font-size:13px;text-align:center;padding:20px">Geen meldingen</p></div>`;
+  else S.notifications.forEach(n=>{
+    const isRead=n.read||S.readNotifs.has(n.id);
+    h+=`<div class="card clickable" onclick="markRead('${n.id}')" style="background:${isRead?'#fff':'#F8FAFF'};${isRead?'':'border-left:3px solid '+(colors[n.type]||'#3B82F6')}">
+      <div class="row" style="align-items:flex-start"><span style="font-size:20px">${icons[n.type]||'📌'}</span>
+      <div class="flex1"><p style="font-size:13px;font-weight:${isRead?400:700};line-height:1.4">${esc(n.message)}</p>
+      <span style="font-size:11px;color:#9CA3AF;margin-top:4px;display:block">${esc(n.time)}</span></div>
+      ${isRead?'':`<div style="width:8px;height:8px;border-radius:50%;background:${colors[n.type]||'#3B82F6'};flex-shrink:0;margin-top:4px"></div>`}</div></div>`;
+  });
+  h+=`</div>`;
+  el.innerHTML=h;
+}
+
+// ═══ PROFILE SCREEN ═══
+function renderProfile(){
+  const el=document.getElementById('screen-profile');
+  const u=S.user;
+  let h=`<div class="hdr"><h1>Profiel</h1></div><div class="p16">`;
+
+  // Avatar card
+  h+=`<div class="card" style="text-align:center;padding:24px">
+    <div style="display:flex;justify-content:center;margin-bottom:12px">${avatar(u,64)}</div>
+    <h2 style="font-size:20px;font-weight:800">${esc(fN(u))}</h2>
+    <p style="font-size:13px;color:#6B7280;margin-top:2px">${esc(u.statuut||'')}</p>
+    <span style="font-size:12px;color:#9CA3AF;background:#F3F4F6;padding:3px 12px;border-radius:20px">${esc(u.departmentName||'')}</span>
+  </div>`;
+
+  // Personal info
+  const info=[
+    ['📱 GSM',u.gsm],['📞 Telefoon',u.tel],['📱 Werk GSM',u.werkGsm],['✉️ E-mail',u.email],
+    ['🏦 IBAN',u.iban],['🎂 Geboortedatum',u.birthDate?fDF(u.birthDate):''],['🆔 Rijksregister',u.rrn],
+  ].filter(x=>x[1]);
+  if(info.length>0){
+    h+=`<div class="card"><h3 style="margin:0 0 12px;font-size:13px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.6px">Persoonlijke Gegevens</h3>`;
+    info.forEach(([l,v],i)=>{h+=`<div style="display:flex;justify-content:space-between;padding:10px 0;${i<info.length-1?'border-bottom:1px solid #F3F4F6':''}">
+      <span style="font-size:13px;color:#6B7280">${l}</span><span style="font-size:13px;font-weight:600">${esc(v)}</span></div>`;});
+    h+=`</div>`;
+  }
+
+  // Emergency
+  const emerg=[['Naam',u.noodNaam],['Relatie',u.noodRelatie],['GSM',u.noodGsm]].filter(x=>x[1]);
+  if(emerg.length>0){
+    h+=`<div class="card"><h3 style="margin:0 0 12px;font-size:13px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.6px">🚨 Noodcontact</h3>`;
+    emerg.forEach(([l,v],i)=>{h+=`<div style="display:flex;justify-content:space-between;padding:10px 0;${i<emerg.length-1?'border-bottom:1px solid #F3F4F6':''}">
+      <span style="font-size:13px;color:#6B7280">${l}</span><span style="font-size:13px;font-weight:600">${esc(v)}</span></div>`;});
+    h+=`</div>`;
+  }
+
+  // Sync status
+  h+=`<div style="text-align:center;padding:8px 0">
+    <p style="font-size:11px;color:#9CA3AF;display:flex;align-items:center;justify-content:center;gap:6px">
+      <span style="width:7px;height:7px;border-radius:50%;background:${S.connected?'#22c55e':'#eab308'};display:inline-block"></span>
+      ${S.connected?'🔗 Live verbonden met Firebase':'🔗 Verbinden...'}</p>
+    <p style="font-size:10px;color:#D1D5DB;margin-top:4px">Laatste sync: ${S.lastSync?new Date(S.lastSync).toLocaleDateString('nl-BE',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'—'}</p>
+    <p style="font-size:10px;color:#D1D5DB;margin-top:2px">User ID: ${esc(userId)}</p>
+  </div>`;
+
+  h+=`</div>`;
+  el.innerHTML=h;
+}
+
+// Initial render
+render();
+</script>
+</body>
+</html>
