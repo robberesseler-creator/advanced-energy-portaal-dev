@@ -23,7 +23,7 @@
   --shadow:0 2px 8px rgba(0,0,0,.06);--shadow-lg:0 8px 24px rgba(0,0,0,.1);
   --sidebar-w:240px;
   /* Verloftype kleuren */
-  --clr-wettelijk:#3b82f6;--clr-adv:#22c55e;--clr-overuren:#eab308;
+  --clr-wettelijk:#3b82f6;--clr-adv:#22c55e;
   --clr-ziekte:#ef4444;--clr-onbetaald:#94a3b8;--clr-opleiding:#a855f7;
 }
 
@@ -101,6 +101,7 @@ input,select,textarea{font-family:inherit;font-size:13px;}
 .badge-blue{background:rgba(59,130,246,.1);color:#3b82f6;}
 .badge-green{background:rgba(34,197,94,.1);color:#22c55e;}
 .badge-yellow{background:rgba(234,179,8,.1);color:#b45309;}
+.badge-orange{background:rgba(249,115,22,.1);color:#c2410c;}
 .badge-red{background:rgba(239,68,68,.1);color:#ef4444;}
 .badge-gray{background:rgba(148,163,184,.1);color:#64748b;}
 .badge-purple{background:rgba(168,85,247,.1);color:#a855f7;}
@@ -369,6 +370,8 @@ document.addEventListener('click',function(e){
               <th style="cursor:pointer;user-select:none" onclick="sortPeople('schedule')">Rooster <span id="sort-schedule" style="opacity:.3;display:inline-block;width:12px;text-align:center">↕</span></th>
               <th style="cursor:pointer;user-select:none" onclick="sortPeople('saldo')">Saldo <span id="sort-saldo" style="opacity:.3;display:inline-block;width:12px;text-align:center">↕</span></th>
               <th>Saldo OV</th>
+              <th class="interim-col" style="display:none">Interim dagen</th>
+              <th class="interim-col" style="display:none">Interim counter</th>
               <th></th>
             </tr></thead>
             <tbody id="people-table"></tbody>
@@ -427,7 +430,7 @@ document.addEventListener('click',function(e){
       </div>
       <div class="card">
         <table class="tbl">
-          <thead><tr><th>Type</th><th>Categorie</th><th>Betaald</th><th>Saldo bijhouden</th><th>Standaard dagen</th><th></th></tr></thead>
+          <thead><tr><th>Type</th><th>Categorie</th><th>Betaald</th><th>Verlofsaldo</th><th>Afwezigheidssaldo</th><th>ToMobile</th><th>Standaard dagen</th><th>Max dagen</th><th></th></tr></thead>
           <tbody id="types-table"></tbody>
         </table>
       </div>
@@ -448,6 +451,7 @@ document.addEventListener('click',function(e){
         <button class="tab" onclick="showSettingsTab('barema',this)">💰 Barema PC 149.01</button>
         <button class="tab" onclick="showSettingsTab('ancienniteit',this)">🎖 Anciënniteit</button>
         <button class="tab" onclick="showSettingsTab('verlofregels',this)">📏 Verlofregels</button>
+        <button class="tab" onclick="showSettingsTab('checklist',this)">☑️ Checklist</button>
       </div>
       <div id="settings-schedules" class="settings-panel">
         <div class="card">
@@ -494,6 +498,16 @@ document.addEventListener('click',function(e){
           <div class="form-group" id="yearend-custom-row" style="display:none">
             <label class="form-label">Maximum aantal dagen</label>
             <input type="number" class="form-input" id="yearend-custom-days" min="1" max="50" value="5" style="width:120px" onchange="saveSettings()"/>
+          </div>
+          <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+            <div style="font-weight:700;font-size:13px;margin-bottom:4px">Jaarovergang uitvoeren</div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:12px">Berekent het restsaldo van het gekozen jaar per medewerker en voegt een overdracht-aanpassing toe aan het volgende jaar. Dit proces kan maar 1x per jaar uitgevoerd worden.</div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <select class="form-input" id="yearend-year" style="width:120px"></select>
+              <button class="btn btn-sm" onclick="previewYearend()">📊 Preview</button>
+              <button class="btn btn-sm btn-primary" onclick="executeYearend()">▶ Uitvoeren</button>
+            </div>
+            <div id="yearend-preview" style="margin-top:16px"></div>
           </div>
         </div>
       </div>
@@ -552,6 +566,18 @@ document.addEventListener('click',function(e){
             <div style="font-size:11px;color:var(--text3)">Configureer beperkingen voor verlofaanvragen. Bij overschrijding verschijnt een waarschuwing (geen blokkering).</div>
           </div>
           <div id="verlofregels-content"></div>
+        </div>
+      </div>
+      <div id="settings-checklist" class="settings-panel" style="display:none">
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+            <div>
+              <div class="card-title" style="margin-bottom:2px">☑️ Onboarding Checklist</div>
+              <div style="font-size:11px;color:var(--text3)">Beheer de standaard checklist-items die aan nieuwe medewerkers worden toegekend. Activeer of deactiveer items met de toggle.</div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="openChecklistItemModal('','')">➕ Item toevoegen</button>
+          </div>
+          <div id="checklist-sections-container"></div>
         </div>
       </div>
     </div>
@@ -687,11 +713,50 @@ document.addEventListener('click',function(e){
       }
 
       function raAction(id,status){
-        raState.reqs=raState.reqs.map(r=>r.id===id?Object.assign({},r,{status:status}):r);
-        // Sync terug naar globale requests als beschikbaar
+        if(status==='rejected'){
+          // Toon prompt voor reden van weigering
+          var overlay=document.createElement('div');
+          overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:10001';
+          overlay.innerHTML='<div style="background:#fff;border-radius:12px;padding:24px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3)">'
+            +'<div style="font-size:14px;line-height:1.5;margin-bottom:12px;font-weight:600">❌ Reden van weigering</div>'
+            +'<textarea id="ra-reject-reason" class="form-input" rows="3" placeholder="Bv. onvoldoende bezetting, te veel overlap..." style="margin-bottom:16px;resize:vertical"></textarea>'
+            +'<div style="display:flex;gap:8px;justify-content:flex-end">'
+            +'<button class="btn" onclick="this.closest(\'div[style*=fixed]\').remove()">Annuleren</button>'
+            +'<button class="btn btn-primary" style="background:var(--danger);border-color:var(--danger)" onclick="raDoReject(\''+id+'\',this.closest(\'div[style*=fixed]\'))">Weigeren</button>'
+            +'</div></div>';
+          document.body.appendChild(overlay);
+          setTimeout(function(){var ta=document.getElementById('ra-reject-reason');if(ta)ta.focus();},50);
+          return;
+        }
+        raDoAction(id,status,'','');
+      }
+
+      function raDoReject(id,overlay){
+        var reason=document.getElementById('ra-reject-reason').value.trim();
+        if(!reason){alert('Reden van weigering is verplicht');return;}
+        if(overlay)overlay.remove();
+        raDoAction(id,'rejected',reason);
+      }
+
+      function raDoAction(id,status,rejectReason){
+        raState.reqs=raState.reqs.map(r=>r.id===id?Object.assign({},r,{status:status,rejectReason:rejectReason||r.rejectReason||'',decidedDate:new Date().toISOString().split('T')[0]}):r);
         if(typeof requests!=='undefined'){
           const idx=requests.findIndex(r=>r.id===id);
-          if(idx>=0)requests[idx].status=status;
+          if(idx>=0){
+            requests[idx].status=status;
+            requests[idx].decidedDate=new Date().toISOString().split('T')[0];
+            if(rejectReason)requests[idx].rejectReason=rejectReason;
+            // Log mutatie bij weigering
+            if(status==='rejected'&&rejectReason){
+              var req=requests[idx];
+              var p=typeof people!=='undefined'?people.find(function(x){return x.id===req.personId;}):null;
+              if(p){
+                if(!p.mutations)p.mutations=[];
+                var typeObj=typeof leaveTypes!=='undefined'?leaveTypes.find(function(t){return t.id===req.type;}):null;
+                p.mutations.push({id:typeof uid==='function'?uid():'m'+Date.now(),timestamp:new Date().toISOString(),user:(typeof settings!=='undefined'&&settings.currentUser)||'Admin',field:'Aanvraag geweigerd',oldValue:(typeObj?typeObj.name:req.type)+' ('+req.startDate+' → '+req.endDate+')',newValue:'Reden: '+rejectReason});
+              }
+            }
+          }
           try{if(typeof autoSave==='function')autoSave();}catch(e){}
           try{if(typeof renderDashboard==='function')renderDashboard();}catch(e){}
         }
@@ -701,14 +766,34 @@ document.addEventListener('click',function(e){
       }
 
       function raBulk(status){
-        raState.selected.forEach(id=>{
-          raState.reqs=raState.reqs.map(r=>r.id===id?Object.assign({},r,{status:status}):r);
-          if(typeof requests!=='undefined'){const idx=requests.findIndex(r=>r.id===id);if(idx>=0)requests[idx].status=status;}
-        });
-        raShowToast((status==='approved'?'✅':'❌')+' '+raState.selected.size+' aanvragen '+(status==='approved'?'goedgekeurd':'geweigerd'));
+        if(status==='rejected'){
+          var overlay=document.createElement('div');
+          overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:10001';
+          overlay.innerHTML='<div style="background:#fff;border-radius:12px;padding:24px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3)">'
+            +'<div style="font-size:14px;line-height:1.5;margin-bottom:12px;font-weight:600">❌ Reden van weigering ('+raState.selected.size+' aanvragen)</div>'
+            +'<textarea id="ra-bulk-reject-reason" class="form-input" rows="3" placeholder="Bv. onvoldoende bezetting..." style="margin-bottom:16px;resize:vertical"></textarea>'
+            +'<div style="display:flex;gap:8px;justify-content:flex-end">'
+            +'<button class="btn" onclick="this.closest(\'div[style*=fixed]\').remove()">Annuleren</button>'
+            +'<button class="btn btn-primary" style="background:var(--danger);border-color:var(--danger)" onclick="raDoBulkReject(this.closest(\'div[style*=fixed]\'))">Weigeren</button>'
+            +'</div></div>';
+          document.body.appendChild(overlay);
+          setTimeout(function(){var ta=document.getElementById('ra-bulk-reject-reason');if(ta)ta.focus();},50);
+          return;
+        }
+        raState.selected.forEach(id=>raDoAction(id,'approved',''));
+        raShowToast('✅ '+raState.selected.size+' aanvragen goedgekeurd');
         raState.selected=new Set();
-        try{if(typeof autoSave==='function')autoSave();}catch(e){}
-        try{if(typeof renderDashboard==='function')renderDashboard();}catch(e){}
+        raRender();
+      }
+
+      function raDoBulkReject(overlay){
+        var reason=document.getElementById('ra-bulk-reject-reason').value.trim();
+        if(!reason){alert('Reden van weigering is verplicht');return;}
+        if(overlay)overlay.remove();
+        var count=raState.selected.size;
+        raState.selected.forEach(id=>raDoAction(id,'rejected',reason));
+        raShowToast('❌ '+count+' aanvragen geweigerd');
+        raState.selected=new Set();
         raRender();
       }
 
@@ -891,7 +976,7 @@ document.addEventListener('click',function(e){
             if(r.status==='pending'){
               h+=`<div style="display:flex;gap:8px">
                 <button onclick="raAction('${r.id}','approved');raCloseDetail()" style="flex:1;padding:9px 0;border-radius:8px;border:none;background:#dcfce7;color:#166534;font-size:13px;font-weight:600;cursor:pointer">✅ Goedkeuren</button>
-                <button onclick="raAction('${r.id}','rejected');raCloseDetail()" style="flex:1;padding:9px 0;border-radius:8px;border:none;background:#fee2e2;color:#991b1b;font-size:13px;font-weight:600;cursor:pointer">❌ Weigeren</button>
+                <button onclick="raCloseDetail();raAction('${r.id}','rejected')" style="flex:1;padding:9px 0;border-radius:8px;border:none;background:#fee2e2;color:#991b1b;font-size:13px;font-weight:600;cursor:pointer">❌ Weigeren</button>
               </div>`;
             }
             h+=`</div></div>`;
@@ -1043,65 +1128,87 @@ document.addEventListener('click',function(e){
 const AVATARCOLORS=['#3b82f6','#22c55e','#a855f7','#ef4444','#eab308','#ec4899','#06b6d4','#f97316'];
 
 const DEFAULT_TYPES=[
-  // Verlof (aangevraagd door medewerker)
-  {id:'wettelijk',name:'Wettelijk verlof',color:'#3b82f6',symbol:'🏖️',paid:true,tracked:true,defaultDays:20,category:'verlof'},
-  {id:'adv',name:'ADV',color:'#22c55e',symbol:'📅',paid:true,tracked:true,defaultDays:12,category:'adv'},
-  {id:'ancienniteit',name:'Anciënniteitsverlof',color:'#10b981',symbol:'🏅',paid:true,tracked:true,defaultDays:0,category:'verlof'},
-  {id:'overuren',name:'Overuren',color:'#eab308',symbol:'⏱️',paid:true,tracked:true,defaultDays:0,category:'overuren'},
-  {id:'onbetaald',name:'Onbetaald verlof',color:'#94a3b8',symbol:'⚪',paid:false,tracked:true,defaultDays:0,category:'verlof'},
-  {id:'opleiding',name:'Opleiding',color:'#a855f7',symbol:'📚',paid:true,tracked:false,defaultDays:0,category:'verlof'},
-  {id:'huwelijk',name:'Huwelijk medewerker',color:'#ec4899',symbol:'💒',paid:true,tracked:false,defaultDays:2,category:'verlof'},
-  {id:'huwelijk-kind',name:'Huwelijk kind',color:'#ec4899',symbol:'💍',paid:true,tracked:false,defaultDays:1,category:'verlof'},
-  {id:'overlijden-1',name:'Overlijden partner/kind',color:'#374151',symbol:'🕯️',paid:true,tracked:false,defaultDays:3,category:'verlof'},
-  {id:'overlijden-2',name:'Overlijden ouder/schoonouder',color:'#374151',symbol:'🕯️',paid:true,tracked:false,defaultDays:3,category:'verlof'},
-  {id:'overlijden-3',name:'Overlijden broer/zus/schoon-',color:'#6b7280',symbol:'🕯️',paid:true,tracked:false,defaultDays:2,category:'verlof'},
-  {id:'geboorte',name:'Geboorteverlof',color:'#06b6d4',symbol:'👶',paid:true,tracked:false,defaultDays:20,category:'verlof'},
-  {id:'ouderschaps',name:'Ouderschapsverlof',color:'#0891b2',symbol:'👨‍👩‍👧',paid:false,tracked:false,defaultDays:0,category:'verlof'},
-  {id:'communie',name:'Plechtige communie kind',color:'#8b5cf6',symbol:'⛪',paid:true,tracked:false,defaultDays:1,category:'verlof'},
-  {id:'verhuizing',name:'Verhuizing',color:'#f59e0b',symbol:'📦',paid:true,tracked:false,defaultDays:1,category:'verlof'},
-  {id:'sollicitatie',name:'Sollicitatieverlof',color:'#64748b',symbol:'🤝',paid:true,tracked:false,defaultDays:0,category:'verlof'},
-  {id:'familiaal',name:'Familiaal verlof',color:'#f472b6',symbol:'👪',paid:false,tracked:false,defaultDays:0,category:'verlof'},
-  {id:'dokter',name:'Doktersbezoek',color:'#14b8a6',symbol:'🩺',paid:true,tracked:false,defaultDays:0,category:'verlof'},
-  {id:'juridisch',name:'Juridische verplichting',color:'#78716c',symbol:'⚖️',paid:true,tracked:false,defaultDays:0,category:'verlof'},
+  // Verlof (verlofsaldo)
+  {id:'wettelijk',name:'Wettelijk verlof',color:'#3b82f6',symbol:'🏖️',paid:true,tracked:true,absenceTracked:false,mobile:true,defaultDays:20,maxDays:0,category:'verlof'},
+  {id:'adv',name:'ADV',color:'#22c55e',symbol:'📅',paid:true,tracked:true,absenceTracked:false,mobile:true,defaultDays:12,maxDays:0,category:'adv'},
+  {id:'ancienniteit',name:'Anciënniteitsverlof',color:'#10b981',symbol:'🏅',paid:true,tracked:true,absenceTracked:false,mobile:false,defaultDays:0,maxDays:0,category:'verlof'},
+  // Afwezigheid (afwezigheidssaldo)
+  {id:'onbetaald',name:'Onbetaald verlof',color:'#94a3b8',symbol:'⚪',paid:false,tracked:false,absenceTracked:true,mobile:false,defaultDays:0,maxDays:0,category:'afwezigheid'},
+  {id:'opleiding',name:'Opleiding',color:'#a855f7',symbol:'📚',paid:true,tracked:false,absenceTracked:true,mobile:false,defaultDays:0,maxDays:0,category:'afwezigheid'},
+  {id:'huwelijk',name:'Huwelijk medewerker',color:'#ec4899',symbol:'💒',paid:true,tracked:false,absenceTracked:true,mobile:false,defaultDays:2,maxDays:2,category:'afwezigheid'},
+  {id:'huwelijk-kind',name:'Huwelijk kind',color:'#ec4899',symbol:'💍',paid:true,tracked:false,absenceTracked:true,mobile:false,defaultDays:1,maxDays:1,category:'afwezigheid'},
+  {id:'overlijden-1',name:'Overlijden partner/kind',color:'#374151',symbol:'🕯️',paid:true,tracked:false,absenceTracked:true,mobile:false,defaultDays:10,maxDays:10,category:'afwezigheid'},
+  {id:'overlijden-2',name:'Overlijden ouder/schoonouder',color:'#374151',symbol:'🕯️',paid:true,tracked:false,absenceTracked:true,mobile:false,defaultDays:3,maxDays:3,category:'afwezigheid'},
+  {id:'overlijden-3',name:'Overlijden broer/zus/schoon-',color:'#6b7280',symbol:'🕯️',paid:true,tracked:false,absenceTracked:true,mobile:false,defaultDays:2,maxDays:2,category:'afwezigheid'},
+  {id:'geboorte',name:'Geboorteverlof',color:'#06b6d4',symbol:'👶',paid:true,tracked:false,absenceTracked:true,mobile:false,defaultDays:20,maxDays:20,category:'afwezigheid'},
+  {id:'ouderschaps',name:'Ouderschapsverlof',color:'#0891b2',symbol:'👨‍👩‍👧',paid:false,tracked:false,absenceTracked:true,mobile:false,defaultDays:0,maxDays:0,category:'afwezigheid'},
+  {id:'communie',name:'Plechtige communie kind',color:'#8b5cf6',symbol:'⛪',paid:true,tracked:false,absenceTracked:true,mobile:false,defaultDays:1,maxDays:1,category:'afwezigheid'},
+  {id:'verhuizing',name:'Verhuizing',color:'#f59e0b',symbol:'📦',paid:true,tracked:false,absenceTracked:true,mobile:false,defaultDays:1,maxDays:1,category:'afwezigheid'},
+  {id:'sollicitatie',name:'Sollicitatieverlof',color:'#64748b',symbol:'🤝',paid:true,tracked:false,absenceTracked:true,mobile:false,defaultDays:0,maxDays:0,category:'afwezigheid'},
+  {id:'familiaal',name:'Familiaal verlof',color:'#f472b6',symbol:'👪',paid:false,tracked:false,absenceTracked:true,mobile:false,defaultDays:10,maxDays:10,category:'afwezigheid'},
+  {id:'dokter',name:'Doktersbezoek',color:'#14b8a6',symbol:'🩺',paid:true,tracked:false,absenceTracked:true,mobile:true,defaultDays:0,maxDays:0,category:'afwezigheid'},
+  {id:'juridisch',name:'Juridische verplichting',color:'#78716c',symbol:'⚖️',paid:true,tracked:false,absenceTracked:true,mobile:false,defaultDays:0,maxDays:0,category:'afwezigheid'},
   // Ziekte
-  {id:'ziekte',name:'Ziekte',color:'#ef4444',symbol:'🤒',paid:true,tracked:false,defaultDays:0,category:'ziekte'},
-  {id:'arbeidsongeval',name:'Arbeidsongeval',color:'#dc2626',symbol:'🚑',paid:true,tracked:false,defaultDays:0,category:'ziekte'},
-  {id:'hospitalisatie',name:'Hospitalisatie',color:'#b91c1c',symbol:'🏥',paid:true,tracked:false,defaultDays:0,category:'ziekte'},
+  {id:'ziekte',name:'Ziekte',color:'#ef4444',symbol:'🤒',paid:true,tracked:false,absenceTracked:true,mobile:true,defaultDays:0,maxDays:0,category:'ziekte'},
+  {id:'arbeidsongeval',name:'Arbeidsongeval',color:'#dc2626',symbol:'🚑',paid:true,tracked:false,absenceTracked:true,mobile:false,defaultDays:0,maxDays:0,category:'ziekte'},
+  {id:'hospitalisatie',name:'Hospitalisatie',color:'#b91c1c',symbol:'🏥',paid:true,tracked:false,absenceTracked:true,mobile:false,defaultDays:0,maxDays:0,category:'ziekte'},
   // Extern (opgelegd)
-  {id:'tech-werkloos',name:'Technische werkloosheid',color:'#f97316',symbol:'🏭',paid:false,tracked:false,defaultDays:0,category:'extern'},
-  {id:'weerverlet',name:'Weerverlet',color:'#0369a1',symbol:'🌧️',paid:false,tracked:false,defaultDays:0,category:'extern'},
-  {id:'economisch',name:'Economische werkloosheid',color:'#b45309',symbol:'📉',paid:false,tracked:false,defaultDays:0,category:'extern'},
-  {id:'collectief',name:'Collectieve sluiting',color:'#7c3aed',symbol:'🔒',paid:true,tracked:false,defaultDays:0,category:'extern'}
+  {id:'tech-werkloos',name:'Technische werkloosheid',color:'#f97316',symbol:'🏭',paid:false,tracked:false,absenceTracked:true,mobile:false,defaultDays:0,maxDays:0,category:'extern'},
+  {id:'weerverlet',name:'Weerverlet',color:'#0369a1',symbol:'🌧️',paid:false,tracked:false,absenceTracked:true,mobile:false,defaultDays:0,maxDays:0,category:'extern'},
+  {id:'economisch',name:'Economische werkloosheid',color:'#b45309',symbol:'📉',paid:false,tracked:false,absenceTracked:true,mobile:false,defaultDays:0,maxDays:0,category:'extern'},
+  {id:'collectief',name:'Collectieve sluiting',color:'#7c3aed',symbol:'🔒',paid:true,tracked:false,absenceTracked:true,mobile:false,defaultDays:0,maxDays:0,category:'extern'}
 ];
 
-const BE_HOLIDAYS_2025=[
-  {date:'2025-01-01',name:'Nieuwjaar',all:true},
-  {date:'2025-04-21',name:'Paasmaandag',all:true},
-  {date:'2025-05-01',name:'Dag van de Arbeid',all:true},
-  {date:'2025-05-29',name:'O.L.H. Hemelvaart',all:true},
-  {date:'2025-06-09',name:'Pinkstermaandag',all:true},
-  {date:'2025-07-11',name:'Vlaamse feestdag',regions:['vlaanderen']},
-  {date:'2025-07-21',name:'Nationale feestdag',all:true},
-  {date:'2025-08-15',name:'O.L.V. Hemelvaart',all:true},
-  {date:'2025-09-27',name:'Franstalige Gemeenschapsdag',regions:['wallonie','brussel']},
-  {date:'2025-11-01',name:'Allerheiligen',all:true},
-  {date:'2025-11-11',name:'Wapenstilstand',all:true},
-  {date:'2025-12-25',name:'Kerstmis',all:true}
-];
-const BE_HOLIDAYS_2026=[
-  {date:'2026-01-01',name:'Nieuwjaar',all:true},
-  {date:'2026-04-06',name:'Paasmaandag',all:true},
-  {date:'2026-05-01',name:'Dag van de Arbeid',all:true},
-  {date:'2026-05-14',name:'O.L.H. Hemelvaart',all:true},
-  {date:'2026-05-25',name:'Pinkstermaandag',all:true},
-  {date:'2026-07-11',name:'Vlaamse feestdag',regions:['vlaanderen']},
-  {date:'2026-07-21',name:'Nationale feestdag',all:true},
-  {date:'2026-08-15',name:'O.L.V. Hemelvaart',all:true},
-  {date:'2026-09-27',name:'Franstalige Gemeenschapsdag',regions:['wallonie','brussel']},
-  {date:'2026-11-01',name:'Allerheiligen',all:true},
-  {date:'2026-11-11',name:'Wapenstilstand',all:true},
-  {date:'2026-12-25',name:'Kerstmis',all:true}
-];
+// ═══ DYNAMISCHE BELGISCHE FEESTDAGEN GENERATOR ═══
+// Berekent Paaszondag via het Computus-algoritme (Butcher/Meeus)
+// en leidt daaruit alle variabele feestdagen af.
+// Vaste feestdagen zijn identiek elk jaar.
+function computeEasterSunday(year){
+  const a=year%19, b=Math.floor(year/100), c=year%100;
+  const d=Math.floor(b/4), e=b%4, f=Math.floor((b+8)/25);
+  const g=Math.floor((b-f+1)/3), h=(19*a+b-d-g+15)%30;
+  const i=Math.floor(c/4), k=c%4;
+  const l=(32+2*e+2*i-h-k)%7;
+  const m=Math.floor((a+11*h+22*l)/451);
+  const month=Math.floor((h+l-7*m+114)/31);
+  const day=((h+l-7*m+114)%31)+1;
+  return new Date(year,month-1,day);
+}
+function pad2(n){return String(n).padStart(2,'0');}
+function isoDate(d){return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());}
+function addDays(d,n){const r=new Date(d);r.setDate(r.getDate()+n);return r;}
+
+function generateBEHolidays(year){
+  const easter=computeEasterSunday(year);
+  const paasmaandag=addDays(easter,1);
+  const hemelvaart=addDays(easter,39);
+  const pinkstermaandag=addDays(easter,50);
+  return [
+    {date:year+'-01-01',name:'Nieuwjaar',all:true},
+    {date:isoDate(paasmaandag),name:'Paasmaandag',all:true},
+    {date:year+'-05-01',name:'Dag van de Arbeid',all:true},
+    {date:isoDate(hemelvaart),name:'O.L.H. Hemelvaart',all:true},
+    {date:isoDate(pinkstermaandag),name:'Pinkstermaandag',all:true},
+    {date:year+'-07-11',name:'Vlaamse feestdag',regions:['vlaanderen']},
+    {date:year+'-07-21',name:'Nationale feestdag',all:true},
+    {date:year+'-08-15',name:'O.L.V. Hemelvaart',all:true},
+    {date:year+'-09-27',name:'Franstalige Gemeenschapsdag',regions:['wallonie','brussel']},
+    {date:year+'-11-01',name:'Allerheiligen',all:true},
+    {date:year+'-11-11',name:'Wapenstilstand',all:true},
+    {date:year+'-12-25',name:'Kerstmis',all:true}
+  ];
+}
+
+// Retourneert altijd feestdagen voor het huidige jaar + vorig jaar
+// Op 01/01/2027 verdwijnt 2025 automatisch en verschijnt 2027
+function getBEHolidays(){
+  const thisYear=new Date().getFullYear();
+  return [...generateBEHolidays(thisYear-1),...generateBEHolidays(thisYear)];
+}
+
+// Backwards-compatible aliassen zodat bestaande code blijft werken
+const BE_HOLIDAYS_2025=generateBEHolidays(2025);
+const BE_HOLIDAYS_2026=generateBEHolidays(2026);
 
 const DEFAULT_SCHEDULES=[
   {id:'fulltime',name:'Voltijds (5/5)',daysPerWeek:5,hoursPerDay:8,halfDays:true},
@@ -1134,6 +1241,46 @@ let settings={region:'vlaanderen',yearendMode:'max5',yearendCustomDays:5,
 
 // Verlofregels per department
 let verlofregels=[];
+
+// Onboarding checklist items (beheerbaar via Instellingen)
+const DEFAULT_CHECKLIST_ITEMS=[
+  {id:'cl_1',section:'IT & Hardware',name:'Toegangssleutel',active:true,order:1},
+  {id:'cl_2',section:'IT & Hardware',name:'PC',active:true,order:2},
+  {id:'cl_3',section:'IT & Hardware',name:'Schermen',active:true,order:3},
+  {id:'cl_4',section:'IT & Hardware',name:'Muis en keyboard',active:true,order:4},
+  {id:'cl_5',section:'Software & Accounts',name:'Plenion',active:true,order:5},
+  {id:'cl_6',section:'Software & Accounts',name:'Keeper',active:true,order:6},
+  {id:'cl_7',section:'Telefonie & hardware',name:'Extra schermen',active:true,order:7},
+  {id:'cl_8',section:'Telefonie & hardware',name:'Aanpassing telefonie keuzemenu (planning – verkoop – technisch – overig)',active:true,order:8},
+  {id:'cl_9',section:'Teamtel',name:'Bestellen HP Elitebook',active:true,order:9},
+  {id:'cl_10',section:'Teamtel',name:'Bestellen Jabra Headset + aansluiten op computer',active:true,order:10},
+  {id:'cl_11',section:'Teamtel',name:'Microsoft licentie',active:true,order:11},
+  {id:'cl_12',section:'Teamtel',name:'Aanmaken gebruiker in Outlook',active:true,order:12},
+  {id:'cl_13',section:'Teamtel',name:'Configuratie Keeper',active:true,order:13},
+  {id:'cl_14',section:'Teamtel',name:'Gebruiker + configuratie in 3CX telefooncentrale',active:true,order:14},
+  {id:'cl_15',section:'Teamtel',name:'Configuratie HP printer - printen + scannen',active:true,order:15},
+  {id:'cl_16',section:'Teamtel',name:'Installatie Acrobat Reader',active:true,order:16},
+  {id:'cl_17',section:'Teamtel',name:'Directory AE',active:true,order:17},
+  {id:'cl_18',section:'Outlook',name:'Sharen van de agenda',active:true,order:18},
+  {id:'cl_19',section:'Outlook',name:'Handtekening',active:true,order:19},
+  {id:'cl_20',section:'Keeper',name:'Wachtwoorden delen',active:true,order:20},
+  {id:'cl_21',section:'Daikin',name:'Account aanmaken',active:true,order:21},
+  {id:'cl_22',section:'Plenion',name:'Aanvraag Plenion licentie',active:true,order:22},
+  {id:'cl_23',section:'Plenion',name:'Aanmaken personeelslid + toekennen juiste rol',active:true,order:23},
+  {id:'cl_24',section:'Plenion',name:'Vakantiegoedkeuring',active:true,order:24},
+  {id:'cl_25',section:'Plenion',name:'Linken met Outlook',active:true,order:25},
+  {id:'cl_26',section:'Office',name:'Toekennen bureau',active:true,order:26},
+  {id:'cl_27',section:'Office',name:'Aankoop bureau materiaal – Schaar, balpen, fluo, nietjes machine + nietjes, perforator, tipp-ex, plakband, schriftje, lat/geodriehoek',active:true,order:27},
+  {id:'cl_28',section:'HR',name:'Inlichtingenfiche',active:true,order:28},
+  {id:'cl_29',section:'HR',name:'Verlofmap',active:true,order:29},
+  {id:'cl_30',section:'HR',name:'Welkom kaartje opsturen "welkom in ons team … ! We kijken ernaar uit."',active:true,order:30},
+  {id:'cl_31',section:'Administratie & verzekeringen',name:'Mensura werkpostfiche',active:true,order:31},
+  {id:'cl_32',section:'Administratie & verzekeringen',name:'Payroll SDWorx',active:true,order:32},
+  {id:'cl_33',section:'Administratie & verzekeringen',name:'Aansluiten DKV verzekering',active:true,order:33},
+  {id:'cl_34',section:'Administratie & verzekeringen',name:'Aansluiten AXA verzekering',active:true,order:34},
+  {id:'cl_35',section:'Administratie & verzekeringen',name:'Arbeidsovereenkomst',active:true,order:35}
+];
+let checklistItems=[];
 const DEFAULT_VERLOFREGELS=[
   {id:'max-afwezig',label:'Max. gelijktijdig afwezig',desc:'Maximum aantal medewerkers dat tegelijk afwezig mag zijn binnen een department',icon:'🚫',perDept:true,defaults:{}},
   {id:'min-bezetting',label:'Min. bezetting',desc:'Minimum aantal medewerkers dat aanwezig moet zijn binnen een department',icon:'👥',perDept:true,defaults:{}},
@@ -1250,6 +1397,7 @@ function autoSave(){
     localStorage.setItem('vb_candidates',JSON.stringify(candidates));
     localStorage.setItem('vb_channels',JSON.stringify(channels));
     localStorage.setItem('vb_settings',JSON.stringify(settings));
+    localStorage.setItem('vb_checklistItems',JSON.stringify(checklistItems));
     localStorage.setItem('vb_barema',JSON.stringify(baremaData));
     localStorage.setItem('vb_ancienniteit',JSON.stringify(ancienniteitData));
     localStorage.setItem('vb_salaryReasons',JSON.stringify(salaryReasonTypes));
@@ -1275,11 +1423,28 @@ function restore(){
     const wk=localStorage.getItem('vb_werkgeverskost');if(wk)werkgeverskostData=JSON.parse(wk);
     const up=localStorage.getItem('vb_uurkostParams');if(up)uurkostParams=JSON.parse(up);
     const vr=localStorage.getItem('vb_verlofregels');if(vr)verlofregels=JSON.parse(vr);
+    const cli=localStorage.getItem('vb_checklistItems');if(cli)checklistItems=JSON.parse(cli);
   }catch(e){console.error('Restore error:',e);}
+  if(checklistItems.length===0)checklistItems=DEFAULT_CHECKLIST_ITEMS.map(i=>({...i}));
   if(leaveTypes.length===0){leaveTypes=[...DEFAULT_TYPES];}
   else{
     // Add missing default types (upgrade path)
     DEFAULT_TYPES.forEach(dt=>{if(!leaveTypes.find(t=>t.id===dt.id))leaveTypes.push({...dt});});
+    // Upgrade: voeg absenceTracked toe aan bestaande types die het nog niet hebben
+    const maxDaysDefaults={'huwelijk':2,'huwelijk-kind':1,'overlijden-1':10,'overlijden-2':3,'overlijden-3':2,'geboorte':20,'communie':1,'verhuizing':1,'familiaal':10};
+    leaveTypes.forEach(t=>{
+      if(typeof t.absenceTracked==='undefined'){t.absenceTracked=!t.tracked;}
+      if(typeof t.mobile==='undefined'){t.mobile=['wettelijk','adv','ziekte','dokter'].includes(t.id);}
+      if(typeof t.maxDays==='undefined'){t.maxDays=maxDaysDefaults[t.id]||0;}
+      // Corrigeer overlijden partner/kind naar 10d (wet 2021)
+      if(t.id==='overlijden-1'&&t.defaultDays===3){t.defaultDays=10;t.maxDays=10;}
+      // Corrigeer familiaal naar 10d max
+      if(t.id==='familiaal'&&t.defaultDays===0){t.defaultDays=10;t.maxDays=10;}
+      // Fix onbetaald
+      if(t.id==='onbetaald'&&t.tracked){t.tracked=false;t.absenceTracked=true;}
+      // Upgrade category: absenceTracked types met category 'verlof' → 'afwezigheid'
+      if(t.absenceTracked&&t.category==='verlof'){t.category='afwezigheid';}
+    });
   }
   if(schedules.length===0)schedules=DEFAULT_SCHEDULES.map(s=>({...s}));
   if(channels.length===0){channels=[...DEFAULT_CHANNELS];}
@@ -1353,6 +1518,7 @@ function showSettingsTab(tab,btn){
   btn.classList.add('active');
   if(tab==='barema')renderBarema();
   if(tab==='ancienniteit')renderAncienniteit();
+  if(tab==='checklist')renderChecklistSettings();
 }
 
 function closeModal(){document.getElementById('modal-overlay').classList.remove('show');}
@@ -1945,7 +2111,7 @@ function renderPeople(){
   const archivedCount=people.filter(p=>p.archived).length;
 
   if(activePeople.length===0){
-    tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text3)">Nog geen medewerkers. Klik op "Medewerker toevoegen" om te starten.</td></tr>';
+    tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text3)">Nog geen medewerkers. Klik op "Medewerker toevoegen" om te starten.</td></tr>';
   }else{
     const sorted=[...activePeople].sort((a,b)=>{
       // Archived always at bottom
@@ -1975,7 +2141,7 @@ function renderPeople(){
       return `<tr style="cursor:pointer;${isArchived?'opacity:.5;background:var(--surface2);':''}" onclick="if(!event.target.closest('button,a'))openPersonModal('${p.id}')">
         <td><div style="display:flex;align-items:center;gap:10px">
           <div class="avatar" style="background:${isArchived?'#aaa':getAvatarColor(fullName(p))}">${getInitials(fullName(p))}</div>
-          <div><div style="font-weight:600">${fullName(p)}${isArchived?' <span class="badge badge-gray" style="font-size:10px;margin-left:4px">📦 Archief</span>':''}</div><div style="font-size:11px;color:var(--text3)">${p.email}</div></div>
+          <div><div style="font-weight:600">${fullName(p)}${isArchived?' <span class="badge badge-gray" style="font-size:10px;margin-left:4px">📦 Archief'+(p.archivedReason==='contract verlopen'?' (contract verlopen)':'')+'</span>':''}${!isArchived&&p.endDate?` <span style="font-size:10px;color:var(--text3);margin-left:4px">⏰ ${formatDate(p.endDate)}</span>`:''}</div><div style="font-size:11px;color:var(--text3)">${p.email}</div></div>
         </div></td>
         <td>${dept?dept.name:'—'}</td>
         <td>${roleBadges}</td>
@@ -1988,6 +2154,12 @@ function renderPeople(){
         <td style="text-align:center">
           ${isArchived?'<span style="font-size:12px;color:var(--text3)">—</span>':`
           <span style="font-size:12px;font-weight:600;cursor:pointer;color:var(--accent);text-decoration:underline dotted" onclick="openPersonModal('${p.id}');setTimeout(function(){var f=document.getElementById('mp-saldo-ov');if(f){f.scrollIntoView({block:'center'});f.focus();}},200)" title="Klik om aan te passen">${p.saldoOV!=null?p.saldoOV+'u':'—'}</span>`}
+        </td>
+        <td class="interim-col" style="text-align:center;display:none">
+          ${p.statuut==='interim'&&p.interimDagen!=null?`<span style="font-size:12px;font-weight:600">${p.interimDagen}d</span>`:'<span style="font-size:12px;color:var(--text3)">—</span>'}
+        </td>
+        <td class="interim-col" style="text-align:center;display:none">
+          ${p.statuut==='interim'&&p.interimDagen!=null?(()=>{const c=calcInterimCounter(p);return `<span style="font-size:12px;font-weight:600;color:${c>10?'var(--text)':c>0?'var(--warn)':'var(--danger)'}">${c}d</span>`;})():'<span style="font-size:12px;color:var(--text3)">—</span>'}
         </td>
         <td style="text-align:right">
           ${isArchived?`
@@ -2003,29 +2175,36 @@ function renderPeople(){
     }).join('');
   }
   document.getElementById('people-count').textContent=activeCount+' medewerker'+(activeCount!==1?'s':'')+(archivedCount>0?' · '+archivedCount+' gearchiveerd':'');
+
+  // Toon interim kolommen alleen als er minstens 1 actieve interim-medewerker is
+  const hasInterim=people.some(p=>!p.archived&&p.statuut==='interim');
+  document.querySelectorAll('.interim-col').forEach(el=>{el.style.display=hasInterim?'':'none';});
 }
 
 function renderTypes(){
   const tbody=document.getElementById('types-table');
-  const catLabels={verlof:'🏖️ Verlof (aangevraagd)',adv:'📅 ADV',overuren:'⏱️ Overuren',ziekte:'🤒 Ziekte',extern:'🏭 Extern (opgelegd)'};
-  const catOrder=['verlof','adv','overuren','ziekte','extern'];
+  const catLabels={verlof:'🏖️ Verlof (verlofsaldo)',adv:'📅 ADV',afwezigheid:'📋 Afwezigheid (afwezigheidssaldo)',ziekte:'🤒 Ziekte',extern:'🏭 Extern (opgelegd)'};
+  const catOrder=['verlof','adv','afwezigheid','ziekte','extern'];
   const protectedIds=['wettelijk','adv','ziekte','tech-werkloos','weerverlet'];
   let html='';
   catOrder.forEach(cat=>{
     const types=leaveTypes.filter(t=>t.category===cat);
     if(types.length===0)return;
-    const catBadge=cat==='extern'?'badge-yellow':cat==='ziekte'?'badge-red':'badge-blue';
-    html+=`<tr><td colspan="6" style="background:var(--surface2);font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);padding:8px 12px">${catLabels[cat]||cat}</td></tr>`;
+    const catBadge=cat==='extern'?'badge-yellow':cat==='ziekte'?'badge-red':cat==='afwezigheid'?'badge-orange':'badge-blue';
+    html+=`<tr><td colspan="10" style="background:var(--surface2);font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);padding:8px 12px">${catLabels[cat]||cat}</td></tr>`;
     html+=types.map(t=>`<tr>
       <td><div style="display:flex;align-items:center;gap:8px">
         <span class="clr-dot" style="background:${t.color}"></span>
         <span>${t.symbol}</span>
         <span style="font-weight:600">${t.name}</span>
       </div></td>
-      <td><span class="badge ${catBadge}">${cat==='extern'?'Extern — geen saldo':'Verlof'}</span></td>
+      <td><span class="badge ${catBadge}">${cat==='extern'?'Extern':cat==='ziekte'?'Ziekte':cat==='afwezigheid'?'Afwezigheid':'Verlof'}</span></td>
       <td>${t.paid?'✅ Betaald':'❌ Onbetaald'}</td>
-      <td>${t.tracked?'✅ Ja':'❌ Nee'}</td>
+      <td>${t.tracked?'✅':''}</td>
+      <td>${t.absenceTracked?'✅':''}</td>
+      <td style="text-align:center"><input type="checkbox" ${t.mobile?'checked':''} onchange="toggleMobile('${t.id}',this.checked)" style="cursor:pointer;width:16px;height:16px"/></td>
       <td>${t.tracked?t.defaultDays+' dagen':'—'}</td>
+      <td>${t.maxDays>0?t.maxDays+' dagen':'—'}</td>
       <td style="text-align:right">
         <button class="btn btn-sm" onclick="openTypeModal('${t.id}')">✏️</button>
         ${!protectedIds.includes(t.id)?`<button class="btn btn-sm btn-danger" onclick="deleteType('${t.id}')">🗑</button>`:''}
@@ -2050,7 +2229,7 @@ function renderSettings(){
   </tr>`).join('');
 
   // Holidays
-  const holidays=[...BE_HOLIDAYS_2025,...BE_HOLIDAYS_2026];
+  const holidays=getBEHolidays();
   const htbl=document.getElementById('holidays-table');
   const region=settings.region||'vlaanderen';
   document.getElementById('region-select').value=region;
@@ -2064,6 +2243,15 @@ function renderSettings(){
   document.getElementById('yearend-mode').value=settings.yearendMode||'max5';
   document.getElementById('yearend-custom-days').value=settings.yearendCustomDays||5;
   document.getElementById('yearend-custom-row').style.display=settings.yearendMode==='custom'?'block':'none';
+  const yeSelect=document.getElementById('yearend-year');
+  if(yeSelect){
+    const curYear=new Date().getFullYear();
+    yeSelect.innerHTML='';
+    for(let y=curYear;y>=curYear-3;y--){
+      const done=settings.yearendDone&&settings.yearendDone.includes(y);
+      yeSelect.innerHTML+=`<option value="${y}" ${y===curYear-1?'selected':''}>${y} ${done?'✅':''}</option>`;
+    }
+  }
 
   // Notifications
   document.getElementById('notif-email').checked=settings.notifEmail!==false;
@@ -2250,7 +2438,7 @@ function renderDashboard(){
   }
 
   // Upcoming holidays
-  const holidays=[...BE_HOLIDAYS_2025,...BE_HOLIDAYS_2026].filter(h=>h.date>=today&&(h.all||(h.regions&&h.regions.includes(settings.region))));
+  const holidays=getBEHolidays().filter(h=>h.date>=today&&(h.all||(h.regions&&h.regions.includes(settings.region))));
   const holDiv=document.getElementById('dash-holidays');
   holDiv.innerHTML=holidays.slice(0,5).map(h=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
     <span style="font-size:18px">🇧🇪</span>
@@ -2283,12 +2471,24 @@ function getConflicts(request){
 }
 
 function calcWorkDays(start,end){
+  // Bouw set van feestdagen (YYYY-MM-DD) op basis van regio
+  const region=settings.region||'vlaanderen';
+  const allHolidays=getBEHolidays();
+  const holidaySet=new Set(
+    allHolidays
+      .filter(h=>h.all||(h.regions&&h.regions.includes(region)))
+      .map(h=>h.date)
+  );
   let count=0;
   const d=new Date(start);
   const e=new Date(end);
   while(d<=e){
     const dow=d.getDay();
-    if(dow!==0&&dow!==6)count++;
+    // Sla weekenden en feestdagen over
+    if(dow!==0&&dow!==6){
+      const iso=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+      if(!holidaySet.has(iso))count++;
+    }
     d.setDate(d.getDate()+1);
   }
   return count;
@@ -2297,19 +2497,23 @@ function calcWorkDays(start,end){
 function openRequestModal(id){
   const r=id?requests.find(x=>x.id===id):null;
   const isEdit=!!r;
-  openModal(isEdit?'Aanvraag bewerken':'Nieuwe verlofaanvraag',`
+  const editType=r?leaveTypes.find(t=>t.id===r.type):null;
+  const initCat=(editType&&(editType.category==='afwezigheid'||editType.category==='ziekte'||editType.category==='extern'))?'afwezigheid':'verlof';
+  openModal(isEdit?'Aanvraag bewerken':'Nieuwe aanvraag',`
     <div class="form-group">
       <label class="form-label">Medewerker <span class="req">*</span></label>
       <select class="form-input" id="mr-person" ${isEdit?'disabled':''}>
         <option value="">Selecteer...</option>
-        ${people.map(p=>`<option value="${p.id}" ${r&&r.personId===p.id?'selected':''}>${fullName(p)}</option>`).join('')}
+        ${people.filter(p=>!p.archived).map(p=>`<option value="${p.id}" ${r&&r.personId===p.id?'selected':''}>${fullName(p)}</option>`).join('')}
       </select>
     </div>
     <div class="form-group">
-      <label class="form-label">Verloftype <span class="req">*</span></label>
-      <select class="form-input" id="mr-type">
-        ${`<optgroup label="Verlof (aangevraagd)">${leaveTypes.filter(t=>t.category!=='ziekte'&&t.category!=='extern').map(t=>`<option value="${t.id}" ${r&&r.type===t.id?'selected':''}>${t.symbol} ${t.name}</option>`).join('')}</optgroup>
-        <optgroup label="Extern (opgelegd)">${leaveTypes.filter(t=>t.category==='extern').map(t=>`<option value="${t.id}" ${r&&r.type===t.id?'selected':''}>${t.symbol} ${t.name}</option>`).join('')}</optgroup>`}
+      <label class="form-label">Type aanvraag <span class="req">*</span></label>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button type="button" id="mr-btn-verlof" onclick="setRequestCategory('verlof')" style="flex:1;border:2px solid var(--border);border-radius:var(--radius-sm);padding:10px;font-weight:600;cursor:pointer;font-size:13px;transition:all .2s;background:var(--surface)">🏖️ Verlofaanvraag</button>
+        <button type="button" id="mr-btn-afwezigheid" onclick="setRequestCategory('afwezigheid')" style="flex:1;border:2px solid var(--border);border-radius:var(--radius-sm);padding:10px;font-weight:600;cursor:pointer;font-size:13px;transition:all .2s;background:var(--surface)">📋 Afwezigheid</button>
+      </div>
+      <select class="form-input" id="mr-type" onchange="updateDayCount()" style="position:relative;z-index:1">
       </select>
     </div>
     <div class="form-group">
@@ -2347,7 +2551,36 @@ function openRequestModal(id){
       <button class="btn btn-primary" onclick="saveRequest('${id||''}')">Opslaan</button>
     </div>
   `);
+  setRequestCategory(initCat, r?r.type:'');
   if(r)updateDayCount();
+}
+
+let _requestCategory='verlof';
+function setRequestCategory(cat, preselect){
+  _requestCategory=cat;
+  var btnV=document.getElementById('mr-btn-verlof');
+  var btnA=document.getElementById('mr-btn-afwezigheid');
+  if(btnV){btnV.style.background=cat==='verlof'?'var(--accent)':'var(--surface)';btnV.style.color=cat==='verlof'?'white':'var(--text2)';btnV.style.borderColor=cat==='verlof'?'var(--accent)':'var(--border)';}
+  if(btnA){btnA.style.background=cat==='afwezigheid'?'var(--accent)':'var(--surface)';btnA.style.color=cat==='afwezigheid'?'white':'var(--text2)';btnA.style.borderColor=cat==='afwezigheid'?'var(--accent)':'var(--border)';}
+  var sel=document.getElementById('mr-type');
+  if(!sel)return;
+  var h='';
+  if(cat==='verlof'){
+    leaveTypes.filter(function(t){return t.category==='verlof'||t.category==='adv';}).forEach(function(t){
+      h+='<option value="'+t.id+'"'+(preselect===t.id?' selected':'')+'>'+t.symbol+' '+t.name+'</option>';
+    });
+  }else{
+    var groups=[{label:'Afwezigheid',cats:['afwezigheid']},{label:'Ziekte',cats:['ziekte']},{label:'Extern (opgelegd)',cats:['extern']}];
+    groups.forEach(function(g){
+      var types=leaveTypes.filter(function(t){return g.cats.indexOf(t.category)>=0;});
+      if(types.length){
+        h+='<optgroup label="'+g.label+'">';
+        types.forEach(function(t){h+='<option value="'+t.id+'"'+(preselect===t.id?' selected':'')+'>'+t.symbol+' '+t.name+'</option>';});
+        h+='</optgroup>';
+      }
+    });
+  }
+  sel.innerHTML=h;
 }
 
 let selectedHalfDayPeriod='VM';
@@ -2432,6 +2665,20 @@ async function saveRequest(id){
   
   const days=half?0.5:calcWorkDays(startDate,endDate);
   
+  // Check max dagen per type (wettelijk maximum klein verlet)
+  const typeObj=leaveTypes.find(t=>t.id===type);
+  if(typeObj&&typeObj.maxDays>0){
+    const year=startDate.substring(0,4);
+    const usedThisYear=requests
+      .filter(r=>r.personId===personId&&r.type===type&&r.status!=='rejected'&&r.id!==(id||'')&&r.startDate.startsWith(year))
+      .reduce((sum,r)=>sum+(r.halfDay?0.5:r.days||0),0);
+    const totalAfter=usedThisYear+days;
+    if(totalAfter>typeObj.maxDays){
+      const msg=`⚠️ Maximum ${typeObj.maxDays} dagen ${typeObj.name} per jaar.\n\nAl opgenomen in ${year}: ${usedThisYear}d\nDeze aanvraag: ${days}d\nTotaal: ${totalAfter}d (${totalAfter-typeObj.maxDays}d te veel)\n\nToch doorgaan?`;
+      if(!await confirmDialog(msg))return;
+    }
+  }
+  
   // Check verlofregels
   const warnings=checkVerlofregels(personId,startDate,endDate,days);
   if(warnings.length>0&&!id){
@@ -2439,7 +2686,6 @@ async function saveRequest(id){
     if(!await confirmDialog('⚠️ Verlofregels:\n\n'+warnMsg+'\n\nToch doorgaan?'))return;
   }
   
-  const typeObj=leaveTypes.find(t=>t.id===type);
   const isExtern=typeObj&&typeObj.category==='extern';
   
   const data={personId,type,startDate,endDate,days,
@@ -2463,18 +2709,32 @@ async function approveRequest(id){
   if(conflicts.length>0){
     if(!await confirmDialog(`⚠️ Er zijn ${conflicts.length} conflict(en):\n\n${conflicts.join('\n')}\n\nToch goedkeuren?`))return;
   }
-  r.status='approved';r.decidedDate=new Date().toISOString().split('T')[0];
+  r.status='approved';r.decidedDate=new Date().toISOString().split('T')[0];r.decidedBy=settings.currentUser||'Admin';
+  // Log approver info
+  const person=people.find(x=>x.id===r.personId);
+  const dept=person?departments.find(d=>d.id===person.departmentId):null;
+  const approver=dept&&dept.approverId?people.find(x=>x.id===dept.approverId):null;
+  if(approver&&r.decidedBy!==fullName(approver)){
+    r.approverNote='Goedgekeurd door '+r.decidedBy+' (verantwoordelijke: '+fullName(approver)+')';
+  }
   autoSave();renderRequests();renderDashboard();
   showToast('Aanvraag goedgekeurd ✅');
 }
 
 async function rejectRequest(id){
-  const comment=await promptDialog('Reden van weigering (optioneel):','Bv. onvoldoende bezetting');
+  const comment=await promptDialog('Reden van weigering (verplicht):','Bv. onvoldoende bezetting');
   if(comment===null)return;
+  if(!comment.trim()){showToast('Reden van weigering is verplicht','error');return;}
   const r=requests.find(x=>x.id===id);
   if(!r)return;
-  r.status='rejected';r.rejectReason=comment;r.decidedDate=new Date().toISOString().split('T')[0];
-  autoSave();renderRequests();renderDashboard();
+  r.status='rejected';r.rejectReason=comment.trim();r.decidedDate=new Date().toISOString().split('T')[0];r.decidedBy=settings.currentUser||'Admin';
+  const p=people.find(x=>x.id===r.personId);
+  if(p){
+    if(!p.mutations)p.mutations=[];
+    const typeObj=leaveTypes.find(t=>t.id===r.type);
+    p.mutations.push({id:uid(),timestamp:new Date().toISOString(),user:settings.currentUser||'Admin',field:'Aanvraag geweigerd',oldValue:(typeObj?typeObj.name:r.type)+' ('+formatDate(r.startDate)+' \u2192 '+formatDate(r.endDate)+')',newValue:'Reden: '+comment.trim()});
+  }
+  closeModal();autoSave();renderRequests();renderDashboard();
   showToast('Aanvraag geweigerd');
 }
 
@@ -2483,6 +2743,7 @@ function viewRequest(id){
   const person=people.find(p=>p.id===r.personId);
   const type=leaveTypes.find(t=>t.id===r.type);
   const dept=person?departments.find(d=>d.id===person.departmentId):null;
+  const approver=dept&&dept.approverId?people.find(x=>x.id===dept.approverId):null;
   const conflicts=getConflicts(r);
   const dayLabel=r.halfDay?'½ dag ('+r.halfDayPeriod+')':r.days+' werkdag'+(r.days!==1?'en':'');
   
@@ -2531,6 +2792,8 @@ function viewRequest(id){
       <div><span style="color:var(--text3)">Tot:</span> <strong>${formatDate(r.endDate)}</strong></div>
       <div><span style="color:var(--text3)">Status:</span> <span class="badge ${r.status==='approved'?'badge-green':r.status==='rejected'?'badge-red':'badge-yellow'}">${r.status==='approved'?'✅ Goedgekeurd':r.status==='rejected'?'❌ Geweigerd':'⏳ Openstaand'}</span></div>
       ${r.decidedDate?`<div><span style="color:var(--text3)">Beslist op:</span> <strong>${formatDate(r.decidedDate)}</strong></div>`:''}
+      ${r.decidedBy?`<div><span style="color:var(--text3)">Beslist door:</span> <strong>${r.decidedBy}</strong></div>`:''}
+      ${approver&&r.status==='pending'?`<div><span style="color:var(--text3)">Verantwoordelijke:</span> <strong>${fullName(approver)}</strong></div>`:''}
     </div>
     ${saldoHtml}
     ${r.comment?`<div style="padding:10px;background:var(--surface2);border-radius:var(--radius-xs);font-size:12px;margin-bottom:12px"><strong>Opmerking:</strong> ${r.comment}</div>`:''}
@@ -2540,22 +2803,30 @@ function viewRequest(id){
       ${conflicts.map(c=>`<div style="color:var(--text2);padding:2px 0">• ${c}</div>`).join('')}
     </div>`:''}
     ${r.status==='pending'?`<div class="modal-actions">
-      <button class="btn btn-danger" onclick="rejectRequest('${r.id}');closeModal()">❌ Weigeren</button>
+      <button class="btn" onclick="deleteRequest('${r.id}')" style="color:var(--text3);margin-right:auto">🗑 Verwijderen</button>
+      <button class="btn btn-danger" onclick="rejectRequest('${r.id}')">❌ Weigeren</button>
       <button class="btn btn-primary" onclick="approveRequest('${r.id}');closeModal()" style="background:var(--success);border-color:var(--success)">✅ Goedkeuren</button>
-    </div>`:'<div class="modal-actions"><button class="btn" onclick="closeModal()">Sluiten</button></div>'}
+    </div>`:`<div class="modal-actions">
+      <button class="btn" onclick="deleteRequest('${r.id}')" style="color:var(--text3)">🗑 Verwijderen</button>
+      <button class="btn" onclick="closeModal()">Sluiten</button>
+    </div>`}
   `);
 }
 
 async function deleteRequest(id){
-  if(!await confirmDialog('Aanvraag verwijderen?'))return;
+  if(!await confirmDialog('Aanvraag definitief verwijderen? Dit kan niet ongedaan gemaakt worden.'))return;
   const r=requests.find(x=>x.id===id);
-  if(r&&r.status==='approved'){
-    // Auto refund saldo
-    showToast('Aanvraag verwijderd — saldo automatisch teruggestort');
+  if(r){
+    const p=people.find(x=>x.id===r.personId);
+    const typeObj=leaveTypes.find(t=>t.id===r.type);
+    if(p){
+      if(!p.mutations)p.mutations=[];
+      p.mutations.push({id:uid(),timestamp:new Date().toISOString(),user:settings.currentUser||'Admin',field:'Aanvraag verwijderd',oldValue:(typeObj?typeObj.name:r.type)+' ('+formatDate(r.startDate)+' \u2192 '+formatDate(r.endDate)+')',newValue:'Status was: '+(r.status==='approved'?'goedgekeurd':r.status==='rejected'?'geweigerd':'openstaand')});
+    }
   }
   requests=requests.filter(x=>x.id!==id);
-  autoSave();renderRequests();renderDashboard();
-  if(!r||r.status!=='approved')showToast('Aanvraag verwijderd');
+  closeModal();autoSave();renderRequests();renderDashboard();
+  showToast('Aanvraag verwijderd');
 }
 
 // --- Sickness ---
@@ -2953,11 +3224,20 @@ function openPersonModal(id){
         </div>
         <div class="form-row">
           <div class="form-group"><label class="form-label">Startdatum</label><input class="form-input" type="date" id="mp-start" value="${p?p.startDate:''}"/></div>
+          <div class="form-group"><label class="form-label">Einddatum <span style="font-weight:400;color:var(--text3)">(einde contract)</span></label><input class="form-input" type="date" id="mp-end-contract" value="${p?p.endDate||'':''}"/></div>
+        </div>
+        <div class="form-row">
           <div class="form-group"><label class="form-label">📱 Werk GSM</label><input class="form-input" type="tel" onblur="this.value=formatPhone(this.value)" id="mp-werkgsm" value="${p?p.werkGsm||'':''}" placeholder="+32 4xx xx xx xx"/></div>
         </div>
         <div class="form-row">
           <div class="form-group"><label class="form-label">📋 Saldo OV (uren)</label><input class="form-input" type="number" step="0.5" min="0" id="mp-saldo-ov" value="${p&&p.saldoOV!=null?p.saldoOV:''}" placeholder="0"/></div>
           <div class="form-group"></div>
+        </div>
+        <div id="mp-interim-fields" style="display:${p&&p.statuut==='interim'?'block':'none'}">
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">📋 Interim dagen</label><input class="form-input" type="number" step="1" min="0" id="mp-interim-dagen" value="${p&&p.interimDagen!=null?p.interimDagen:''}" placeholder="Aantal werkdagen interim contract"/></div>
+            <div class="form-group"><label class="form-label">⏳ Interim counter</label><div class="form-input" style="background:var(--surface2);cursor:default" id="mp-interim-counter">${p&&p.statuut==='interim'&&p.interimDagen?calcInterimCounter(p)+'d resterend':'—'}</div></div>
+          </div>
         </div>
       </div>
     </div>
@@ -2993,11 +3273,15 @@ function openPersonModal(id){
   `,true);
   if(p){
     const showSalary=p.paritairComite==='149.01';
-    const showChecklist=p.statuut==='arbeider'||p.statuut==='bediende';
+    const showChecklist=true;
+    const clCompleted=p.checklistState&&p.checklistState._completed;
     document.getElementById('modal-title-actions').innerHTML=`
       <button class="btn btn-sm" onclick="closeModal();openSaldoModal('${id}')" style="font-size:11px">📊 Saldo</button>
+      <button class="btn btn-sm" onclick="closeModal();openPersonCalendar('${id}')" style="font-size:11px">📅 Kalender</button>
       ${showSalary?`<button class="btn btn-sm" onclick="closeModal();openSalaryModal('${id}')" style="font-size:11px">💶 Salaris</button>`:''}
-      ${showChecklist?`<button class="btn btn-sm" onclick="closeModal();openChecklist('${id}')" style="font-size:11px;color:var(--accent)">☑️ Checklist</button>`:''}
+      ${showChecklist?`<button class="btn btn-sm" onclick="closeModal();openChecklist('${id}')" style="font-size:11px;color:${clCompleted?'var(--success)':'var(--accent)'}">${clCompleted?'✅':'☑️'} Checklist</button>`:''}
+      <button class="btn btn-sm" onclick="closeModal();openMutationsModal('${id}')" style="font-size:11px">📝 Mutaties</button>
+      <button class="btn btn-sm" onclick="closeModal();openDocumentsModal('${id}')" style="font-size:11px">📁 Documenten</button>
       <button class="btn btn-sm" onclick="archivePerson('${id}')" style="font-size:11px;color:var(--text3)">📦 Archief</button>`;
   }
   setTimeout(syncPersonFields,50);
@@ -3053,6 +3337,37 @@ function syncPersonFields(){
   // Categorie alleen bij PC 149.01
   const catGroup=document.getElementById('mp-cat-group');
   if(catGroup)catGroup.style.display=pc.value==='149.01'?'':'none';
+
+  // Interim velden tonen/verbergen
+  const interimFields=document.getElementById('mp-interim-fields');
+  if(interimFields){
+    interimFields.style.display=statuut.value==='interim'?'block':'none';
+    // Als statuut net naar interim is gezet en interimDagen nog leeg is, toon popup-achtige highlight
+    if(statuut.value==='interim'&&statuut.dataset.prev!=='interim'){
+      const dagenInput=document.getElementById('mp-interim-dagen');
+      if(dagenInput&&!dagenInput.value){
+        // Scroll naar en highlight het interim veld
+        setTimeout(function(){
+          dagenInput.scrollIntoView({block:'center',behavior:'smooth'});
+          dagenInput.style.boxShadow='0 0 0 3px rgba(168,85,247,.35)';
+          dagenInput.style.borderColor='#a855f7';
+          dagenInput.focus();
+          dagenInput.placeholder='⬅ Hoeveel werkdagen interim contract? (optioneel)';
+          setTimeout(function(){
+            dagenInput.style.boxShadow='';
+            dagenInput.style.borderColor='';
+            dagenInput.placeholder='Aantal werkdagen interim contract';
+          },3000);
+        },100);
+      }
+    }
+    // Als statuut weg van interim gaat, wis de interim-velden
+    if(statuut.value!=='interim'){
+      const dagenInput=document.getElementById('mp-interim-dagen');
+      if(dagenInput)dagenInput.value='';
+    }
+  }
+  statuut.dataset.prev=statuut.value;
 }
 
 function savePerson(id){
@@ -3074,7 +3389,10 @@ function savePerson(id){
   const rrn=document.getElementById('mp-rrn').value.trim();
   const saldoOVval=document.getElementById('mp-saldo-ov').value;
   const saldoOV=saldoOVval!==''?parseFloat(saldoOVval):null;
+  const interimDagenVal=document.getElementById('mp-interim-dagen').value;
+  const interimDagen=statuut==='interim'&&interimDagenVal!==''?parseInt(interimDagenVal):null;
   const werkGsm=formatPhone(document.getElementById('mp-werkgsm').value.trim());
+  const endDate=document.getElementById('mp-end-contract').value||'';
   const noodNaam=document.getElementById('mp-nood-naam').value.trim();
   const noodRelatie=document.getElementById('mp-nood-relatie').value;
   const noodGsm=formatPhone(document.getElementById('mp-nood-gsm').value.trim());
@@ -3082,33 +3400,155 @@ function savePerson(id){
   if(!lastName){showToast('Naam is verplicht','error');return;}
   if(!email){showToast('E-mail is verplicht','error');return;}
   if(!departmentId){showToast('Department is verplicht','error');return;}
-  const data={firstName,lastName,email,departmentId,role,isApprover,statuut,paritairComite,baremaCategory,startDate,scheduleId,gsm,tel,iban,birthDate,rrn,saldoOV,werkGsm,noodNaam,noodRelatie,noodGsm};
+  const data={firstName,lastName,email,departmentId,role,isApprover,statuut,paritairComite,baremaCategory,startDate,endDate,scheduleId,gsm,tel,iban,birthDate,rrn,saldoOV,interimDagen,werkGsm,noodNaam,noodRelatie,noodGsm};
   if(id){
     const p=people.find(x=>x.id===id);
-    if(p){Object.assign(p,data);}
+    if(p){
+      // Log mutaties voor gewijzigde velden
+      if(!p.mutations)p.mutations=[];
+      const fieldLabels={firstName:'Voornaam',lastName:'Naam',email:'E-mail',departmentId:'Department',role:'Rol',isApprover:'Approver',statuut:'Statuut',paritairComite:'Paritair Comité',baremaCategory:'Baremacategorie',startDate:'Startdatum',endDate:'Einddatum',scheduleId:'Werkrooster',gsm:'GSM',tel:'Telefoon',iban:'IBAN',birthDate:'Geboortedatum',rrn:'Rijksregisternr',saldoOV:'Saldo OV',interimDagen:'Interim dagen',werkGsm:'Werk GSM',noodNaam:'Noodcontact naam',noodRelatie:'Noodcontact relatie',noodGsm:'Noodcontact GSM'};
+      const now=new Date();
+      const timestamp=now.toISOString();
+      const user=settings.currentUser||'Admin';
+      Object.keys(data).forEach(key=>{
+        let oldVal=p[key];
+        let newVal=data[key];
+        // Normaliseer voor vergelijking
+        if(oldVal===undefined||oldVal===null)oldVal='';
+        if(newVal===undefined||newVal===null)newVal='';
+        if(String(oldVal)!==String(newVal)){
+          // Vertaal IDs naar leesbare namen
+          let oldDisplay=String(oldVal),newDisplay=String(newVal);
+          if(key==='departmentId'){
+            const od=departments.find(d=>d.id===oldVal);
+            const nd=departments.find(d=>d.id===newVal);
+            oldDisplay=od?od.name:oldVal||'(leeg)';
+            newDisplay=nd?nd.name:newVal||'(leeg)';
+          }else if(key==='scheduleId'){
+            const os=schedules.find(s=>s.id===oldVal);
+            const ns=schedules.find(s=>s.id===newVal);
+            oldDisplay=os?os.name:oldVal||'(leeg)';
+            newDisplay=ns?ns.name:newVal||'(leeg)';
+          }else if(key==='isApprover'){
+            oldDisplay=oldVal?'Ja':'Nee';newDisplay=newVal?'Ja':'Nee';
+          }else if(key==='startDate'||key==='endDate'||key==='birthDate'){
+            oldDisplay=oldVal?formatDate(oldVal):'(leeg)';
+            newDisplay=newVal?formatDate(newVal):'(leeg)';
+          }
+          if(!oldDisplay)oldDisplay='(leeg)';
+          if(!newDisplay)newDisplay='(leeg)';
+          p.mutations.push({id:uid(),timestamp,user,field:fieldLabels[key]||key,oldValue:oldDisplay,newValue:newDisplay});
+        }
+      });
+      // Als statuut niet meer interim is, wis interimDagen
+      if(statuut!=='interim'){data.interimDagen=null;}
+      Object.assign(p,data);
+    }
   }else{
-    people.push({id:uid(),...data,allowanceAdjustments:[]});
+    const newData={id:uid(),...data,allowanceAdjustments:[],mutations:[{id:uid(),timestamp:new Date().toISOString(),user:settings.currentUser||'Admin',field:'Aangemaakt',oldValue:'',newValue:'Nieuwe medewerker'}]};
+    // Als statuut niet interim is, wis interimDagen
+    if(statuut!=='interim'){newData.interimDagen=null;}
+    people.push(newData);
   }
   closeModal();autoSave();renderPeople();renderDepartments();
   showToast('Medewerker opgeslagen');
 }
 
+// ═══ INTERIM COUNTER LOGICA ═══
+// Berekent hoeveel werkdagen (geen weekenden, feestdagen, verlof, ziekte) er verstreken zijn
+// sinds de startdatum van de medewerker, en trekt dat af van interimDagen.
+function calcInterimCounter(p){
+  if(!p||p.statuut!=='interim'||!p.interimDagen||!p.startDate)return null;
+  const today=new Date().toISOString().split('T')[0];
+  // Tel werkdagen van startdatum tot vandaag (of einddatum contract als dat eerder is)
+  const endDate=today;
+  const totalWorkDays=calcWorkDays(p.startDate,endDate);
+  // Trek verlof- en ziektedagen af (die zijn geen gewerkte dagen)
+  const absentDays=requests
+    .filter(r=>r.personId===p.id&&r.status==='approved'&&r.startDate<=endDate&&r.endDate>=p.startDate)
+    .reduce((sum,r)=>sum+(r.halfDay?0.5:(r.days||0)),0);
+  const workedDays=Math.max(0,totalWorkDays-absentDays);
+  const remaining=Math.max(0,p.interimDagen-workedDays);
+  return remaining;
+}
+
+function promptInterimDagen(personId){
+  openModal('📋 Interim werkdagen',`
+    <div style="margin-bottom:16px;color:var(--text2);font-size:13px;line-height:1.6">
+      Deze medewerker heeft het statuut <strong>interim</strong>.<br/>
+      Hoeveel werkdagen bevat het interim contract?<br/>
+      <span style="font-size:12px;color:var(--text3)">(Dit veld is optioneel — je kan het later nog invullen)</span>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Aantal interim werkdagen</label>
+      <input class="form-input" type="number" step="1" min="1" id="prompt-interim-dagen" placeholder="bv. 60" autofocus/>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Overslaan</button>
+      <button class="btn btn-primary" onclick="saveInterimDagenPrompt('${personId}')">Opslaan</button>
+    </div>
+  `);
+}
+
+function saveInterimDagenPrompt(personId){
+  const val=document.getElementById('prompt-interim-dagen').value;
+  if(val!==''){
+    const p=people.find(x=>x.id===personId);
+    if(p){
+      p.interimDagen=parseInt(val);
+      autoSave();renderPeople();
+      showToast('Interim dagen opgeslagen');
+    }
+  }
+  closeModal();
+}
 async function archivePerson(id){
   if(!await confirmDialog('Medewerker archiveren? De medewerker verdwijnt uit de actieve lijst maar blijft beschikbaar in het archief.'))return;
   const p=people.find(x=>x.id===id);
   if(!p)return;
+  if(!p.mutations)p.mutations=[];
+  p.mutations.push({id:uid(),timestamp:new Date().toISOString(),user:settings.currentUser||'Admin',field:'Status',oldValue:'Actief',newValue:'Gearchiveerd'});
   p.archived=true;
   p.archivedDate=new Date().toISOString().split('T')[0];
   closeModal();autoSave();renderPeople();renderDepartments();showToast('Medewerker gearchiveerd 📦');
 }
 
 async function unarchivePerson(id){
-  if(!await confirmDialog('Medewerker heractiveren?'))return;
   const p=people.find(x=>x.id===id);
   if(!p)return;
+  const today=new Date().toISOString().split('T')[0];
+  if(p.endDate&&p.endDate<today){
+    if(!await confirmDialog(`De einddatum van dit contract (${formatDate(p.endDate)}) ligt in het verleden.\n\nDe einddatum wordt gewist bij heractivering. Doorgaan?`))return;
+    p.endDate='';
+  }else{
+    if(!await confirmDialog('Medewerker heractiveren?'))return;
+  }
+  if(!p.mutations)p.mutations=[];
+  p.mutations.push({id:uid(),timestamp:new Date().toISOString(),user:settings.currentUser||'Admin',field:'Status',oldValue:'Gearchiveerd',newValue:'Actief (heractiveerd)'});
   p.archived=false;
   p.archivedDate=null;
+  p.archivedReason='';
   autoSave();renderPeople();renderDepartments();showToast('Medewerker heractiveerd ✅');
+}
+
+// Automatische archivering: medewerkers met einddatum in het verleden → archief
+function autoArchiveExpiredContracts(){
+  const today=new Date().toISOString().split('T')[0];
+  let count=0;
+  people.forEach(p=>{
+    if(p.endDate&&p.endDate<today&&!p.archived){
+      p.archived=true;
+      p.archivedDate=today;
+      p.archivedReason='contract verlopen';
+      if(!p.mutations)p.mutations=[];
+      p.mutations.push({id:uid(),timestamp:new Date().toISOString(),user:'Systeem',field:'Status',oldValue:'Actief',newValue:'Gearchiveerd (contract verlopen op '+formatDate(p.endDate)+')'});
+      count++;
+    }
+  });
+  if(count>0){
+    autoSave();
+    showToast(`${count} medewerker${count>1?'s':''} automatisch gearchiveerd (contract verlopen)`,'info');
+  }
 }
 
 let peopleStatusFilter='active';
@@ -3157,76 +3597,299 @@ function getUsedDays(personId,typeId){
 function openChecklist(personId){
   const p=people.find(x=>x.id===personId);
   if(!p)return;
-  const isInterim=p.statuut==='interim';
-  const isArbeiderOfBediende=p.statuut==='arbeider'||p.statuut==='bediende';
+  if(!p.checklistState)p.checklistState={};
 
-  // Basis checklist (iedereen)
-  const sections=[
-    {title:'Telefonie & hardware',items:[
-      'Extra schermen','Toetsenbord & muis','Aanpassing telefonie keuzemenu (planning \u2013 verkoop \u2013 technisch \u2013 overig)']},
-    {title:'Teamtel',items:[
-      'Bestellen HP Elitebook','Bestellen Jabra Headset + aansluiten op computer','Microsoft licentie',
-      'Aanmaken gebruiker in Outlook','Configuratie Keeper','Gebruiker + configuratie in 3CX telefooncentrale',
-      'Configuratie HP printer - printen + scannen','Installatie Acrobat Reader','Directory AE']},
-    {title:'Outlook',items:['Sharen van de agenda','Handtekening']},
-    {title:'Keeper',items:['Wachtwoorden delen']},
-    {title:'Daikin',items:['Account aanmaken']},
-    {title:'Plenion',items:['Aanvraag Plenion licentie','Aanmaken personeelslid + toekennen juiste rol','Vakantiegoedkeuring','Linken met Outlook']},
-    {title:'Office',items:['Toekennen bureau','Aankoop bureau materiaal \u2013 Schaar, balpen, fluo, nietjes machine + nietjes, perforator, tipp-ex, plakband, schriftje, lat/geodriehoek']},
-    {title:'HR',items:['Inlichtingenfiche','Verlofmap','Welkom kaartje opsturen \u201Cwelkom in ons team \u2026 ! We kijken ernaar uit.\u201D']}
-  ];
+  // Bouw secties op basis van actieve checklistItems
+  const activeItems=checklistItems.filter(i=>i.active).sort((a,b)=>a.order-b.order);
+  const sections={};
+  activeItems.forEach(item=>{
+    if(!sections[item.section])sections[item.section]=[];
+    sections[item.section].push(item);
+  });
 
-  // Extra sectie voor arbeiders en bedienden (niet interim)
-  if(isArbeiderOfBediende){
-    sections.push({title:'Administratie & verzekeringen',items:[
-      'Mensura werkpostfiche','Payroll SDWorx','Aansluiten DKV verzekering','Aansluiten AXA verzekering','Arbeidsovereenkomst'
-    ]});
-  }
-
+  const totalItems=activeItems.length;
+  const checkedCount=activeItems.filter(i=>p.checklistState[i.id]).length;
   const statuutLabel=p.statuut?p.statuut.charAt(0).toUpperCase()+p.statuut.slice(1):'';
   const dept=departments.find(d=>d.id===p.departmentId);
   const deptLabel=dept?dept.name:'';
-  const totalItems=sections.reduce(function(s,sec){return s+sec.items.length;},0);
   const startFormatted=p.startDate?formatDate(p.startDate):'\u2014';
+
   let html='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)">'
     +'<div style="font-size:12px;color:var(--text3)">Startdatum: <strong style="color:var(--text)">'+startFormatted+'</strong>'
     +' &nbsp;\u2022&nbsp; '+statuutLabel+' \u2014 '+deptLabel
-    +' &nbsp;\u2022&nbsp; <span id="checklist-progress">0/'+totalItems+' afgevinkt</span></div>'
-    +'<button class="btn btn-sm btn-danger" onclick="confirmDeleteChecklist(\''+personId+'\')">\uD83D\uDDD1 Checklist verwijderen</button>'
+    +' &nbsp;\u2022&nbsp; <span id="checklist-progress">'+checkedCount+'/'+totalItems+' afgevinkt</span></div>'
+    +'<button class="btn btn-sm btn-danger" onclick="confirmDeleteChecklist(\''+personId+'\')">\uD83D\uDDD1 Checklist resetten</button>'
     +'</div>';
-  html+='<div id="checklist-container" style="max-height:65vh;overflow-y:auto">';
-  sections.forEach(function(sec){
-    html+='<div style="font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border)">'+sec.title+'</div>';
-    sec.items.forEach(function(item){
-      html+='<label style="display:flex;align-items:flex-start;gap:10px;padding:6px 0;cursor:pointer;font-size:13px">'
-        +'<input type="checkbox" class="checklist-cb" style="margin-top:2px;flex-shrink:0;width:16px;height:16px;accent-color:var(--accent)" onchange="checkChecklistComplete(\''+personId+'\')"/>'
-        +'<span>'+item+'</span></label>';
+
+  if(totalItems===0){
+    html+='<div style="text-align:center;padding:40px;color:var(--text3)">Geen actieve checklist-items. Ga naar Instellingen → Checklist om items te beheren.</div>';
+  } else {
+    html+='<div style="margin-bottom:12px;background:var(--accent-bg);border-radius:var(--radius-sm);overflow:hidden"><div id="checklist-bar" style="height:6px;background:var(--accent);border-radius:var(--radius-sm);transition:width .3s;width:'+(totalItems>0?Math.round(checkedCount/totalItems*100):0)+'%"></div></div>';
+    html+='<div id="checklist-container" style="max-height:60vh;overflow-y:auto">';
+    Object.keys(sections).forEach(function(secName){
+      html+='<div style="font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border)">'+secName+'</div>';
+      sections[secName].forEach(function(item){
+        const checked=p.checklistState[item.id]?'checked':'';
+        html+='<label style="display:flex;align-items:flex-start;gap:10px;padding:6px 0;cursor:pointer;font-size:13px;'+(p.checklistState[item.id]?'opacity:.5;text-decoration:line-through':'')+'" id="cl-label-'+item.id+'">'
+          +'<input type="checkbox" class="checklist-cb" data-item-id="'+item.id+'" '+checked+' style="margin-top:2px;flex-shrink:0;width:16px;height:16px;accent-color:var(--accent)" onchange="toggleChecklistItem(\''+personId+'\',\''+item.id+'\',this.checked)"/>'
+          +'<span>'+item.name+'</span></label>';
+      });
     });
-  });
-  html+='</div>';
+    html+='</div>';
+  }
   openModal('\u2611\uFE0F Onboarding Checklist \u2014 '+fullName(p),html);
 }
 
-function checkChecklistComplete(personId){
-  const cbs=document.querySelectorAll('.checklist-cb');
-  const total=cbs.length;
-  const checked=Array.from(cbs).filter(cb=>cb.checked).length;
+function toggleChecklistItem(personId,itemId,checked){
+  const p=people.find(x=>x.id===personId);
+  if(!p)return;
+  if(!p.checklistState)p.checklistState={};
+  p.checklistState[itemId]=checked;
+  autoSave();
+
+  // Update visueel
+  const label=document.getElementById('cl-label-'+itemId);
+  if(label){label.style.opacity=checked?'.5':'1';label.style.textDecoration=checked?'line-through':'none';}
+
+  // Update progress
+  const activeItems=checklistItems.filter(i=>i.active);
+  const total=activeItems.length;
+  const done=activeItems.filter(i=>p.checklistState[i.id]).length;
   const prog=document.getElementById('checklist-progress');
-  if(prog)prog.innerHTML=checked+'/'+total+' afgevinkt'+(checked===total?' &nbsp;<span style="color:var(--success);font-weight:700">\u2705 Volledig!</span>':'');
-  if(checked===total){
+  if(prog)prog.innerHTML=done+'/'+total+' afgevinkt'+(done===total?' &nbsp;<span style="color:var(--success);font-weight:700">\u2705 Volledig!</span>':'');
+  const bar=document.getElementById('checklist-bar');
+  if(bar)bar.style.width=Math.round(done/total*100)+'%';
+
+  if(done===total){
     setTimeout(async function(){
-      if(await confirmDialog('Alle items zijn afgevinkt! Checklist definitief verwijderen?')){
-        closeModal();
-        showToast('Onboarding checklist voltooid en verwijderd','success');
+      if(await confirmDialog('Alle items zijn afgevinkt! Checklist definitief voltooien?')){
+        p.checklistState={_completed:true,_completedDate:new Date().toISOString().split('T')[0]};
+        autoSave();closeModal();
+        showToast('Onboarding checklist voltooid \u2705','success');
       }
     },400);
   }
 }
 
 async function confirmDeleteChecklist(personId){
-  if(!await confirmDialog('Checklist definitief verwijderen voor deze medewerker? Dit kan niet ongedaan gemaakt worden.'))return;
+  if(!await confirmDialog('Checklist resetten voor deze medewerker? Alle afgevinkte items worden ongedaan gemaakt.'))return;
+  const p=people.find(x=>x.id===personId);
+  if(p){p.checklistState={};autoSave();}
   closeModal();
-  showToast('Checklist verwijderd');
+  showToast('Checklist gereset');
+}
+
+// ═══ CHECKLIST INSTELLINGEN ═══
+function renderChecklistSettings(){
+  var container=document.getElementById('checklist-sections-container');
+  if(!container)return;
+  var sections={};
+  checklistItems.sort(function(a,b){return a.order-b.order;}).forEach(function(item){
+    if(!sections[item.section])sections[item.section]=[];
+    sections[item.section].push(item);
+  });
+  var html='';
+  Object.keys(sections).forEach(function(secName){
+    var esc=secName.replace(/'/g,"\\'");
+    html+='<div style="margin-bottom:20px">';
+    html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">';
+    html+='<div style="font-weight:700;font-size:13px;color:var(--text2)">'+secName+'</div>';
+    html+='<div style="display:flex;gap:4px">';
+    html+='<button class="btn btn-sm" onclick="openChecklistItemModal(\'\',\''+esc+'\');" title="Item toevoegen" style="font-size:10px;color:var(--accent)">&#10133; Item</button>';
+    html+='<button class="btn btn-sm btn-danger" onclick="deleteChecklistSection(\''+esc+'\')" title="Hele sectie verwijderen" style="font-size:10px">&#128465; Sectie</button>';
+    html+='</div></div>';
+    sections[secName].forEach(function(item){
+      html+='<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surface);border-radius:var(--radius-xs);margin-bottom:4px;border:1px solid var(--border)">';
+      html+='<input type="checkbox" '+(item.active?'checked':'')+' onchange="toggleChecklistActive(\''+item.id+'\',this.checked)" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;flex-shrink:0"/>';
+      html+='<span style="flex:1;font-size:13px;'+(item.active?'':'opacity:.5')+'">'+item.name+'</span>';
+      html+='<button class="btn btn-sm" onclick="openChecklistItemModal(\''+item.id+'\',\'\')" style="font-size:11px">&#9999;&#65039;</button>';
+      html+='<button class="btn btn-sm btn-danger" onclick="deleteChecklistItem(\''+item.id+'\')" style="font-size:11px">&#128465;</button>';
+      html+='</div>';
+    });
+    html+='</div>';
+  });
+  var activeCount=checklistItems.filter(function(i){return i.active;}).length;
+  html+='<div style="margin-top:16px;padding:12px;background:var(--surface2);border-radius:var(--radius-sm);font-size:12px;color:var(--text3)">';
+  html+=checklistItems.length+' items totaal &middot; '+activeCount+' actief &middot; '+(checklistItems.length-activeCount)+' inactief</div>';
+  container.innerHTML=html;
+}
+
+function toggleChecklistActive(itemId,active){
+  const item=checklistItems.find(i=>i.id===itemId);
+  if(item){item.active=active;autoSave();renderChecklistSettings();}
+}
+
+function openChecklistItemModal(itemId, preSection){
+  const item=itemId?checklistItems.find(i=>i.id===itemId):null;
+  const selSection=item?item.section:(preSection||'');
+  const existingSections=[...new Set(checklistItems.map(i=>i.section))];
+  const hasMatch=existingSections.includes(selSection);
+  const showNewSection=!hasMatch&&!selSection;
+  const sectionOptions=existingSections.map(s=>`<option value="${s}" ${s===selSection?'selected':''}>${s}</option>`).join('');
+
+  openModal(item?'✏️ Item bewerken':'➕ Nieuw checklist-item',`
+    <div class="form-row">
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Sectie</label>
+        <select class="form-input" id="cli-section" onchange="document.getElementById('cli-new-section').style.display=this.value==='__new__'?'block':'none'">
+          ${sectionOptions}
+          <option value="__new__" ${showNewSection||existingSections.length===0?'selected':''}>+ Nieuwe sectie...</option>
+        </select>
+      </div>
+      <div class="form-group" style="flex:1;${showNewSection||existingSections.length===0?'':'display:none'}" id="cli-new-section">
+        <label class="form-label">Nieuwe sectienaam</label>
+        <input type="text" class="form-input" id="cli-new-section-name" placeholder="Bijv. Backoffice"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Item naam</label>
+      <input type="text" class="form-input" id="cli-name" value="${item?item.name:''}" placeholder="Bijv. Toegangsbadge aanvragen"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Actief</label>
+      <select class="form-input" id="cli-active" style="width:120px">
+        <option value="true" ${!item||item.active?'selected':''}>Ja</option>
+        <option value="false" ${item&&!item.active?'selected':''}>Nee</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Annuleren</button>
+      <button class="btn btn-primary" onclick="saveChecklistItem('${itemId||''}')">Opslaan</button>
+    </div>
+  `);
+}
+
+function saveChecklistItem(itemId){
+  const name=document.getElementById('cli-name').value.trim();
+  if(!name){showToast('Naam is verplicht','error');return;}
+  let section=document.getElementById('cli-section').value;
+  if(section==='__new__'){
+    section=document.getElementById('cli-new-section-name').value.trim();
+    if(!section){showToast('Sectienaam is verplicht','error');return;}
+  }
+  const active=document.getElementById('cli-active').value==='true';
+
+  if(itemId){
+    const item=checklistItems.find(i=>i.id===itemId);
+    if(item){item.name=name;item.section=section;item.active=active;}
+  }else{
+    const maxOrder=checklistItems.reduce((m,i)=>Math.max(m,i.order||0),0);
+    checklistItems.push({id:'cl_'+uid(),section,name,active,order:maxOrder+1});
+  }
+  closeModal();autoSave();renderChecklistSettings();
+  showToast('Checklist-item opgeslagen');
+}
+
+async function deleteChecklistItem(itemId){
+  if(!await confirmDialog('Dit checklist-item verwijderen?'))return;
+  checklistItems=checklistItems.filter(i=>i.id!==itemId);
+  autoSave();renderChecklistSettings();showToast('Item verwijderd');
+}
+
+async function deleteChecklistSection(secName){
+  const count=checklistItems.filter(i=>i.section===secName).length;
+  if(!await confirmDialog(`Hele sectie "${secName}" verwijderen (${count} items)?`))return;
+  checklistItems=checklistItems.filter(i=>i.section!==secName);
+  autoSave();renderChecklistSettings();showToast('Sectie verwijderd');
+}
+
+// ═══ MUTATIES MODAL ═══
+function openMutationsModal(personId){
+  const p=people.find(x=>x.id===personId);
+  if(!p)return;
+  if(!p.mutations)p.mutations=[];
+
+  const muts=[...p.mutations].sort((a,b)=>b.timestamp.localeCompare(a.timestamp));
+
+  let html=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)">
+    <div style="font-size:12px;color:var(--text3)">${muts.length} mutatie${muts.length!==1?'s':''} geregistreerd</div>
+    <div style="display:flex;gap:6px">
+      <button class="btn btn-sm" onclick="closeModal();openPersonModal('${personId}')" style="font-size:11px">← Terug naar fiche</button>
+      <button class="btn btn-sm btn-primary" onclick="openAddMutationModal('${personId}')" style="font-size:11px">➕ Manuele mutatie</button>
+    </div>
+  </div>`;
+
+  if(muts.length===0){
+    html+='<div style="text-align:center;padding:40px;color:var(--text3)">Nog geen mutaties geregistreerd voor deze medewerker.</div>';
+  }else{
+    html+='<div style="max-height:60vh;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm)"><table class="tbl" style="margin:0"><thead><tr><th style="width:140px">Datum & tijd</th><th style="width:90px">Gebruiker</th><th>Veld</th><th>Oude waarde</th><th>Nieuwe waarde</th><th style="width:40px"></th></tr></thead><tbody>';
+    muts.forEach(m=>{
+      const dt=new Date(m.timestamp);
+      const dateStr=formatDate(m.timestamp.split('T')[0])+' '+String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0');
+      html+=`<tr>
+        <td style="font-size:11px;white-space:nowrap;color:var(--text3)">${dateStr}</td>
+        <td style="font-size:11px;font-weight:600">${m.user||'—'}</td>
+        <td style="font-size:12px;font-weight:600">${m.field}</td>
+        <td style="font-size:12px;${m.oldValue?'color:var(--danger)':'color:var(--text3)'}">${m.oldValue||'(leeg)'}</td>
+        <td style="font-size:12px;${m.newValue?'color:var(--success)':'color:var(--text3)'}">${m.newValue||'(leeg)'}</td>
+        <td><button class="btn btn-sm btn-danger" onclick="deleteMutation('${personId}','${m.id}')" style="font-size:10px" title="Verwijderen">🗑</button></td>
+      </tr>`;
+    });
+    html+='</tbody></table></div>';
+  }
+
+  openModal('📝 Mutaties — '+fullName(p),html);
+}
+
+async function deleteMutation(personId,mutId){
+  if(!await confirmDialog('Deze mutatie verwijderen uit het logboek?'))return;
+  const p=people.find(x=>x.id===personId);
+  if(!p||!p.mutations)return;
+  p.mutations=p.mutations.filter(m=>m.id!==mutId);
+  autoSave();
+  openMutationsModal(personId);
+  showToast('Mutatie verwijderd');
+}
+
+function openAddMutationModal(personId){
+  openModal('➕ Manuele mutatie toevoegen',`
+    <div class="form-group">
+      <label class="form-label">Veld / onderwerp</label>
+      <input type="text" class="form-input" id="mut-field" placeholder="Bijv. Opleiding, Opmerking, Evaluatie, ..."/>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Oude waarde <span style="font-weight:400;color:var(--text3)">(optioneel)</span></label>
+        <input type="text" class="form-input" id="mut-old" placeholder=""/>
+      </div>
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Nieuwe waarde</label>
+        <input type="text" class="form-input" id="mut-new" placeholder=""/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Opmerking <span style="font-weight:400;color:var(--text3)">(optioneel)</span></label>
+      <textarea class="form-input" id="mut-comment" rows="2" placeholder="Extra toelichting..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal();openMutationsModal('${personId}')">Annuleren</button>
+      <button class="btn btn-primary" onclick="saveManualMutation('${personId}')">Opslaan</button>
+    </div>
+  `);
+}
+
+function saveManualMutation(personId){
+  const field=document.getElementById('mut-field').value.trim();
+  const oldVal=document.getElementById('mut-old').value.trim();
+  const newVal=document.getElementById('mut-new').value.trim();
+  const comment=document.getElementById('mut-comment').value.trim();
+  if(!field){showToast('Veld/onderwerp is verplicht','error');return;}
+  if(!newVal&&!oldVal){showToast('Vul minstens een waarde in','error');return;}
+  const p=people.find(x=>x.id===personId);
+  if(!p)return;
+  if(!p.mutations)p.mutations=[];
+  p.mutations.push({
+    id:uid(),
+    timestamp:new Date().toISOString(),
+    user:settings.currentUser||'Admin',
+    field:field+(comment?' ('+comment+')':''),
+    oldValue:oldVal||'',
+    newValue:newVal||'',
+    manual:true
+  });
+  autoSave();
+  closeModal();openMutationsModal(personId);
+  showToast('Manuele mutatie toegevoegd');
 }
 
 function openSaldoModal(personId){
@@ -3305,28 +3968,83 @@ function openSaldoModal(personId){
     </tr>`;
   }).join('');
 
+  // Extra opgenomen dagen: alle goedgekeurde niet-tracked afwezigheden (klein verlet, ziekte, extern, etc.)
+  const extraDays=requests
+    .filter(r=>r.personId===p.id&&(r.status==='approved'||r.type==='ziekte'))
+    .reduce((sum,r)=>{
+      const t=leaveTypes.find(x=>x.id===r.type);
+      if(!t||!t.absenceTracked)return sum;
+      return sum+(r.halfDay?0.5:r.days||0);
+    },0);
+
+  // Afwezigheidsteller per type (voor types met maxDays > 0 of met opgenomen dagen)
+  let absTypeSummary=leaveTypes.filter(t=>t.absenceTracked).filter(t=>{
+    const used=requests.filter(r=>r.personId===p.id&&r.type===t.id&&r.status!=='rejected'&&r.startDate.startsWith(''+year)).reduce((s,r)=>s+(r.halfDay?0.5:r.days||0),0);
+    return t.maxDays>0||used>0;
+  }).map(t=>{
+    const used=requests.filter(r=>r.personId===p.id&&r.type===t.id&&r.status!=='rejected'&&r.startDate.startsWith(''+year)).reduce((s,r)=>s+(r.halfDay?0.5:r.days||0),0);
+    const max=t.maxDays||0;
+    const over=max>0&&used>max;
+    const remTxt=max>0?(max-used):'∞';
+    return `<tr>
+      <td><div style="display:flex;align-items:center;gap:6px"><span class="clr-dot" style="background:${t.color}"></span>${t.symbol} ${t.name}</div></td>
+      <td style="text-align:center;font-weight:600">${max>0?max:'—'}</td>
+      <td style="text-align:center;font-weight:600;${over?'color:var(--danger)':''}">${used||'—'}</td>
+      <td style="text-align:center;font-weight:700;color:${over?'var(--danger)':max>0?'var(--success)':'var(--text3)'}">${max>0?remTxt:'—'}</td>
+    </tr>`;
+  }).join('');
+
   openModal(`📊 Saldo — ${fullName(p)}`,`
-    <div style="display:flex;gap:16px;margin-bottom:20px">
+    ${p.statuut==='interim'?`<div style="margin-bottom:16px;padding:14px;background:rgba(168,85,247,.06);border:1px solid rgba(168,85,247,.2);border-radius:var(--radius-sm)">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+        <span style="font-size:16px">⏳</span>
+        <span style="font-weight:700;font-size:13px;color:#a855f7">Interim contract</span>
+      </div>
+      <div style="display:flex;gap:16px">
+        <div style="text-align:center;flex:1;padding:8px;background:var(--surface);border-radius:var(--radius-xs)">
+          <div style="font-size:20px;font-weight:700">${p.interimDagen!=null?p.interimDagen+'d':'—'}</div>
+          <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase">Interim dagen</div>
+        </div>
+        <div style="text-align:center;flex:1;padding:8px;background:var(--surface);border-radius:var(--radius-xs)">
+          <div style="font-size:20px;font-weight:700;color:${(()=>{const c=calcInterimCounter(p);return c==null?'var(--text3)':c>10?'var(--success)':c>0?'var(--warn)':'var(--danger)';})()}">${p.interimDagen!=null?calcInterimCounter(p)+'d':'—'}</div>
+          <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase">Resterend</div>
+        </div>
+        <div style="text-align:center;flex:1;padding:8px;background:var(--surface);border-radius:var(--radius-xs)">
+          <div style="font-size:20px;font-weight:700">${p.interimDagen!=null?Math.max(0,p.interimDagen-calcInterimCounter(p))+'d':'—'}</div>
+          <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase">Gewerkt</div>
+        </div>
+      </div>
+    </div>`:``}
+    <div style="display:flex;gap:12px;margin-bottom:20px">
       <div style="flex:1;text-align:center;padding:12px;background:var(--accent-bg);border-radius:var(--radius-sm)">
         <div style="font-size:24px;font-weight:700;color:var(--accent)">${totalDays}</div>
-        <div style="font-size:11px;color:var(--text3);font-weight:600">TOTAAL</div>
+        <div style="font-size:11px;color:var(--text3);font-weight:600">TOTAAL VERLOF</div>
       </div>
       <div style="flex:1;text-align:center;padding:12px;background:var(--warn-bg);border-radius:var(--radius-sm)">
         <div style="font-size:24px;font-weight:700;color:var(--warn)">${usedDays}</div>
-        <div style="font-size:11px;color:var(--text3);font-weight:600">OPGENOMEN</div>
+        <div style="font-size:11px;color:var(--text3);font-weight:600">OPGENOMEN VERLOF</div>
       </div>
       <div style="flex:1;text-align:center;padding:12px;background:${remaining>0?'var(--success-bg)':'var(--danger-bg)'};border-radius:var(--radius-sm)">
         <div style="font-size:24px;font-weight:700;color:${remaining>0?'var(--success)':'var(--danger)'}">${remaining}</div>
-        <div style="font-size:11px;color:var(--text3);font-weight:600">RESTEREND</div>
+        <div style="font-size:11px;color:var(--text3);font-weight:600">RESTEREND VERLOF</div>
+      </div>
+      <div style="flex:1;text-align:center;padding:12px;background:rgba(148,163,184,.08);border:1px dashed var(--border);border-radius:var(--radius-sm)">
+        <div style="font-size:24px;font-weight:700;color:#64748b">${extraDays}</div>
+        <div style="font-size:11px;color:var(--text3);font-weight:600">EXTRA OPGENOMEN</div>
       </div>
     </div>
     <table class="tbl" style="margin-bottom:16px">
       <thead><tr><th>Type</th><th style="text-align:center">Recht</th><th style="text-align:center">Opgenomen</th><th style="text-align:center">Rest</th></tr></thead>
       <tbody>${typeSummary}</tbody>
     </table>
+    ${absTypeSummary?`<div style="font-weight:700;font-size:13px;margin-bottom:8px">📋 Afwezigheidsteller ${year}</div>
+    <table class="tbl" style="margin-bottom:16px">
+      <thead><tr><th>Type</th><th style="text-align:center">Max/jaar</th><th style="text-align:center">Opgenomen</th><th style="text-align:center">Rest</th></tr></thead>
+      <tbody>${absTypeSummary}</tbody>
+    </table>`:''}
     <div style="margin-bottom:16px">
       <div style="font-weight:700;font-size:13px;margin-bottom:8px">📋 Mutatiehistoriek</div>
-      <div style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm)">
+      <div style="max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm)">
         <table class="tbl" style="margin:0">
           <thead><tr><th>Datum</th><th>Omschrijving</th><th style="text-align:right">Mutatie</th><th style="text-align:right">Saldo</th></tr></thead>
           <tbody>${mutHtml}</tbody>
@@ -3399,11 +4117,11 @@ function openTypeModal(id){
       <div class="form-group">
         <label class="form-label">Categorie</label>
         <select class="form-input" id="mt-cat">
-          <option value="verlof" ${t&&t.category==='verlof'?'selected':''}>Verlof (aangevraagd)</option>
+          <option value="verlof" ${t&&t.category==='verlof'?'selected':''}>Verlof (verlofsaldo)</option>
           <option value="adv" ${t&&t.category==='adv'?'selected':''}>ADV</option>
-          <option value="overuren" ${t&&t.category==='overuren'?'selected':''}>Overuren</option>
+          <option value="afwezigheid" ${t&&t.category==='afwezigheid'?'selected':''}>Afwezigheid (afwezigheidssaldo)</option>
           <option value="ziekte" ${t&&t.category==='ziekte'?'selected':''}>Ziekte</option>
-          <option value="extern" ${t&&t.category==='extern'?'selected':''}>Extern (opgelegd — geen saldo)</option>
+          <option value="extern" ${t&&t.category==='extern'?'selected':''}>Extern (opgelegd)</option>
         </select>
       </div>
     </div>
@@ -3416,16 +4134,20 @@ function openTypeModal(id){
         </select>
       </div>
       <div class="form-group">
-        <label class="form-label">Saldo bijhouden</label>
-        <select class="form-input" id="mt-tracked">
-          <option value="true" ${t&&t.tracked?'selected':''}>Ja</option>
-          <option value="false" ${t&&!t.tracked?'selected':''}>Nee</option>
+        <label class="form-label">Saldo-type</label>
+        <select class="form-input" id="mt-saldo-type" onchange="document.getElementById('mt-days-row').style.display=this.value==='verlof'?'block':'none'">
+          <option value="verlof" ${t&&t.tracked?'selected':''}>Verlofsaldo (telt af van verlofdagen)</option>
+          <option value="afwezigheid" ${t&&!t.tracked?'selected':''}>Afwezigheidssaldo (telt als extra afwezigheid)</option>
         </select>
       </div>
     </div>
-    <div class="form-group">
+    <div class="form-group" id="mt-days-row" style="display:${t&&t.tracked?'block':'none'}">
       <label class="form-label">Standaard dagen per jaar</label>
       <input type="number" class="form-input" id="mt-days" value="${t?t.defaultDays:0}" min="0" style="width:120px"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Max dagen per jaar <span style="font-weight:400;color:var(--text3)">(0 = geen limiet)</span></label>
+      <input type="number" class="form-input" id="mt-maxdays" value="${t?t.maxDays||0:0}" min="0" style="width:120px"/>
     </div>
     <div class="modal-actions">
       <button class="btn" onclick="closeModal()">Annuleren</button>
@@ -3437,13 +4159,16 @@ function openTypeModal(id){
 function saveType(id){
   const name=document.getElementById('mt-name').value.trim();
   if(!name){showToast('Naam is verplicht','error');return;}
+  const saldoType=document.getElementById('mt-saldo-type').value;
   const data={
     name,symbol:document.getElementById('mt-symbol').value,
     color:document.getElementById('mt-color').value,
     category:document.getElementById('mt-cat').value,
     paid:document.getElementById('mt-paid').value==='true',
-    tracked:document.getElementById('mt-tracked').value==='true',
-    defaultDays:parseInt(document.getElementById('mt-days').value)||0
+    tracked:saldoType==='verlof',
+    absenceTracked:saldoType==='afwezigheid',
+    defaultDays:saldoType==='verlof'?(parseInt(document.getElementById('mt-days').value)||0):0,
+    maxDays:parseInt(document.getElementById('mt-maxdays').value)||0
   };
   if(id){
     const t=leaveTypes.find(x=>x.id===id);
@@ -3452,6 +4177,11 @@ function saveType(id){
     leaveTypes.push({id:uid(),...data});
   }
   closeModal();autoSave();renderTypes();showToast('Verloftype opgeslagen');
+}
+
+function toggleMobile(id,checked){
+  const t=leaveTypes.find(x=>x.id===id);
+  if(t){t.mobile=checked;autoSave();}
 }
 
 async function deleteType(id){
@@ -3524,11 +4254,311 @@ function saveSettings(){
   autoSave();showToast('Instellingen opgeslagen');
 }
 
+// ═══ JAAROVERGANG ═══
+function getYearendMax(){
+  const mode=settings.yearendMode||'max5';
+  if(mode==='none')return 0;
+  if(mode==='unlimited')return 999;
+  if(mode==='max5')return 5;
+  if(mode==='max10')return 10;
+  if(mode==='custom')return settings.yearendCustomDays||5;
+  return 5;
+}
+
+function calcYearendData(year){
+  const maxCarry=getYearendMax();
+  const nextYear=year+1;
+  const results=[];
+  people.filter(p=>!p.archived).forEach(p=>{
+    const trackedTypes=leaveTypes.filter(t=>t.tracked&&(t.category==='verlof'||t.category==='adv'));
+    trackedTypes.forEach(t=>{
+      const total=getAllowanceForType(p,t.id);
+      const used=requests.filter(r=>r.personId===p.id&&r.type===t.id&&(r.status==='approved')&&r.startDate.startsWith(''+year))
+        .reduce((s,r)=>s+(r.halfDay?0.5:r.days||0),0);
+      const remaining=total-used;
+      if(remaining>0){
+        const carry=maxCarry===0?0:Math.min(remaining,maxCarry);
+        const lost=remaining-carry;
+        results.push({personId:p.id,name:fullName(p),typeId:t.id,typeName:t.symbol+' '+t.name,total,used,remaining,carry,lost});
+      }
+    });
+  });
+  return results;
+}
+
+function previewYearend(){
+  const year=parseInt(document.getElementById('yearend-year').value);
+  const data=calcYearendData(year);
+  const div=document.getElementById('yearend-preview');
+  if(data.length===0){
+    div.innerHTML='<div style="padding:12px;background:var(--surface2);border-radius:var(--radius-sm);font-size:12px;color:var(--text3)">Geen restdagen gevonden voor '+year+'.</div>';
+    return;
+  }
+  const done=settings.yearendDone&&settings.yearendDone.includes(year);
+  let html='<div style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">';
+  if(done)html+='<div style="background:var(--success-bg,#dcfce7);padding:8px 12px;font-size:12px;color:var(--success)">✅ Jaarovergang '+year+' → '+(year+1)+' is al uitgevoerd</div>';
+  html+='<table class="tbl" style="margin:0"><thead><tr><th>Medewerker</th><th>Type</th><th>Recht</th><th>Gebruikt</th><th>Rest</th><th>Overdracht</th><th>Verloren</th></tr></thead><tbody>';
+  data.forEach(d=>{
+    html+=`<tr>
+      <td style="font-weight:600;font-size:12px">${d.name}</td>
+      <td style="font-size:12px">${d.typeName}</td>
+      <td style="text-align:center;font-size:12px">${d.total}d</td>
+      <td style="text-align:center;font-size:12px">${d.used}d</td>
+      <td style="text-align:center;font-size:12px;font-weight:600">${d.remaining}d</td>
+      <td style="text-align:center;font-size:12px;color:var(--success);font-weight:600">${d.carry>0?'+'+d.carry+'d':'—'}</td>
+      <td style="text-align:center;font-size:12px;color:${d.lost>0?'var(--danger)':'var(--text3)'}">${d.lost>0?'-'+d.lost+'d':'—'}</td>
+    </tr>`;
+  });
+  html+='</tbody></table></div>';
+  const totalCarry=data.reduce((s,d)=>s+d.carry,0);
+  const totalLost=data.reduce((s,d)=>s+d.lost,0);
+  html+=`<div style="margin-top:8px;font-size:12px;color:var(--text3)">Totaal: ${totalCarry}d overdracht, ${totalLost}d verloren</div>`;
+  div.innerHTML=html;
+}
+
+async function executeYearend(){
+  const year=parseInt(document.getElementById('yearend-year').value);
+  if(!settings.yearendDone)settings.yearendDone=[];
+  if(settings.yearendDone.includes(year)){
+    showToast('Jaarovergang '+year+' is al uitgevoerd','error');return;
+  }
+  const data=calcYearendData(year);
+  if(data.length===0){
+    showToast('Geen restdagen om over te dragen voor '+year,'error');return;
+  }
+  const totalCarry=data.reduce((s,d)=>s+d.carry,0);
+  const totalLost=data.reduce((s,d)=>s+d.lost,0);
+  if(!await confirmDialog(`Jaarovergang ${year} → ${year+1} uitvoeren?\n\n${data.length} overdracht(en) voor ${new Set(data.map(d=>d.personId)).size} medewerker(s)\n+${totalCarry}d overdracht, -${totalLost}d verloren\n\nDit voegt een saldo-aanpassing toe per medewerker en kan niet automatisch ongedaan gemaakt worden.`))return;
+  const nextYear=year+1;
+  data.forEach(d=>{
+    if(d.carry<=0)return;
+    const p=people.find(x=>x.id===d.personId);
+    if(!p)return;
+    if(!p.allowanceAdjustments)p.allowanceAdjustments=[];
+    p.allowanceAdjustments.push({typeId:d.typeId,days:d.carry,reason:'Overdracht '+year+' → '+nextYear,date:nextYear+'-01-01'});
+    if(!p.mutations)p.mutations=[];
+    p.mutations.push({id:uid(),timestamp:new Date().toISOString(),user:'Systeem',field:'Jaarovergang '+year,oldValue:'Rest: '+d.remaining+'d '+d.typeName,newValue:'Overdracht: +'+d.carry+'d'+(d.lost>0?', verloren: -'+d.lost+'d':'')});
+  });
+  settings.yearendDone.push(year);
+  autoSave();renderSettings();previewYearend();
+  showToast(`Jaarovergang ${year} → ${nextYear} uitgevoerd: ${totalCarry}d overgedragen`,'success');
+}
+
 // ═══ VALIDATION ═══
 // (handled inline in save functions with toast feedback)
 
 // ═══ BEREKENINGEN ═══
 // (getTotalAllowance, getUsedDays defined in SAVE FUNCTIONS section above)
+
+// ═══ PERSOONLIJKE VERLOFKALENDER ═══
+let _calPersonId='';
+let _calYear=new Date().getFullYear();
+
+function openPersonCalendar(personId){
+  _calPersonId=personId;
+  _calYear=new Date().getFullYear();
+  renderPersonCalendar();
+}
+
+function renderPersonCalendar(){
+  const p=people.find(x=>x.id===_calPersonId);
+  if(!p)return;
+  const year=_calYear;
+  const myRequests=requests.filter(r=>r.personId===p.id&&(r.status==='approved'||r.status==='pending')&&(r.startDate.startsWith(''+year)||r.endDate.startsWith(''+year)))
+    .sort((a,b)=>a.startDate.localeCompare(b.startDate));
+
+  // Statistieken
+  const approved=myRequests.filter(r=>r.status==='approved');
+  const pending=myRequests.filter(r=>r.status==='pending');
+  const totalApproved=approved.reduce((s,r)=>s+(r.halfDay?0.5:r.days||0),0);
+  const totalPending=pending.reduce((s,r)=>s+(r.halfDay?0.5:r.days||0),0);
+
+  // Per-type breakdown
+  const typeBreakdown={};
+  approved.forEach(r=>{
+    const t=leaveTypes.find(x=>x.id===r.type);
+    const key=r.type;
+    if(!typeBreakdown[key])typeBreakdown[key]={name:t?t.symbol+' '+t.name:r.type,color:t?t.color:'#999',days:0};
+    typeBreakdown[key].days+=r.halfDay?0.5:r.days||0;
+  });
+
+  // Maand-grid
+  const months=['Januari','Februari','Maart','April','Mei','Juni','Juli','Augustus','September','Oktober','November','December'];
+  let gridHtml='';
+  months.forEach((month,mi)=>{
+    const monthRequests=myRequests.filter(r=>{
+      const s=new Date(r.startDate),e=new Date(r.endDate);
+      return (s.getFullYear()===year&&s.getMonth()===mi)||(e.getFullYear()===year&&e.getMonth()===mi);
+    });
+    if(monthRequests.length>0){
+      gridHtml+=`<div style="margin-bottom:12px">
+        <div style="font-weight:700;font-size:12px;color:var(--text2);margin-bottom:4px">${month}</div>`;
+      monthRequests.forEach(r=>{
+        const t=leaveTypes.find(x=>x.id===r.type);
+        const isPending=r.status==='pending';
+        const dayLabel=r.halfDay?'½ dag ('+r.halfDayPeriod+')':r.days+' dag'+(r.days!==1?'en':'');
+        gridHtml+=`<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;margin-bottom:2px;border-radius:var(--radius-xs);background:${t?t.color+'0d':'var(--surface)'};border-left:3px solid ${t?t.color:'var(--border)'}${isPending?';opacity:.6':''}">
+          <span style="font-size:12px;min-width:120px">${formatDate(r.startDate)}${r.startDate!==r.endDate?' → '+formatDate(r.endDate):''}</span>
+          <span style="font-size:12px;color:${t?t.color:'var(--text2)'};font-weight:600">${t?t.symbol+' '+t.name:r.type}</span>
+          <span style="font-size:11px;color:var(--text3);margin-left:auto">${dayLabel}</span>
+          ${isPending?'<span class="badge badge-yellow" style="font-size:10px">⏳</span>':''}
+        </div>`;
+      });
+      gridHtml+='</div>';
+    }
+  });
+
+  if(!gridHtml)gridHtml='<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px">Geen afwezigheden in '+year+'</div>';
+
+  openModal('📅 Verlofkalender — '+fullName(p),`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+      <button class="btn btn-sm" onclick="_calYear--;renderPersonCalendar()">◀</button>
+      <span style="font-weight:700;font-size:15px;min-width:50px;text-align:center">${year}</span>
+      <button class="btn btn-sm" onclick="_calYear++;renderPersonCalendar()">▶</button>
+      <div style="margin-left:auto;display:flex;gap:12px;font-size:12px">
+        <span style="color:var(--success);font-weight:600">✅ ${totalApproved}d goedgekeurd</span>
+        ${totalPending>0?`<span style="color:var(--warn);font-weight:600">⏳ ${totalPending}d in behandeling</span>`:''}
+      </div>
+    </div>
+    ${Object.keys(typeBreakdown).length>0?`<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">${Object.values(typeBreakdown).map(tb=>`<span class="badge" style="background:${tb.color}1a;color:${tb.color};font-size:11px">${tb.name}: ${tb.days}d</span>`).join('')}</div>`:''}
+    <div style="max-height:400px;overflow-y:auto">${gridHtml}</div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal();openPersonModal('${_calPersonId}')">← Terug naar fiche</button>
+      <button class="btn" onclick="closeModal()">Sluiten</button>
+    </div>
+  `,true);
+}
+
+// ═══ DOCUMENTEN PER MEDEWERKER ═══
+function openDocumentsModal(personId){
+  const p=people.find(x=>x.id===personId);
+  if(!p)return;
+  if(!p.documents)p.documents=[];
+  renderDocumentsModal(personId);
+}
+
+function renderDocumentsModal(personId){
+  const p=people.find(x=>x.id===personId);
+  if(!p)return;
+  if(!p.documents)p.documents=[];
+
+  const docTypes=['Arbeidsovereenkomst','Loonbrief','Certificaat','Evaluatie','Bijlage contract','Opleiding','Identiteit','Rijbewijs','Andere'];
+  const docs=p.documents.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+
+  let docsHtml='';
+  if(docs.length===0){
+    docsHtml='<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px">Nog geen documenten toegevoegd</div>';
+  }else{
+    docsHtml=docs.map(d=>{
+      const icon=d.type==='Arbeidsovereenkomst'?'📄':d.type==='Loonbrief'?'💶':d.type==='Certificaat'?'🏅':d.type==='Evaluatie'?'📋':d.type==='Opleiding'?'🎓':d.type==='Identiteit'?'🪪':d.type==='Rijbewijs'?'🚗':'📎';
+      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;margin-bottom:4px;border-radius:var(--radius-xs);background:var(--surface);border:1px solid var(--border)">
+        <span style="font-size:18px">${icon}</span>
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:13px">${d.name||d.type}</div>
+          <div style="font-size:11px;color:var(--text3)">${d.type}${d.date?' · '+formatDate(d.date):''}${d.note?' · '+d.note:''}</div>
+        </div>
+        ${d.fileData?`<button class="btn btn-sm" onclick="downloadDocument('${personId}','${d.id}')" style="font-size:11px">⬇ Download</button>`:''}
+        <button class="btn btn-sm btn-danger" onclick="deleteDocument('${personId}','${d.id}')" style="font-size:11px">🗑</button>
+      </div>`;
+    }).join('');
+  }
+
+  openModal('📁 Documenten — '+fullName(p),`
+    <div style="margin-bottom:16px;padding:12px;background:var(--surface2);border-radius:var(--radius-sm)">
+      <div style="font-weight:700;font-size:12px;margin-bottom:8px">Nieuw document toevoegen</div>
+      <div class="form-row" style="margin-bottom:8px">
+        <div class="form-group" style="flex:1">
+          <select class="form-input" id="doc-type" style="font-size:12px">
+            ${docTypes.map(t=>`<option>${t}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group" style="flex:1">
+          <input class="form-input" type="text" id="doc-name" placeholder="Documentnaam (optioneel)" style="font-size:12px"/>
+        </div>
+        <div class="form-group" style="flex:1">
+          <input class="form-input" type="date" id="doc-date" value="${new Date().toISOString().split('T')[0]}" style="font-size:12px"/>
+        </div>
+      </div>
+      <div class="form-row" style="margin-bottom:8px">
+        <div class="form-group" style="flex:2">
+          <input class="form-input" type="text" id="doc-note" placeholder="Opmerking (optioneel)" style="font-size:12px"/>
+        </div>
+        <div class="form-group" style="flex:1">
+          <input type="file" id="doc-file" style="font-size:11px" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"/>
+        </div>
+      </div>
+      <button class="btn btn-sm btn-primary" onclick="addDocument('${personId}')">➕ Toevoegen</button>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:8px">${p.documents.length} document${p.documents.length!==1?'en':''}</div>
+    <div style="max-height:350px;overflow-y:auto">${docsHtml}</div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal();openPersonModal('${personId}')">← Terug naar fiche</button>
+      <button class="btn" onclick="closeModal()">Sluiten</button>
+    </div>
+  `,true);
+}
+
+function addDocument(personId){
+  const p=people.find(x=>x.id===personId);
+  if(!p)return;
+  if(!p.documents)p.documents=[];
+  const type=document.getElementById('doc-type').value;
+  const name=document.getElementById('doc-name').value.trim();
+  const date=document.getElementById('doc-date').value;
+  const note=document.getElementById('doc-note').value.trim();
+  const fileInput=document.getElementById('doc-file');
+  const file=fileInput.files[0];
+
+  const doc={id:'doc_'+uid(),type,name:name||type,date,note,addedDate:new Date().toISOString(),addedBy:settings.currentUser||'Admin'};
+
+  if(file){
+    if(file.size>2*1024*1024){showToast('Bestand is te groot (max 2MB). Gebruik kleinere bestanden of PDF.','error');return;}
+    const reader=new FileReader();
+    reader.onload=function(e){
+      doc.fileData=e.target.result;
+      doc.fileName=file.name;
+      doc.fileSize=file.size;
+      doc.fileType=file.type;
+      p.documents.push(doc);
+      if(!p.mutations)p.mutations=[];
+      p.mutations.push({id:uid(),timestamp:new Date().toISOString(),user:settings.currentUser||'Admin',field:'Document toegevoegd',oldValue:'',newValue:doc.name+' ('+doc.type+')'});
+      autoSave();renderDocumentsModal(personId);
+      showToast('Document opgeslagen');
+    };
+    reader.readAsDataURL(file);
+  }else{
+    p.documents.push(doc);
+    if(!p.mutations)p.mutations=[];
+    p.mutations.push({id:uid(),timestamp:new Date().toISOString(),user:settings.currentUser||'Admin',field:'Document toegevoegd',oldValue:'',newValue:doc.name+' ('+doc.type+')'});
+    autoSave();renderDocumentsModal(personId);
+    showToast('Document opgeslagen (zonder bestand)');
+  }
+}
+
+function downloadDocument(personId,docId){
+  const p=people.find(x=>x.id===personId);
+  if(!p||!p.documents)return;
+  const doc=p.documents.find(d=>d.id===docId);
+  if(!doc||!doc.fileData)return;
+  const a=document.createElement('a');
+  a.href=doc.fileData;
+  a.download=doc.fileName||doc.name;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+
+async function deleteDocument(personId,docId){
+  if(!await confirmDialog('Document verwijderen?'))return;
+  const p=people.find(x=>x.id===personId);
+  if(!p||!p.documents)return;
+  const doc=p.documents.find(d=>d.id===docId);
+  if(doc){
+    if(!p.mutations)p.mutations=[];
+    p.mutations.push({id:uid(),timestamp:new Date().toISOString(),user:settings.currentUser||'Admin',field:'Document verwijderd',oldValue:doc.name+' ('+doc.type+')',newValue:''});
+  }
+  p.documents=p.documents.filter(d=>d.id!==docId);
+  autoSave();renderDocumentsModal(personId);
+  showToast('Document verwijderd');
+}
 
 // ═══ MEDIA ═══
 // (OCR for sick notes — Phase 2)
@@ -3633,7 +4663,7 @@ function renderWallchart(){
 }
 
 function isPublicHoliday(dateStr){
-  const allHolidays=[...BE_HOLIDAYS_2025,...BE_HOLIDAYS_2026];
+  const allHolidays=getBEHolidays();
   const region=settings.region||'vlaanderen';
   return allHolidays.some(h=>h.date===dateStr&&(h.all||(h.regions&&h.regions.includes(region))));
 }
@@ -4730,6 +5760,7 @@ async function resetData(){
   localStorage.removeItem('vb_werkgeverskost');
   localStorage.removeItem('vb_uurkostParams');
   localStorage.removeItem('vb_verlofregels');
+  localStorage.removeItem('vb_checklistItems');
   location.reload();
 }
 
@@ -4737,7 +5768,7 @@ restore();
 
 try{
 // Force fresh data load once (version flag prevents repeat resets)
-const SEED_VERSION='v17.0';
+const SEED_VERSION='v18.0';
 if(localStorage.getItem('vb_seed_version')!==SEED_VERSION){
   localStorage.removeItem('vb_departments');
   localStorage.removeItem('vb_people');
@@ -4753,11 +5784,12 @@ if(localStorage.getItem('vb_seed_version')!==SEED_VERSION){
   localStorage.removeItem('vb_werkgeverskost');
   localStorage.removeItem('vb_uurkostParams');
   localStorage.removeItem('vb_verlofregels');
+  localStorage.removeItem('vb_checklistItems');
   localStorage.setItem('vb_seed_version',SEED_VERSION);
-  departments=[];people=[];leaveTypes=[];schedules=[];requests=[];candidates=[];channels=[];baremaData=[];ancienniteitData=[];verlofregels=[];
+  departments=[];people=[];leaveTypes=[];schedules=[];requests=[];candidates=[];channels=[];baremaData=[];ancienniteitData=[];verlofregels=[];checklistItems=[];
 }
 }catch(e){
-  departments=[];people=[];leaveTypes=[];schedules=[];requests=[];candidates=[];channels=[];baremaData=[];ancienniteitData=[];verlofregels=[];
+  departments=[];people=[];leaveTypes=[];schedules=[];requests=[];candidates=[];channels=[];baremaData=[];ancienniteitData=[];verlofregels=[];checklistItems=[];
 }
 
 // Seed demo data
@@ -4883,7 +5915,14 @@ if(departments.length===0&&people.length===0){
     {id:'r34',personId:'x3',type:'ancienniteit',startDate:threeWeeksStr,endDate:threeWeeksStr,days:1,halfDay:false,status:'pending',comment:''},
     {id:'r35',personId:'x6',type:'hospitalisatie',startDate:'2025-08-04',endDate:'2025-08-08',days:5,halfDay:false,status:'approved',comment:'Knie-operatie na arbeidsongeval'},
     {id:'r36',personId:'x10',type:'dokter',startDate:twoWeeksStr,endDate:twoWeeksStr,days:1,halfDay:true,halfDayPeriod:'NM',status:'pending',comment:'Controle huisarts'},
-    {id:'r37',personId:'x8',type:'juridisch',startDate:'2025-06-20',endDate:'2025-06-20',days:1,halfDay:false,status:'approved',comment:'Oproep vredegerecht'}
+    {id:'r37',personId:'x8',type:'juridisch',startDate:'2025-06-20',endDate:'2025-06-20',days:1,halfDay:false,status:'approved',comment:'Oproep vredegerecht'},
+    // TEST medewerker requests — Enderson Molla (x1) extra afwezigheden voor saldo-test
+    {id:'rt1',personId:'x1',type:'wettelijk',startDate:'2026-01-12',endDate:'2026-01-16',days:5,halfDay:false,status:'approved',comment:'Wintervakantie'},
+    {id:'rt2',personId:'x1',type:'adv',startDate:'2026-02-09',endDate:'2026-02-10',days:2,halfDay:false,status:'approved',comment:'ADV opname'},
+    {id:'rt3',personId:'x1',type:'huwelijk',startDate:'2026-02-20',endDate:'2026-02-21',days:2,halfDay:false,status:'approved',comment:'Eigen huwelijk'},
+    {id:'rt4',personId:'x1',type:'ziekte',startDate:'2026-01-26',endDate:'2026-01-30',days:5,halfDay:false,status:'approved',comment:'Griep'},
+    {id:'rt5',personId:'x1',type:'dokter',startDate:'2026-02-16',endDate:'2026-02-16',days:1,halfDay:true,halfDayPeriod:'VM',status:'approved',comment:'Controle huisarts'},
+    {id:'rt6',personId:'x1',type:'opleiding',startDate:'2026-02-23',endDate:'2026-02-24',days:2,halfDay:false,status:'approved',comment:'VCA opleiding'}
   ];
   autoSave();
 }
@@ -4962,6 +6001,7 @@ function canDelete(){return shellPermissions.canDelete;}
 function isAdmin(){return shellPermissions.role==='admin';}
 
 detectShell();
+autoArchiveExpiredContracts();
 renderDashboard();
 // Pre-render all pages so tables are filled even before user navigates
 try{renderRequests();}catch(e){}
@@ -5022,6 +6062,7 @@ var firebaseDb=null;
           try{if(d.baremaData){var cv=JSON.parse(d.baremaData);if(cv.length>0)baremaData=cv;}}catch(e){}
           try{if(d.ancienniteitData){var cv=JSON.parse(d.ancienniteitData);if(cv.length>0)ancienniteitData=cv;}}catch(e){}
           try{if(d.verlofregels){var cv=JSON.parse(d.verlofregels);if(Array.isArray(cv))verlofregels=cv;}}catch(e){}
+          try{if(d.checklistItems){var cv=JSON.parse(d.checklistItems);if(Array.isArray(cv))checklistItems=cv;}}catch(e){}
           return ch;
         }
 
@@ -5069,6 +6110,7 @@ var firebaseDb=null;
             werkgeverskostData:JSON.stringify(typeof werkgeverskostData!=='undefined'?werkgeverskostData:[]),
             uurkostParams:JSON.stringify(typeof uurkostParams!=='undefined'?uurkostParams:{}),
             verlofregels:JSON.stringify(typeof verlofregels!=='undefined'?verlofregels:[]),
+            checklistItems:JSON.stringify(typeof checklistItems!=='undefined'?checklistItems:[]),
             updatedAt:new Date().toISOString()
           }).then(function(){
             console.log('🔥 Firestore saved');
