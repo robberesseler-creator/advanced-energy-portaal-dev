@@ -375,7 +375,6 @@ document.addEventListener('click',function(e){
               <th style="cursor:pointer;user-select:none" onclick="sortPeople('name')">Medewerker <span id="sort-name" style="opacity:.3;display:inline-block;width:12px;text-align:center">↕</span></th>
               <th style="cursor:pointer;user-select:none" onclick="sortPeople('dept')">Department <span id="sort-dept" style="opacity:.3;display:inline-block;width:12px;text-align:center">↕</span></th>
               <th style="cursor:pointer;user-select:none" onclick="sortPeople('role')">Rol <span id="sort-role" style="opacity:.3;display:inline-block;width:12px;text-align:center">↕</span></th>
-              <th>📱 GSM</th>
               <th style="cursor:pointer;user-select:none" onclick="sortPeople('schedule')">Rooster <span id="sort-schedule" style="opacity:.3;display:inline-block;width:12px;text-align:center">↕</span></th>
               <th style="cursor:pointer;user-select:none" onclick="sortPeople('saldo')">Saldo <span id="sort-saldo" style="opacity:.3;display:inline-block;width:12px;text-align:center">↕</span></th>
               <th>Saldo OV</th>
@@ -844,13 +843,21 @@ document.addEventListener('click',function(e){
           #requests-app *{box-sizing:border-box}
         </style>`;
 
+        // Accident counts
+        const accOpen=typeof accidents!=='undefined'?accidents.filter(a=>!a.followUp||!a.followUp.aangifteVerzekeraar).length:0;
+        const accTotal=typeof accidents!=='undefined'?accidents.length:0;
+        const accYear=typeof accidents!=='undefined'?accidents.filter(a=>a.date&&a.date.startsWith(new Date().getFullYear().toString())).length:0;
+
         // Stats
         h+=`<div style="background:#fff;border-bottom:1px solid #e2e8f4;padding:16px 24px">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
             <div style="font-size:20px">📋</div>
             <div><div style="font-size:17px;font-weight:700;color:#1e293b">Aanvragen</div>
-            <div style="font-size:11px;color:#94a3b8">Verlofaanvragen beheren</div></div>
-            <button onclick="try{openRequestModal()}catch(e){}" style="margin-left:auto;padding:7px 14px;border-radius:8px;border:1px solid rgba(59,130,246,.35);background:rgba(59,130,246,.08);color:#3b82f6;font-size:12px;font-weight:600;cursor:pointer">➕ Nieuwe aanvraag</button>
+            <div style="font-size:11px;color:#94a3b8">Verlofaanvragen & arbeidsongevallen beheren</div></div>
+            <div style="margin-left:auto;display:flex;gap:8px">
+              <button onclick="try{openAccidentModalFull()}catch(e){}" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(239,68,68,.35);background:rgba(239,68,68,.06);color:#ef4444;font-size:12px;font-weight:600;cursor:pointer">🚨 Arbeidsongeval</button>
+              <button onclick="try{openRequestModal()}catch(e){}" style="padding:7px 14px;border-radius:8px;border:1px solid rgba(59,130,246,.35);background:rgba(59,130,246,.08);color:#3b82f6;font-size:12px;font-weight:600;cursor:pointer">➕ Nieuwe aanvraag</button>
+            </div>
           </div>
           <div style="display:flex;gap:10px">`;
         [{v:pend,l:'Openstaand',c:'#eab308',bg:'#fefce8',i:'⏳'},
@@ -870,13 +877,139 @@ document.addEventListener('click',function(e){
 
         // Tabs
         h+=`<div style="display:flex;background:#fff;border-bottom:1px solid #e2e8f4;padding:0 24px">`;
-        [{id:'aanvragen',l:'📥 Aanvragen',b:pend},{id:'ziekte',l:'🤒 Ziekte',b:sickT}].forEach(t=>{
+        [{id:'aanvragen',l:'📥 Aanvragen',b:pend},{id:'ziekte',l:'🤒 Ziekte',b:sickT},{id:'ongevallen',l:'🚨 Ongevallen',b:accOpen}].forEach(t=>{
           const act=S.tab===t.id;
           h+=`<button onclick="raSetTab('${t.id}')" style="padding:10px 16px;border:none;border-bottom:2px solid ${act?'#3b82f6':'transparent'};background:none;color:${act?'#3b82f6':'#64748b'};font-weight:600;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px">
             ${t.l}${t.b>0?`<span style="background:#ef4444;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px">${t.b}</span>`:''}
           </button>`;
         });
         h+=`</div>`;
+
+      if(S.tab==='ongevallen'){
+        // ═══ ONGEVALLEN TAB ═══
+        const accs=typeof accidents!=='undefined'?accidents:[];
+        const yearFilter=new Date().getFullYear().toString();
+        let accList=accs.filter(a=>a.date&&a.date.startsWith(yearFilter));
+        if(S.search){const q=S.search.toLowerCase();accList=accList.filter(a=>raGN(a.personId).toLowerCase().includes(q));}
+        if(S.dept)accList=accList.filter(a=>{const p=pp.find(x=>x.id===a.personId);return p&&p.departmentId===S.dept;});
+        accList.sort((a,b)=>b.date.localeCompare(a.date));
+
+        // Filters & search
+        h+=`<div style="padding:12px 24px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <select onchange="raSetDept(this.value)" style="padding:5px 10px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font-size:12px;color:#475569;cursor:pointer">
+            <option value="">Alle afdelingen</option>`;
+        dd.forEach(d=>{h+=`<option value="${d.id}"${S.dept===d.id?' selected':''}>${d.name}</option>`;});
+        h+=`</select>
+          <input type="text" placeholder="🔍 Zoek op naam..." value="${S.search}" oninput="raSetSearch(this.value)" style="margin-left:auto;padding:6px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;width:170px;outline:none;background:#fff"/>
+        </div>`;
+
+        h+=`<div style="padding:0 24px 24px">`;
+
+        if(accList.length===0){
+          h+=`<div style="background:#fff;border-radius:14px;border:1px solid #e2e8f4;text-align:center;padding:48px;color:#94a3b8"><div style="font-size:36px;margin-bottom:8px">🚨</div><div style="font-weight:500">Geen arbeidsongevallen in ${yearFilter}</div></div>`;
+        } else {
+          accList.forEach(a=>{
+            const p=pp.find(x=>x.id===a.personId);
+            const pName=p?p.firstName+' '+p.lastName:'Onbekend';
+            const dept=p?dd.find(d=>d.id===p.departmentId):null;
+            const fu=a.followUp||{};
+            const ernstLabel={licht:'🟢 Licht (EHBO)',geen:'🟢 Geen verzuim',tijdelijk:'🟡 Tijdelijk',blijvend:'🔴 Blijvend',dodelijk:'💀 Dodelijk'}[a.ernst]||a.ernst;
+            const locLabel=a.locatie==='werkplek'?'🏭 Werkplek':a.locatie==='werf'?'🏗️ Werf':'🚗 Woon-werk';
+            const isClosed=fu._closed;
+            const isLicht=a.ernst==='licht';
+
+            // Monitoring: 3 maanden na ongeval
+            const monitorEnd=new Date(accDate);monitorEnd.setMonth(monitorEnd.getMonth()+3);
+            const monitorExpired=today>monitorEnd;
+
+            // Checklist items met deadlines
+            const steps=isLicht?[
+              {key:'eersteHulp',label:'EHBO-registratie (interventieregister)',icon:'🩹',deadline:null,done:fu.eersteHulp}
+            ]:[
+              {key:'eersteHulp',label:'Eerste hulp verleend',icon:'🩹',deadline:null,done:fu.eersteHulp},
+              {key:'aangifteVerzekeraar',label:'Aangifte verzekeraar (8 dagen)',icon:'📋',deadline:deadlineAangifte,done:fu.aangifteVerzekeraar},
+              {key:'meldingPreventie',label:'Melding preventieadviseur',icon:'🛡️',deadline:null,done:fu.meldingPreventie},
+              {key:'steekkaart',label:'Arbeidsongevallensteekkaart',icon:'📝',deadline:null,done:fu.steekkaart,show:(a.verlorenDagen||0)>=4},
+              {key:'meldingInspectie',label:'Melding arbeidsinspectie (TWW)',icon:'⚠️',deadline:null,done:fu.meldingInspectie,show:a.ernst==='dodelijk'||a.ernst==='blijvend'},
+              {key:'omstandigVerslag',label:'Omstandig verslag (10 dagen)',icon:'📑',deadline:deadlineVerslag,done:fu.omstandigVerslag,show:a.ernst==='dodelijk'||a.ernst==='blijvend'||a.ernst==='tijdelijk'},
+              {key:'preventieMaatregelen',label:'Preventiemaatregelen geformuleerd',icon:'🔧',deadline:null,done:fu.preventieMaatregelen},
+              {key:'werkhervatting',label:'Werkhervatting',icon:'🔄',deadline:null,done:fu.werkhervatting||!!a.returnDate}
+            ].filter(s=>s.show===undefined||s.show);
+            const doneCount=steps.filter(s=>s.done).length;
+            const pct=steps.length>0?Math.round(doneCount/steps.length*100):0;
+            const hasOverdue=steps.some(s=>!s.done&&s.deadline&&today>s.deadline);
+
+            h+=`<div style="background:#fff;border-radius:14px;border:1px solid ${isClosed?'#d1fae5':hasOverdue?'#fca5a5':'#e2e8f4'};margin-bottom:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.04);${isClosed?'opacity:.6':''}">`;
+            // Header
+            h+=`<div style="display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid #f1f5f9;cursor:pointer" onclick="raAccToggle('${a.id}')">
+              <div style="width:36px;height:36px;border-radius:50%;background:${raColor(pName)};display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700">${raIni(pName)}</div>
+              <div style="flex:1">
+                <div style="font-weight:600;font-size:13px">${pName} <span style="font-size:11px;color:#64748b;font-weight:400">${dept?dept.name:''}</span>
+                  ${isClosed?'<span style="background:#d1fae5;color:#065f46;font-size:10px;font-weight:600;padding:1px 6px;border-radius:10px;margin-left:6px">✅ Afgesloten</span>':''}
+                  ${isLicht&&!isClosed?`<span style="background:${monitorExpired?'#fef3c7':'#fff7ed'};color:${monitorExpired?'#92400e':'#c2410c'};font-size:10px;font-weight:600;padding:1px 6px;border-radius:10px;margin-left:6px">⏳ Monitoring tot ${raFD(monitorEnd.toISOString().split('T')[0])}${monitorExpired?' — VERLOPEN':''}</span>`:''}
+                </div>
+                <div style="font-size:11px;color:#64748b;margin-top:1px">${raFD(a.date)}${a.uur?' om '+a.uur:''} · ${locLabel} · ${ernstLabel}${a.verlorenDagen>0?' · '+a.verlorenDagen+'d verloren':''}</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <div style="text-align:right">
+                  <div style="font-size:11px;font-weight:600;color:${pct===100?'#16a34a':hasOverdue?'#ef4444':'#64748b'}">${doneCount}/${steps.length} stappen</div>
+                  <div style="width:80px;height:5px;background:#e2e8f0;border-radius:3px;margin-top:3px"><div style="width:${pct}%;height:100%;background:${pct===100?'#22c55e':hasOverdue?'#ef4444':'#3b82f6'};border-radius:3px;transition:width .3s"></div></div>
+                </div>
+                <button onclick="openAccidentModalFull('${a.id}')" style="width:30px;height:30px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center" title="Bewerken">✏️</button>
+              </div>
+            </div>`;
+
+            // Expandable checklist
+            h+=`<div id="acc-expand-${a.id}" style="display:none;padding:12px 20px 16px;background:#f8fafc">`;
+            // Info grid
+            h+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:12px">`;
+            if(a.uur)h+=`<div style="font-size:11px"><span style="color:#94a3b8">Uur:</span> <strong>${a.uur}</strong></div>`;
+            if(a.soortLetsel)h+=`<div style="font-size:11px"><span style="color:#94a3b8">Letsel:</span> <strong>${a.soortLetsel}</strong></div>`;
+            if(a.lichaamsdeel)h+=`<div style="font-size:11px"><span style="color:#94a3b8">Lichaamsdeel:</span> <strong>${a.lichaamsdeel}</strong></div>`;
+            if(a.betrokkenVoorwerp)h+=`<div style="font-size:11px"><span style="color:#94a3b8">Voorwerp:</span> <strong>${a.betrokkenVoorwerp}</strong></div>`;
+            if(a.getuigen)h+=`<div style="font-size:11px"><span style="color:#94a3b8">Getuigen:</span> <strong>${a.getuigen}</strong></div>`;
+            if(a.omschrijving)h+=`<div style="font-size:11px;grid-column:1/-1"><span style="color:#94a3b8">Omschrijving:</span> ${a.omschrijving}</div>`;
+            h+=`</div>`;
+
+            // Opvolgingschecklist
+            h+=`<div style="font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:8px">Wettelijke opvolging</div>`;
+            if(!isClosed){
+              steps.forEach(s=>{
+                const overdue=!s.done&&s.deadline&&today>s.deadline;
+                const deadlineStr=s.deadline?'Deadline: '+raFD(s.deadline.toISOString().split('T')[0]):'';
+                h+=`<label style="display:flex;align-items:center;gap:10px;padding:5px 8px;border-radius:8px;cursor:pointer;font-size:12px;${s.done?'opacity:.6;text-decoration:line-through':''}${overdue?';background:#fef2f2;border:1px solid #fca5a5':''}" onclick="event.stopPropagation()">
+                  <input type="checkbox" ${s.done?'checked':''} onchange="raAccStep('${a.id}','${s.key}',this.checked)" style="width:14px;height:14px;accent-color:${overdue?'#ef4444':'var(--accent)'};flex-shrink:0"/>
+                  <span>${s.icon} ${s.label}</span>
+                  ${deadlineStr?`<span style="margin-left:auto;font-size:10px;color:${overdue?'#ef4444':'#94a3b8'};font-weight:${overdue?'700':'400'}">${deadlineStr}${overdue?' ⚠️':''}</span>`:''}
+                </label>`;
+              });
+            } else {
+              h+=`<div style="padding:10px 12px;background:#d1fae5;border-radius:8px;font-size:12px;color:#065f46;margin-bottom:8px">
+                ✅ Afgesloten op ${fu._closedDate?raFD(fu._closedDate):'—'}${fu._closedNote?' — '+fu._closedNote:''}
+              </div>`;
+            }
+
+            // Actieknoppen
+            if(!isClosed){
+              h+=`<div style="display:flex;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid #e2e8f0">`;
+              if(isLicht){
+                h+=`<button onclick="raAccClose('${a.id}')" style="padding:5px 12px;border-radius:8px;border:1px solid #16a34a;background:#f0fdf4;color:#16a34a;font-size:11px;font-weight:600;cursor:pointer">✅ Afsluiten zonder gevolg</button>`;
+                h+=`<button onclick="raAccEscalate('${a.id}')" style="padding:5px 12px;border-radius:8px;border:1px solid #f59e0b;background:#fffbeb;color:#d97706;font-size:11px;font-weight:600;cursor:pointer">⬆️ Verergering melden</button>`;
+              } else {
+                const allDone=steps.every(s=>s.done);
+                if(allDone)h+=`<button onclick="raAccClose('${a.id}')" style="padding:5px 12px;border-radius:8px;border:1px solid #16a34a;background:#f0fdf4;color:#16a34a;font-size:11px;font-weight:600;cursor:pointer">✅ Dossier afsluiten</button>`;
+              }
+              h+=`<button onclick="deleteAccident('${a.id}');setTimeout(raRender,100)" style="margin-left:auto;padding:5px 12px;border-radius:8px;border:1px solid #fca5a5;background:#fff;color:#ef4444;font-size:11px;font-weight:600;cursor:pointer">🗑 Verwijderen</button>`;
+              h+=`</div>`;
+            }
+            h+=`</div></div>`;
+          });
+        }
+
+        h+=`<div style="margin-top:8px;font-size:11px;color:#94a3b8">${accList.length} ongeval${accList.length!==1?'len':''} in ${yearFilter}</div></div>`;
+
+      } else {
+        // ═══ AANVRAGEN / ZIEKTE TAB (bestaand) ═══
 
         // Filters
         h+=`<div style="padding:12px 24px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">`;
@@ -1012,11 +1145,103 @@ document.addEventListener('click',function(e){
           }
         }
 
+      } // einde else (aanvragen/ziekte)
+
         app.innerHTML=h;
       }
 
+      // Ongevallen expand/collapse + step toggle
+      window.raAccToggle=function(id){
+        const el=document.getElementById('acc-expand-'+id);
+        if(el)el.style.display=el.style.display==='none'?'block':'none';
+      };
+      window.raAccStep=function(id,key,checked){
+        if(typeof accidents==='undefined')return;
+        const acc=accidents.find(a=>a.id===id);
+        if(!acc)return;
+        if(!acc.followUp)acc.followUp={};
+        acc.followUp[key]=checked?new Date().toISOString().split('T')[0]:false;
+        try{if(typeof autoSave==='function')autoSave();}catch(e){}
+        raRender();
+      };
+      window.raAccClose=function(id){
+        const overlay=document.createElement('div');
+        overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:10001';
+        overlay.innerHTML='<div style="background:#fff;border-radius:12px;padding:24px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3)">'
+          +'<div style="font-size:14px;font-weight:700;margin-bottom:12px">✅ Dossier afsluiten</div>'
+          +'<div style="font-size:12px;color:#64748b;margin-bottom:12px">Het ongeval wordt afgesloten. Bij een licht ongeval betekent dit dat er geen verdere gevolgen zijn vastgesteld.</div>'
+          +'<textarea id="acc-close-note" class="form-input" rows="2" placeholder="Optionele opmerking..." style="margin-bottom:16px;resize:vertical"></textarea>'
+          +'<div style="display:flex;gap:8px;justify-content:flex-end">'
+          +'<button class="btn" onclick="this.closest(\'div[style*=fixed]\').remove()">Annuleren</button>'
+          +'<button class="btn btn-primary" style="background:#16a34a;border-color:#16a34a" onclick="raDoClose(\''+id+'\',this.closest(\'div[style*=fixed]\'))">Afsluiten</button>'
+          +'</div></div>';
+        document.body.appendChild(overlay);
+      };
+      window.raDoClose=function(id,overlay){
+        const note=document.getElementById('acc-close-note').value.trim();
+        if(overlay)overlay.remove();
+        const acc=typeof accidents!=='undefined'?accidents.find(a=>a.id===id):null;
+        if(!acc)return;
+        if(!acc.followUp)acc.followUp={};
+        acc.followUp._closed=true;
+        acc.followUp._closedDate=new Date().toISOString().split('T')[0];
+        acc.followUp._closedNote=note;
+        // Log mutatie bij medewerker
+        const p=typeof people!=='undefined'?people.find(x=>x.id===acc.personId):null;
+        if(p){
+          if(!p.mutations)p.mutations=[];
+          p.mutations.push({id:typeof uid==='function'?uid():'m'+Date.now(),timestamp:new Date().toISOString(),user:(typeof settings!=='undefined'&&settings.currentUser)||'Admin',field:'Arbeidsongeval afgesloten',oldValue:typeof formatDate==='function'?formatDate(acc.date):acc.date,newValue:note||'Zonder gevolg afgesloten'});
+        }
+        try{if(typeof autoSave==='function')autoSave();}catch(e){}
+        try{if(typeof renderPeople==='function')renderPeople();}catch(e){}
+        raRender();
+        raShowToast('✅ Dossier afgesloten');
+      };
+      window.raAccEscalate=function(id){
+        const overlay=document.createElement('div');
+        overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:10001';
+        overlay.innerHTML='<div style="background:#fff;border-radius:12px;padding:24px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3)">'
+          +'<div style="font-size:14px;font-weight:700;margin-bottom:12px">⬆️ Verergering melden</div>'
+          +'<div style="font-size:12px;color:#64748b;margin-bottom:12px">Het licht ongeval wordt opgewaardeerd. Kies de nieuwe ernst — de verplichte opvolgstappen (aangifte, steekkaart, etc.) worden automatisch toegevoegd met nieuwe deadlines.</div>'
+          +'<select id="acc-escalate-ernst" class="form-input" style="margin-bottom:12px">'
+          +'<option value="tijdelijk">🟡 Tijdelijk letsel</option>'
+          +'<option value="blijvend">🔴 Blijvende ongeschiktheid</option>'
+          +'<option value="dodelijk">💀 Dodelijk</option>'
+          +'</select>'
+          +'<textarea id="acc-escalate-note" class="form-input" rows="2" placeholder="Toelichting verergering..." style="margin-bottom:16px;resize:vertical"></textarea>'
+          +'<div style="display:flex;gap:8px;justify-content:flex-end">'
+          +'<button class="btn" onclick="this.closest(\'div[style*=fixed]\').remove()">Annuleren</button>'
+          +'<button class="btn btn-primary" style="background:#d97706;border-color:#d97706" onclick="raDoEscalate(\''+id+'\',this.closest(\'div[style*=fixed]\'))">Opwaarderen</button>'
+          +'</div></div>';
+        document.body.appendChild(overlay);
+      };
+      window.raDoEscalate=function(id,overlay){
+        const ernst=document.getElementById('acc-escalate-ernst').value;
+        const note=document.getElementById('acc-escalate-note').value.trim();
+        if(overlay)overlay.remove();
+        const acc=typeof accidents!=='undefined'?accidents.find(a=>a.id===id):null;
+        if(!acc)return;
+        const oldErnst=acc.ernst;
+        acc.ernst=ernst;
+        acc.escalatedFrom='licht';
+        acc.escalatedDate=new Date().toISOString().split('T')[0];
+        acc.escalatedNote=note;
+        // Reset deadlines op basis van escalation date
+        if(!acc.followUp)acc.followUp={};
+        // Log mutatie
+        const p=typeof people!=='undefined'?people.find(x=>x.id===acc.personId):null;
+        if(p){
+          if(!p.mutations)p.mutations=[];
+          p.mutations.push({id:typeof uid==='function'?uid():'m'+Date.now(),timestamp:new Date().toISOString(),user:(typeof settings!=='undefined'&&settings.currentUser)||'Admin',field:'Arbeidsongeval verergerd',oldValue:'Licht (EHBO)',newValue:ernst+(note?' — '+note:'')});
+        }
+        try{if(typeof autoSave==='function')autoSave();}catch(e){}
+        try{if(typeof renderPeople==='function')renderPeople();}catch(e){}
+        raRender();
+        raShowToast('⬆️ Ongeval opgewaardeerd naar '+ernst);
+      };
+
       // Global functions
-      window.raSetTab=function(t){raState.tab=t;raState.filter=t==='ziekte'?'all':'pending';raState.search='';raState.dept='';raRender();};
+      window.raSetTab=function(t){raState.tab=t;raState.filter=t==='ziekte'?'all':t==='ongevallen'?'all':'pending';raState.search='';raState.dept='';raRender();};
       window.raSetFilter=function(f){raState.filter=f;raRender();};
       window.raSetDept=function(d){raState.dept=d;raRender();};
       window.raSetSearch=function(q){raState.search=q;raRender();};
@@ -2198,7 +2423,7 @@ function renderPeople(){
   const archivedCount=people.filter(p=>p.archived).length;
 
   if(activePeople.length===0){
-    tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text3)">Nog geen medewerkers. Klik op "Medewerker toevoegen" om te starten.</td></tr>';
+    tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text3)">Nog geen medewerkers. Klik op "Medewerker toevoegen" om te starten.</td></tr>';
   }else{
     const sorted=[...activePeople].sort((a,b)=>{
       // Archived always at bottom
@@ -2220,42 +2445,51 @@ function renderPeople(){
       const dept=departments.find(d=>d.id===p.departmentId);
       const schedule=schedules.find(s=>s.id===p.scheduleId);
       const roleBadge=p.role==='admin'?'badge-red':'badge-gray';
-      const roleBadges=`<div style="display:flex;flex-direction:column;align-items:center;gap:3px"><span class="badge ${roleBadge}" style="min-width:70px;text-align:center;display:inline-block">${p.role}</span>${p.isApprover?'<span class="badge badge-purple" style="min-width:70px;text-align:center;display:inline-block">approver</span>':''}</div>`;
+      const roleBadges=`<div style="display:flex;flex-direction:column;align-items:center;gap:2px"><span class="badge ${roleBadge}" style="min-width:60px;text-align:center;display:inline-block;font-size:10px">${p.role}</span>${p.isApprover?'<span class="badge badge-purple" style="min-width:60px;text-align:center;display:inline-block;font-size:10px">approver</span>':''}</div>`;
       const totalDays=getTotalAllowance(p);
       const usedDays=getUsedDays(p.id);
       const remaining=totalDays-usedDays;
-      const phone=p.werkGsm||p.gsm||p.tel||'';
-      return `<tr style="cursor:pointer;${isArchived?'opacity:.5;background:var(--surface2);':''}" onclick="if(!event.target.closest('button,a'))openPersonModal('${p.id}')">
-        <td><div style="display:flex;align-items:center;gap:10px">
-          <div class="avatar" style="background:${isArchived?'#aaa':getAvatarColor(fullName(p))}">${getInitials(fullName(p))}</div>
-          <div><div style="font-weight:600">${fullName(p)}${isArchived?' <span class="badge badge-gray" style="font-size:10px;margin-left:4px">📦 Archief'+(p.archivedReason==='contract verlopen'?' (contract verlopen)':'')+'</span>':''}${!isArchived&&p.endDate?` <span style="font-size:10px;color:var(--text3);margin-left:4px">⏰ ${formatDate(p.endDate)}</span>`:''}</div><div style="font-size:11px;color:var(--text3)">${p.email}</div></div>
+      // Ongeval badge: tel openstaande opvolgstappen
+      const pAccidents=typeof accidents!=='undefined'?accidents.filter(a=>a.personId===p.id&&(!a.followUp||!a.followUp._closed)):[];
+      const accOpenSteps=pAccidents.reduce((sum,a)=>{
+        const fu=a.followUp||{};
+        const steps=[{key:'aangifteVerzekeraar',show:a.ernst!=='licht'},{key:'eersteHulp',show:true},{key:'meldingPreventie',show:a.ernst!=='licht'},{key:'steekkaart',show:(a.verlorenDagen||0)>=4},{key:'meldingInspectie',show:a.ernst==='dodelijk'||a.ernst==='blijvend'},{key:'omstandigVerslag',show:a.ernst==='dodelijk'||a.ernst==='blijvend'||a.ernst==='tijdelijk'},{key:'preventieMaatregelen',show:a.ernst!=='licht'},{key:'werkhervatting',show:a.ernst!=='licht'}];
+        return sum+steps.filter(s=>(s.show===undefined||s.show)&&!fu[s.key]).length;
+      },0);
+      const accBadge=accOpenSteps>0?`<span style="display:inline-flex;align-items:center;gap:2px;background:#fef3c7;color:#92400e;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:6px;cursor:pointer" onclick="event.stopPropagation();raSetTab('ongevallen');showPage('requests')" title="${accOpenSteps} openstaande opvolgstap${accOpenSteps>1?'pen':''}">⚠️${accOpenSteps}</span>`:'';
+      // Licht ongeval monitoring badge
+      const monitorAccs=pAccidents.filter(a=>a.ernst==='licht'&&(!a.followUp||!a.followUp._closed));
+      const monitorBadge=monitorAccs.length>0?`<span style="display:inline-flex;align-items:center;gap:2px;background:#fff7ed;color:#c2410c;font-size:10px;font-weight:600;padding:1px 6px;border-radius:10px;margin-left:4px;cursor:pointer" onclick="event.stopPropagation();raSetTab('ongevallen');showPage('requests')" title="Licht ongeval in monitoring">⏳</span>`:'';
+      return `<tr style="cursor:pointer;${isArchived?'opacity:.5;background:var(--surface2);':''}" onclick="if(!event.target.closest('button,a,span[onclick]'))openPersonModal('${p.id}')">
+        <td style="padding:6px 12px"><div style="display:flex;align-items:center;gap:10px">
+          <div class="avatar" style="width:30px;height:30px;font-size:11px;background:${isArchived?'#aaa':getAvatarColor(fullName(p))}">${getInitials(fullName(p))}</div>
+          <div><div style="font-weight:600;font-size:13px">${fullName(p)}${accBadge}${monitorBadge}${isArchived?' <span class="badge badge-gray" style="font-size:9px;margin-left:4px">📦 Archief'+(p.archivedReason==='contract verlopen'?' (verlopen)':'')+'</span>':''}${!isArchived&&p.endDate?` <span style="font-size:10px;color:var(--text3);margin-left:4px">⏰ ${formatDate(p.endDate)}</span>`:''}</div><div style="font-size:10px;color:var(--text3)">${p.email}</div></div>
         </div></td>
-        <td>${dept?dept.name:'—'}</td>
-        <td>${roleBadges}</td>
-        <td style="font-size:12px">${phone?`<a href="tel:${phone}" style="color:var(--text);text-decoration:none">${phone}</a>`:'<span style="color:var(--text3)">—</span>'}</td>
-        <td>${schedule?schedule.name:'—'}</td>
-        <td style="text-align:center">
-          ${isArchived?'<span style="font-size:12px;color:var(--text3)">—</span>':`
-          <span style="font-size:12px;font-weight:600;color:${remaining>5?'var(--text)':remaining>0?'var(--warn)':'var(--danger)'}">${remaining}/${totalDays}d</span>`}
+        <td style="padding:6px 12px;font-size:12px">${dept?dept.name:'—'}</td>
+        <td style="padding:6px 12px">${roleBadges}</td>
+        <td style="padding:6px 12px;font-size:12px">${schedule?schedule.name:'—'}</td>
+        <td style="padding:6px 12px;text-align:center">
+          ${isArchived?'<span style="font-size:11px;color:var(--text3)">—</span>':`
+          <span style="font-size:11px;font-weight:600;color:${remaining>5?'var(--text)':remaining>0?'var(--warn)':'var(--danger)'}">${remaining}/${totalDays}d</span>`}
         </td>
-        <td style="text-align:center">
-          ${isArchived?'<span style="font-size:12px;color:var(--text3)">—</span>':`
-          <span style="font-size:12px;font-weight:600;cursor:pointer;color:var(--accent);text-decoration:underline dotted" onclick="openPersonModal('${p.id}');setTimeout(function(){var f=document.getElementById('mp-saldo-ov');if(f){f.scrollIntoView({block:'center'});f.focus();}},200)" title="Klik om aan te passen">${p.saldoOV!=null?p.saldoOV+'u':'—'}</span>`}
+        <td style="padding:6px 12px;text-align:center">
+          ${isArchived?'<span style="font-size:11px;color:var(--text3)">—</span>':`
+          <span style="font-size:11px;font-weight:600;cursor:pointer;color:var(--accent);text-decoration:underline dotted" onclick="openPersonModal('${p.id}');setTimeout(function(){var f=document.getElementById('mp-saldo-ov');if(f){f.scrollIntoView({block:'center'});f.focus();}},200)" title="Klik om aan te passen">${p.saldoOV!=null?p.saldoOV+'u':'—'}</span>`}
         </td>
-        <td class="interim-col" style="text-align:center;display:none">
-          ${p.statuut==='interim'&&p.interimDagen!=null?`<span style="font-size:12px;font-weight:600">${p.interimDagen}d</span>`:'<span style="font-size:12px;color:var(--text3)">—</span>'}
+        <td class="interim-col" style="padding:6px 12px;text-align:center;display:none">
+          ${p.statuut==='interim'&&p.interimDagen!=null?`<span style="font-size:11px;font-weight:600">${p.interimDagen}d</span>`:'<span style="font-size:11px;color:var(--text3)">—</span>'}
         </td>
-        <td class="interim-col" style="text-align:center;display:none">
-          ${p.statuut==='interim'&&p.interimDagen!=null?(()=>{const c=calcInterimCounter(p);return `<span style="font-size:12px;font-weight:600;color:${c>10?'var(--text)':c>0?'var(--warn)':'var(--danger)'}">${c<=10?'⚠️ ':''}${c}d</span>`;})():'<span style="font-size:12px;color:var(--text3)">—</span>'}
+        <td class="interim-col" style="padding:6px 12px;text-align:center;display:none">
+          ${p.statuut==='interim'&&p.interimDagen!=null?(()=>{const c=calcInterimCounter(p);return `<span style="font-size:11px;font-weight:600;color:${c>10?'var(--text)':c>0?'var(--warn)':'var(--danger)'}">${c<=10?'⚠️ ':''}${c}d</span>`;})():'<span style="font-size:11px;color:var(--text3)">—</span>'}
         </td>
-        <td style="text-align:right">
+        <td style="padding:6px 8px;text-align:right">
           ${isArchived?`
-            <button class="btn btn-sm" onclick="unarchivePerson('${p.id}')" title="Heractiveren" aria-label="Heractiveren">♻️</button>
+            <button class="btn btn-sm" onclick="unarchivePerson('${p.id}')" title="Heractiveren" aria-label="Heractiveren" style="padding:4px 8px">♻️</button>
           `:`
-            <button class="btn btn-sm" onclick="openPersonModal('${p.id}')">✏️</button>
-            <button class="btn btn-sm" onclick="openSaldoModal('${p.id}')">📊</button>
-            <button class="btn btn-sm" onclick="openChecklist('${p.id}')" title="Onboarding checklist" aria-label="Onboarding checklist" style="color:var(--accent)">☑️</button>
-            <button class="btn btn-sm" onclick="archivePerson('${p.id}')" title="Archiveren" aria-label="Archiveren" style="color:var(--text3)">📦</button>
+            <button class="btn btn-sm" onclick="openPersonModal('${p.id}')" style="padding:4px 8px">✏️</button>
+            <button class="btn btn-sm" onclick="openSaldoModal('${p.id}')" style="padding:4px 8px">📊</button>
+            <button class="btn btn-sm" onclick="openChecklist('${p.id}')" title="Onboarding checklist" aria-label="Onboarding checklist" style="padding:4px 8px;color:var(--accent)">☑️</button>
+            <button class="btn btn-sm" onclick="archivePerson('${p.id}')" title="Archiveren" aria-label="Archiveren" style="padding:4px 8px;color:var(--text3)">📦</button>
           `}
         </td>
       </tr>`;
@@ -5337,6 +5571,7 @@ function openAccidentModal(accId){
       <div class="form-group" style="flex:1">
         <label class="form-label">Ernst</label>
         <select class="form-input" id="acc-ernst" onchange="updateForfait()">
+          <option value="licht" ${acc&&acc.ernst==='licht'?'selected':''}>Licht (EHBO)</option>
           <option value="geen" ${acc&&acc.ernst==='geen'?'selected':''}>Geen verzuim</option>
           <option value="tijdelijk" ${!acc||acc.ernst==='tijdelijk'?'selected':''}>Tijdelijk letsel</option>
           <option value="blijvend" ${acc&&acc.ernst==='blijvend'?'selected':''}>Blijvende ongeschiktheid</option>
@@ -5424,7 +5659,207 @@ async function deleteAccident(accId){
   if(!await confirmDialog('Arbeidsongeval verwijderen?'))return;
   accidents=accidents.filter(a=>a.id!==accId);
   autoSave();renderAccidentStats();
+  try{renderRequests();}catch(e){}
   showToast('Ongeval verwijderd');
+}
+
+// ═══ UITGEBREID ONGEVALLENFORMULIER (wettelijk compliant) ═══
+function openAccidentModalFull(accId){
+  const acc=accId?accidents.find(a=>a.id===accId):null;
+  const personOpts=people.filter(p=>!p.archived).map(p=>`<option value="${p.id}" ${acc&&acc.personId===p.id?'selected':''}>${fullName(p)}</option>`).join('');
+  const fu=acc&&acc.followUp?acc.followUp:{};
+
+  const soortLetselOpts=['','Snijwond','Kneuzing','Breuk','Brandwond','Verstuiking','Verrekking','Oogletsel','Amputatie','Vergiftiging','Electrocutie','Andere'].map(o=>`<option value="${o}" ${acc&&acc.soortLetsel===o?'selected':''}>${o||'— Selecteer —'}</option>`).join('');
+  const lichaamsdeelOpts=['','Hoofd','Ogen','Nek','Rug','Schouder','Arm','Hand/vingers','Borst','Buik','Been','Knie','Voet/tenen','Meerdere lichaamsdelen','Andere'].map(o=>`<option value="${o}" ${acc&&acc.lichaamsdeel===o?'selected':''}>${o||'— Selecteer —'}</option>`).join('');
+
+  openModal(acc?'✏️ Arbeidsongeval bewerken':'🚨 Arbeidsongeval registreren',`
+    <div style="max-height:80vh;overflow-y:auto;padding-right:4px">
+    <div style="font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border)">Slachtoffer & Tijdstip</div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Medewerker <span class="req">*</span></label>
+        <select class="form-input" id="accf-person">${personOpts}</select>
+      </div>
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Datum ongeval <span class="req">*</span></label>
+        <input type="date" class="form-input" id="accf-date" value="${acc?acc.date:new Date().toISOString().split('T')[0]}"/>
+      </div>
+      <div class="form-group" style="flex:.5">
+        <label class="form-label">Uur</label>
+        <input type="time" class="form-input" id="accf-uur" value="${acc?acc.uur||'':''}" placeholder="HH:MM"/>
+      </div>
+    </div>
+
+    <div style="font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border)">Omstandigheden</div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Locatie <span class="req">*</span></label>
+        <select class="form-input" id="accf-locatie">
+          <option value="werkplek" ${!acc||acc.locatie==='werkplek'?'selected':''}>🏭 Op de werkplek</option>
+          <option value="woon-werk" ${acc&&acc.locatie==='woon-werk'?'selected':''}>🚗 Woon-werkverkeer</option>
+          <option value="werf" ${acc&&acc.locatie==='werf'?'selected':''}>🏗️ Op werf/klant</option>
+        </select>
+      </div>
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Betrokken voorwerp/agens</label>
+        <input type="text" class="form-input" id="accf-voorwerp" value="${acc?acc.betrokkenVoorwerp||'':''}" placeholder="Bv. ladder, machine, voertuig..."/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Gedetailleerde omschrijving <span class="req">*</span></label>
+      <textarea class="form-input" id="accf-desc" rows="3" placeholder="Beschrijf de omstandigheden: wat gebeurde er, hoe, waarom...">${acc?acc.omschrijving||'':''}</textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Getuigen</label>
+      <input type="text" class="form-input" id="accf-getuigen" value="${acc?acc.getuigen||'':''}" placeholder="Naam/namen van getuigen"/>
+    </div>
+
+    <div style="font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border)">Letsel</div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Soort letsel</label>
+        <select class="form-input" id="accf-letsel">${soortLetselOpts}</select>
+      </div>
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Getroffen lichaamsdeel</label>
+        <select class="form-input" id="accf-lichaamsdeel">${lichaamsdeelOpts}</select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Ernst</label>
+        <select class="form-input" id="accf-ernst" onchange="updateForfaitFull()">
+          <option value="licht" ${acc&&acc.ernst==='licht'?'selected':''}>🟢 Licht (EHBO — geen verzuim)</option>
+          <option value="geen" ${acc&&acc.ernst==='geen'?'selected':''}>Geen verzuim (niet-licht)</option>
+          <option value="tijdelijk" ${!acc||acc.ernst==='tijdelijk'?'selected':''}>Tijdelijk letsel</option>
+          <option value="blijvend" ${acc&&acc.ernst==='blijvend'?'selected':''}>Blijvende ongeschiktheid</option>
+          <option value="dodelijk" ${acc&&acc.ernst==='dodelijk'?'selected':''}>Dodelijk</option>
+        </select>
+      </div>
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Eerste hulp</label>
+        <select class="form-input" id="accf-ehulp">
+          <option value="" ${!acc||!acc.eersteHulpType?'selected':''}>— Selecteer —</option>
+          <option value="verbandkist" ${acc&&acc.eersteHulpType==='verbandkist'?'selected':''}>Verbandkist</option>
+          <option value="hulpverlener" ${acc&&acc.eersteHulpType==='hulpverlener'?'selected':''}>Hulpverlener ter plaatse</option>
+          <option value="spoed" ${acc&&acc.eersteHulpType==='spoed'?'selected':''}>Spoedgevallen/ziekenhuis</option>
+          <option value="arts" ${acc&&acc.eersteHulpType==='arts'?'selected':''}>Huisarts</option>
+          <option value="geen" ${acc&&acc.eersteHulpType==='geen'?'selected':''}>Geen eerste hulp nodig</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border)">Gevolgen & Werkhervatting</div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Verloren kalenderdagen</label>
+        <input type="number" class="form-input" id="accf-lost-days" min="0" value="${acc?acc.verlorenDagen||0:0}"/>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">Van dag na ongeval tot werkhervatting</div>
+      </div>
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Datum werkhervatting</label>
+        <input type="date" class="form-input" id="accf-return-date" value="${acc?acc.returnDate||'':''}"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1">
+        <label class="form-label">% Blijvende ongeschiktheid</label>
+        <input type="number" class="form-input" id="accf-pct-invalid" min="0" max="100" step="1" value="${acc?acc.pctInvalid||0:0}" onchange="updateForfaitFull()"/>
+      </div>
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Forfait dagen <span class="fi" onclick="toggleFieldInfo('info-accf-forfait')">ⓘ</span></label>
+        <input type="number" class="form-input" id="accf-forfait" min="0" value="${acc?acc.forfaitDagen||0:0}" readonly style="background:var(--surface2)"/>
+        <div class="fi-box" id="info-accf-forfait" style="display:none">Automatisch berekend op basis van ernst. 7.500 bij dodelijk of 100% blijvend, proportioneel bij gedeeltelijke blijvende ongeschiktheid. Gebruikt voor FOD ernstgraad.</div>
+      </div>
+    </div>
+
+    <div style="font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border)">Preventie</div>
+    <div class="form-group">
+      <label class="form-label">Oorzaakanalyse</label>
+      <textarea class="form-input" id="accf-oorzaak" rows="2" placeholder="Wat was de onderliggende oorzaak?">${acc?acc.oorzaakAnalyse||'':''}</textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Genomen preventiemaatregelen</label>
+      <textarea class="form-input" id="accf-preventie" rows="2" placeholder="Welke maatregelen om herhaling te voorkomen?">${acc?acc.preventieMaatregelen||'':''}</textarea>
+    </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Annuleren</button>
+      <button class="btn btn-primary" onclick="saveAccidentFull('${accId||''}')">Opslaan</button>
+    </div>
+  `);
+}
+
+function updateForfaitFull(){
+  const ernst=document.getElementById('accf-ernst').value;
+  const forfaitEl=document.getElementById('accf-forfait');
+  if(ernst==='dodelijk')forfaitEl.value=7500;
+  else if(ernst==='blijvend'){
+    const pct=parseInt(document.getElementById('accf-pct-invalid').value)||0;
+    forfaitEl.value=pct===100?7500:Math.round(7500*pct/100);
+  }else forfaitEl.value=0;
+}
+
+function saveAccidentFull(accId){
+  const personId=document.getElementById('accf-person').value;
+  const date=document.getElementById('accf-date').value;
+  const desc=document.getElementById('accf-desc').value.trim();
+  if(!personId){showToast('Selecteer een medewerker','error');return;}
+  if(!date){showToast('Datum is verplicht','error');return;}
+  if(!desc){showToast('Omschrijving is verplicht','error');document.getElementById('accf-desc').focus();return;}
+
+  const data={
+    personId,date,
+    uur:document.getElementById('accf-uur').value||'',
+    locatie:document.getElementById('accf-locatie').value,
+    betrokkenVoorwerp:document.getElementById('accf-voorwerp').value.trim(),
+    omschrijving:desc,
+    getuigen:document.getElementById('accf-getuigen').value.trim(),
+    soortLetsel:document.getElementById('accf-letsel').value,
+    lichaamsdeel:document.getElementById('accf-lichaamsdeel').value,
+    ernst:document.getElementById('accf-ernst').value,
+    eersteHulpType:document.getElementById('accf-ehulp').value,
+    verlorenDagen:parseInt(document.getElementById('accf-lost-days').value)||0,
+    returnDate:document.getElementById('accf-return-date').value||'',
+    pctInvalid:parseInt(document.getElementById('accf-pct-invalid').value)||0,
+    forfaitDagen:parseInt(document.getElementById('accf-forfait').value)||0,
+    oorzaakAnalyse:document.getElementById('accf-oorzaak').value.trim(),
+    preventieMaatregelen:document.getElementById('accf-preventie').value.trim()
+  };
+
+  if(accId){
+    const acc=accidents.find(a=>a.id===accId);
+    if(acc){
+      const oldFollowUp=acc.followUp||{};
+      Object.assign(acc,data);
+      acc.followUp=oldFollowUp;
+    }
+  }else{
+    data.id='acc_'+uid();
+    data.createdAt=new Date().toISOString();
+    data.followUp={};
+    accidents.push(data);
+  }
+
+  // Auto-set followUp stappen op basis van ingevulde velden
+  const acc=accidents.find(a=>a.id===(accId||data.id));
+  if(acc){
+    if(!acc.followUp)acc.followUp={};
+    if(data.eersteHulpType&&data.eersteHulpType!=='geen'&&!acc.followUp.eersteHulp)acc.followUp.eersteHulp=new Date().toISOString().split('T')[0];
+    if(data.returnDate&&!acc.followUp.werkhervatting)acc.followUp.werkhervatting=data.returnDate;
+    if(data.preventieMaatregelen&&!acc.followUp.preventieMaatregelen)acc.followUp.preventieMaatregelen=new Date().toISOString().split('T')[0];
+  }
+
+  const p=people.find(x=>x.id===personId);
+  if(p){
+    if(!p.mutations)p.mutations=[];
+    const locLabel=data.locatie==='werkplek'?'werkplek':data.locatie==='werf'?'werf':'woon-werk';
+    p.mutations.push({id:uid(),timestamp:new Date().toISOString(),user:settings.currentUser||'Admin',field:accId?'Arbeidsongeval gewijzigd':'Arbeidsongeval geregistreerd',oldValue:'',newValue:formatDate(data.date)+' — '+locLabel+', '+data.ernst+(data.verlorenDagen>0?', '+data.verlorenDagen+'d verloren':'')});
+  }
+  closeModal();autoSave();renderAccidentStats();
+  try{renderRequests();}catch(e){}
+  showToast('Arbeidsongeval '+(accId?'bijgewerkt':'geregistreerd'));
 }
 
 // --- Export functies ---
