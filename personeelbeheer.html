@@ -123,6 +123,9 @@ input,select,textarea{font-family:inherit;font-size:13px;}
 /* Forms */
 .form-group{margin-bottom:16px;}
 .form-label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;}
+.fi{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:var(--accent-bg);color:var(--accent);font-size:10px;font-weight:700;cursor:pointer;vertical-align:middle;margin-left:2px;transition:all .15s;user-select:none;font-style:normal}
+.fi:hover{background:var(--accent);color:#fff}
+.fi-box{margin-top:6px;padding:8px 10px;background:var(--accent-bg);border-left:3px solid var(--accent);border-radius:0 var(--radius-xs) var(--radius-xs) 0;font-size:11px;color:var(--text2);line-height:1.5;font-weight:400}
 .form-label .req{color:var(--danger);}
 .form-input{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);
   background:#fff;color:#000;font-size:13px;transition:border-color .15s;}
@@ -234,6 +237,7 @@ select.form-input{cursor:pointer;}
     </button>
     <button class="sb-item" data-page="people" onclick="try{showPage('people')}catch(e){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});document.getElementById('page-people').classList.add('active');document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active')});this.classList.add('active')}">
       <span class="sb-item-icon">👥</span>Medewerkers
+      <span class="sb-item-badge" id="badge-interim" style="display:none;background:#eab308">0</span>
     </button>
     <button class="sb-item" data-page="departments" onclick="try{showPage('departments')}catch(e){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});document.getElementById('page-departments').classList.add('active');document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active')});this.classList.add('active')}">
       <span class="sb-item-icon">📂</span>Departments
@@ -250,6 +254,9 @@ select.form-input{cursor:pointer;}
     </button>
     <button class="sb-item" data-page="reports" onclick="try{showPage('reports')}catch(e){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});document.getElementById('page-reports').classList.add('active');document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active')});this.classList.add('active')}">
       <span class="sb-item-icon">📈</span>Rapportage
+    </button>
+    <button class="sb-item" data-page="organigram" onclick="try{showPage('organigram')}catch(e){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});document.getElementById('page-organigram').classList.add('active');document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active')});this.classList.add('active')}">
+      <span class="sb-item-icon">🏢</span>Organigram
     </button>
   </div>
   <div class="sb-footer">
@@ -287,6 +294,7 @@ document.addEventListener('click',function(e){
     if(page==='types'&&typeof renderTypes==='function')renderTypes();
     if(page==='settings'&&typeof renderSettings==='function')renderSettings();
     if(page==='reports'&&typeof renderReports==='function')renderReports();
+    if(page==='organigram'&&typeof renderOrganigram==='function')renderOrganigram();
   }catch(ex){}
 });
 </script>
@@ -361,8 +369,9 @@ document.addEventListener('click',function(e){
               <option value="all">Alle medewerkers</option>
             </select>
           </div>
-          <table class="tbl">
-            <thead><tr>
+          <div style="max-height:70vh;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm)">
+          <table class="tbl" style="margin:0">
+            <thead style="position:sticky;top:0;z-index:2;background:var(--surface)"><tr>
               <th style="cursor:pointer;user-select:none" onclick="sortPeople('name')">Medewerker <span id="sort-name" style="opacity:.3;display:inline-block;width:12px;text-align:center">↕</span></th>
               <th style="cursor:pointer;user-select:none" onclick="sortPeople('dept')">Department <span id="sort-dept" style="opacity:.3;display:inline-block;width:12px;text-align:center">↕</span></th>
               <th style="cursor:pointer;user-select:none" onclick="sortPeople('role')">Rol <span id="sort-role" style="opacity:.3;display:inline-block;width:12px;text-align:center">↕</span></th>
@@ -376,6 +385,7 @@ document.addEventListener('click',function(e){
             </tr></thead>
             <tbody id="people-table"></tbody>
           </table>
+          </div>
         </div>
       </div>
       <!-- Kandidaten tab -->
@@ -430,7 +440,7 @@ document.addEventListener('click',function(e){
       </div>
       <div class="card">
         <table class="tbl">
-          <thead><tr><th>Type</th><th>Categorie</th><th>Betaald</th><th>Verlofsaldo</th><th>Afwezigheidssaldo</th><th>ToMobile</th><th>Standaard dagen</th><th>Max dagen</th><th></th></tr></thead>
+          <thead><tr><th>Type</th><th>Categorie</th><th>Betaald</th><th title="Telt mee voor verlofsaldo">Verlofsaldo</th><th title="Telt mee voor afwezigheidssaldo">Afwez.saldo</th><th title="Zichtbaar in mobiele app">Mobiel</th><th>Standaard</th><th>Max/jaar</th><th></th></tr></thead>
           <tbody id="types-table"></tbody>
         </table>
       </div>
@@ -565,7 +575,7 @@ document.addEventListener('click',function(e){
             <div class="card-title" style="margin-bottom:2px">📏 Verlofregels</div>
             <div style="font-size:11px;color:var(--text3)">Configureer beperkingen voor verlofaanvragen. Bij overschrijding verschijnt een waarschuwing (geen blokkering).</div>
           </div>
-          <div id="verlofregels-content"></div>
+          <div id="verlofregels-content" style="max-height:400px;overflow-y:auto"></div>
         </div>
       </div>
       <div id="settings-checklist" class="settings-panel" style="display:none">
@@ -573,9 +583,9 @@ document.addEventListener('click',function(e){
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
             <div>
               <div class="card-title" style="margin-bottom:2px">☑️ Onboarding Checklist</div>
-              <div style="font-size:11px;color:var(--text3)">Beheer de standaard checklist-items die aan nieuwe medewerkers worden toegekend. Activeer of deactiveer items met de toggle.</div>
+              <div style="font-size:11px;color:var(--text3)">Beheer de onboarding checklists die aan nieuwe medewerkers worden toegekend. Klik op een checklist om de items te beheren.</div>
             </div>
-            <button class="btn btn-primary btn-sm" onclick="openChecklistItemModal('','')">➕ Item toevoegen</button>
+            <button class="btn btn-sm btn-primary-outline" onclick="openNewChecklistModal()">➕ Checklist toevoegen</button>
           </div>
           <div id="checklist-sections-container"></div>
         </div>
@@ -846,7 +856,7 @@ document.addEventListener('click',function(e){
         [{v:pend,l:'Openstaand',c:'#eab308',bg:'#fefce8',i:'⏳'},
          {v:absT,l:'Afwezig vandaag',c:'#3b82f6',bg:'#eff6ff',i:'🏖'},
          {v:sickT,l:'Ziek vandaag',c:'#ef4444',bg:'#fef2f2',i:'🤒'},
-         {v:S.reqs.length,l:'Totaal',c:'#64748b',bg:'#f8fafc',i:'📊'}
+         {v:(()=>{const active=pp.filter(x=>!x.archived);if(active.length===0)return '—';const sum=active.reduce((s,p)=>s+getTotalAllowance(p)-getUsedDays(p.id),0);return (sum/active.length).toFixed(1)+'d';})(),l:'Resterend gem.',c:'#10b981',bg:'#ecfdf5',i:'📊'}
         ].forEach(s=>{
           h+=`<div style="flex:1;background:${s.bg};border-radius:10px;padding:10px 14px;border:1px solid ${s.c}18">
             <div style="display:flex;align-items:center;justify-content:space-between">
@@ -903,27 +913,46 @@ document.addEventListener('click',function(e){
         }else{
           h+=`<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="border-bottom:2px solid #e2e8f4">`;
           if(showCheck)h+=`<th style="width:36px;padding:10px 0 10px 14px"><input type="checkbox" ${S.selected.size===pendInView.length&&pendInView.length>0?'checked':''} onchange="raToggleAll()" style="cursor:pointer"/></th>`;
-          ['Medewerker','Afdeling','Type','Periode','Dagen','Status','Conflicten',''].forEach((hd,i)=>{
-            h+=`<th style="text-align:${i===7?'right':'left'};padding:10px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8">${hd}</th>`;
+          ['Medewerker','Afdeling','Saldo verlof','Saldo ADV','Afwezigheidstype','Periode','Dagen','Status','Conflicten',''].forEach((hd,i)=>{
+            h+=`<th style="text-align:${i===9?'right':'left'};padding:10px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8">${hd}</th>`;
           });
           h+=`</tr></thead><tbody>`;
           fl.forEach(r=>{
             const n=raGN(r.personId),t=raGT(r.type),conflicts=raConflicts(r),isSel=S.selected.has(r.id);
             const stMap={pending:['#fef3c7','#92400e','⏳ Openstaand'],approved:['#dcfce7','#166534','✅ Goedgekeurd'],rejected:['#fee2e2','#991b1b','❌ Geweigerd']};
             const[sbg,sc,sl]=stMap[r.status]||stMap.pending;
+            // Saldo berekening
+            const person=pp.find(x=>x.id===r.personId);
+            let saldoVerlof='—',saldoAdv='—';
+            if(person){
+              const wettelijk=leaveTypes.find(x=>x.id==='wettelijk');
+              const adv=leaveTypes.find(x=>x.id==='adv');
+              if(wettelijk&&wettelijk.tracked){
+                const tot=getAllowanceForType(person,wettelijk.id);
+                const used=getUsedDays(person.id,wettelijk.id);
+                saldoVerlof=(tot-used)+'d';
+              }
+              if(adv&&adv.tracked){
+                const tot=getAllowanceForType(person,adv.id);
+                const used=getUsedDays(person.id,adv.id);
+                saldoAdv=(tot-used)+'d';
+              }
+            }
             h+=`<tr class="${isSel?'ra-sel':''}" style="border-bottom:1px solid #f1f5f9">`;
             if(showCheck)h+=`<td style="padding:10px 0 10px 14px">${r.status==='pending'?`<input type="checkbox" ${isSel?'checked':''} onchange="raToggle('${r.id}')" style="cursor:pointer"/>`:''}</td>`;
-            h+=`<td style="padding:10px 12px"><div style="display:flex;align-items:center;gap:8px">
+            h+=`<td style="padding:10px 12px;cursor:pointer" onclick="event.stopPropagation();window._fromRequests=true;openPersonModal('${r.personId}')"><div style="display:flex;align-items:center;gap:8px">
               <div style="width:30px;height:30px;border-radius:50%;background:${raColor(n)};display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;flex-shrink:0">${raIni(n)}</div>
               <div><div style="font-weight:600;font-size:13px">${n}</div>${r.comment?`<div style="font-size:11px;color:#94a3b8;margin-top:1px">💬 ${r.comment}</div>`:''}</div>
             </div></td>`;
             h+=`<td style="padding:10px 12px;color:#64748b;font-size:12px">${raGD(r.personId)}</td>`;
+            h+=`<td style="padding:10px 12px;font-size:12px;font-weight:600;color:${parseFloat(saldoVerlof)<=3?'#ef4444':parseFloat(saldoVerlof)<=10?'#eab308':'#22c55e'}">${saldoVerlof}</td>`;
+            h+=`<td style="padding:10px 12px;font-size:12px;font-weight:600;color:${parseFloat(saldoAdv)<=1?'#ef4444':parseFloat(saldoAdv)<=3?'#eab308':'#22c55e'}">${saldoAdv}</td>`;
             h+=`<td style="padding:10px 12px"><span style="background:${t.color}15;color:${t.color};padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600">${t.symbol} ${t.name}</span></td>`;
             h+=`<td style="padding:10px 12px;font-size:12px;white-space:nowrap;color:#475569">${raFD(r.startDate)}${r.startDate!==r.endDate?' → '+raFD(r.endDate):''}</td>`;
             h+=`<td style="padding:10px 12px;font-weight:600;font-size:13px">${r.halfDay?'½ dag ('+(r.halfDayPeriod||'')+')':((r.days||1)+'d')}</td>`;
             h+=`<td style="padding:10px 12px"><span style="background:${sbg};color:${sc};padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;white-space:nowrap">${sl}</span></td>`;
             h+=`<td style="padding:10px 12px">${conflicts.length>0?
-              `<span style="background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:600;cursor:help" title="${conflicts.join('\\n')}">⚠️ ${conflicts.length}</span>`:
+              `<span onclick="event.stopPropagation();raDetail('${r.id}')" style="background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:600;cursor:pointer">⚠️ ${conflicts.length}</span>`:
               '<span style="color:#cbd5e1;font-size:12px">—</span>'}</td>`;
             h+=`<td style="padding:10px 12px;text-align:right"><div style="display:flex;gap:4px;justify-content:flex-end">`;
             if(r.status==='pending'){
@@ -1049,6 +1078,14 @@ document.addEventListener('click',function(e){
     </div>
   </div>
   <!-- Rapportage -->
+  <div class="panel" id="page-organigram">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div><div class="page-title">Organigram</div><div class="page-subtitle">Organisatiestructuur</div></div>
+      <button class="btn btn-sm btn-primary-outline" onclick="exportOrganigramPDF()">📄 Export PDF</button>
+    </div>
+    <div class="card" id="organigram-container" style="padding:32px;overflow-x:auto;background:#fff;min-height:500px"></div>
+  </div>
+
   <div class="panel" id="page-reports">
     <div class="page">
       <div class="page-header">
@@ -1061,6 +1098,8 @@ document.addEventListener('click',function(e){
         <button class="tab active" onclick="showReportTab('overview',this)">📊 Jaaroverzicht</button>
         <button class="tab" onclick="showReportTab('perPerson',this)">👤 Per medewerker</button>
         <button class="tab" onclick="showReportTab('perType',this)">🏷️ Per type</button>
+        <span style="border-left:1px solid var(--border);margin:4px 8px"></span>
+        <button class="tab" onclick="showReportTab('accidents',this)">⚠️ Arbeidsongevallen</button>
       </div>
       <!-- Jaaroverzicht -->
       <div id="report-overview" class="report-panel">
@@ -1092,7 +1131,21 @@ document.addEventListener('click',function(e){
       <div id="report-perPerson" class="report-panel" style="display:none">
         <div class="card">
           <table class="tbl">
-            <thead><tr><th>Medewerker</th><th>Department</th><th>Totaal recht</th><th>Opgenomen</th><th>Gepland</th><th>Resterend</th><th>Ziektedagen</th></tr></thead>
+            <thead>
+              <tr>
+                <th rowspan="2" style="vertical-align:bottom">Medewerker</th>
+                <th rowspan="2" style="vertical-align:bottom">Department</th>
+                <th colspan="4" style="text-align:center;border-bottom:2px solid var(--accent);color:var(--accent);font-size:11px">WETTELIJK VERLOF</th>
+                <th rowspan="2" style="vertical-align:bottom;text-align:center">Afwezigheid</th>
+                <th rowspan="2" style="vertical-align:bottom;text-align:center">Ziektedagen</th>
+              </tr>
+              <tr>
+                <th style="text-align:center">Recht</th>
+                <th style="text-align:center">Opgenomen</th>
+                <th style="text-align:center">Gepland</th>
+                <th style="text-align:center">Resterend</th>
+              </tr>
+            </thead>
             <tbody id="rp-person-table"></tbody>
           </table>
         </div>
@@ -1104,6 +1157,33 @@ document.addEventListener('click',function(e){
             <thead><tr><th>Type</th><th>Categorie</th><th>Totaal dagen</th><th>Aantal aanvragen</th><th>Gem. duur</th></tr></thead>
             <tbody id="rp-type-table"></tbody>
           </table>
+        </div>
+      </div>
+      <!-- Arbeidsongevallen -->
+      <div id="report-accidents" class="report-panel" style="display:none">
+        <div class="card" style="margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <div>
+              <div class="card-title" style="margin-bottom:4px">⚠️ Arbeidsongevallen — FOD statistieken</div>
+              <div style="font-size:11px;color:var(--text3)">Frequentiegraad en ernstgraad volgens de officiële FOD Werkgelegenheid formules</div>
+            </div>
+            <button class="btn btn-sm btn-primary-outline" onclick="openAccidentModal()">➕ Ongeval registreren</button>
+          </div>
+          <div style="margin-bottom:16px;padding:12px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border)">
+            <div style="font-weight:700;font-size:12px;margin-bottom:8px">📋 Basisgegevens (van sociaal secretariaat)</div>
+            <div class="form-row">
+              <div class="form-group" style="flex:1">
+                <label class="form-label">Totaal gepresteerde uren (jaar)</label>
+                <input type="number" class="form-input" id="acc-total-hours" placeholder="Bv. 85000" value="" oninput="renderAccidentStats()"/>
+              </div>
+              <div class="form-group" style="flex:1">
+                <label class="form-label">Jaar</label>
+                <select class="form-input" id="acc-year" onchange="renderAccidentStats()" style="width:120px"></select>
+              </div>
+            </div>
+          </div>
+          <div class="card-grid card-grid-4" style="margin-bottom:16px" id="acc-stats-cards"></div>
+          <div id="acc-table-container"></div>
         </div>
       </div>
     </div>
@@ -1281,9 +1361,10 @@ const DEFAULT_CHECKLIST_ITEMS=[
   {id:'cl_35',section:'Administratie & verzekeringen',name:'Arbeidsovereenkomst',active:true,order:35}
 ];
 let checklistItems=[];
+let accidents=[];
+let accidentSettings={totalHours:{}};
 const DEFAULT_VERLOFREGELS=[
   {id:'max-afwezig',label:'Max. gelijktijdig afwezig',desc:'Maximum aantal medewerkers dat tegelijk afwezig mag zijn binnen een department',icon:'🚫',perDept:true,defaults:{}},
-  {id:'min-bezetting',label:'Min. bezetting',desc:'Minimum aantal medewerkers dat aanwezig moet zijn binnen een department',icon:'👥',perDept:true,defaults:{}},
   {id:'max-opeenvolgend',label:'Max. opeenvolgende verlofdagen',desc:'Maximum aantal aaneensluitende verlofdagen per aanvraag',icon:'📅',perDept:false,value:15},
   {id:'min-vooraf',label:'Min. dagen op voorhand',desc:'Minimum aantal werkdagen dat een aanvraag op voorhand moet worden ingediend',icon:'⏰',perDept:false,value:5}
 ];
@@ -1398,6 +1479,8 @@ function autoSave(){
     localStorage.setItem('vb_channels',JSON.stringify(channels));
     localStorage.setItem('vb_settings',JSON.stringify(settings));
     localStorage.setItem('vb_checklistItems',JSON.stringify(checklistItems));
+    localStorage.setItem('vb_accidents',JSON.stringify(accidents));
+    localStorage.setItem('vb_accidentSettings',JSON.stringify(accidentSettings));
     localStorage.setItem('vb_barema',JSON.stringify(baremaData));
     localStorage.setItem('vb_ancienniteit',JSON.stringify(ancienniteitData));
     localStorage.setItem('vb_salaryReasons',JSON.stringify(salaryReasonTypes));
@@ -1424,8 +1507,12 @@ function restore(){
     const up=localStorage.getItem('vb_uurkostParams');if(up)uurkostParams=JSON.parse(up);
     const vr=localStorage.getItem('vb_verlofregels');if(vr)verlofregels=JSON.parse(vr);
     const cli=localStorage.getItem('vb_checklistItems');if(cli)checklistItems=JSON.parse(cli);
+    const acc=localStorage.getItem('vb_accidents');if(acc)accidents=JSON.parse(acc);
+    const acs=localStorage.getItem('vb_accidentSettings');if(acs)accidentSettings=JSON.parse(acs);
   }catch(e){console.error('Restore error:',e);}
   if(checklistItems.length===0)checklistItems=DEFAULT_CHECKLIST_ITEMS.map(i=>({...i}));
+  // Upgrade path: approverId (string) → approverIds (array)
+  departments.forEach(d=>{if(!d.approverIds){d.approverIds=d.approverId?[d.approverId]:[];delete d.approverId;}});
   if(leaveTypes.length===0){leaveTypes=[...DEFAULT_TYPES];}
   else{
     // Add missing default types (upgrade path)
@@ -2069,7 +2156,7 @@ function renderDepartments(){
   }else{
     grid.innerHTML=departments.map(d=>{
       const count=people.filter(p=>p.departmentId===d.id&&!p.archived).length;
-      const approver=people.find(p=>p.id===d.approverId);
+      const approverNames=getApproverNames(d);
       return `<div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
           <div style="font-weight:700;font-size:15px">${d.name}</div>
@@ -2079,7 +2166,7 @@ function renderDepartments(){
           </div>
         </div>
         <div style="font-size:12px;color:var(--text3);margin-bottom:6px">👥 ${count} medewerker${count!==1?'s':''}</div>
-        <div style="font-size:12px;color:var(--text2)">Approver: ${approver?`<span style="font-weight:600">${fullName(approver).split(' ')[0]}</span>`:'<span style="color:var(--danger)">Niet toegewezen</span>'}</div>
+        <div style="font-size:12px;color:var(--text2)">Goedkeurder${approverNames.length!==1?'s':''}: ${approverNames.length>0?`<span style="font-weight:600">${approverNames.map(n=>n.split(' ')[0]).join(', ')}</span>`:'<span style="color:var(--danger)">Niet toegewezen</span>'}</div>
       </div>`;
     }).join('');
   }
@@ -2159,7 +2246,7 @@ function renderPeople(){
           ${p.statuut==='interim'&&p.interimDagen!=null?`<span style="font-size:12px;font-weight:600">${p.interimDagen}d</span>`:'<span style="font-size:12px;color:var(--text3)">—</span>'}
         </td>
         <td class="interim-col" style="text-align:center;display:none">
-          ${p.statuut==='interim'&&p.interimDagen!=null?(()=>{const c=calcInterimCounter(p);return `<span style="font-size:12px;font-weight:600;color:${c>10?'var(--text)':c>0?'var(--warn)':'var(--danger)'}">${c}d</span>`;})():'<span style="font-size:12px;color:var(--text3)">—</span>'}
+          ${p.statuut==='interim'&&p.interimDagen!=null?(()=>{const c=calcInterimCounter(p);return `<span style="font-size:12px;font-weight:600;color:${c>10?'var(--text)':c>0?'var(--warn)':'var(--danger)'}">${c<=10?'⚠️ ':''}${c}d</span>`;})():'<span style="font-size:12px;color:var(--text3)">—</span>'}
         </td>
         <td style="text-align:right">
           ${isArchived?`
@@ -2264,6 +2351,8 @@ function renderSettings(){
 function renderVerlofregels(){
   // Init defaults if empty
   if(verlofregels.length===0)verlofregels=JSON.parse(JSON.stringify(DEFAULT_VERLOFREGELS));
+  // Upgrade: verwijder min-bezetting uit bestaande data
+  verlofregels=verlofregels.filter(r=>r.id!=='min-bezetting');
   const container=document.getElementById('verlofregels-content');
   if(!container)return;
   const activeDepts=departments.filter(d=>people.some(p=>p.departmentId===d.id&&!p.archived));
@@ -2337,19 +2426,6 @@ function checkVerlofregels(personId,startDate,endDate,days){
         }
       }
     }
-    if(rule.id==='min-bezetting'&&rule.defaults&&dept){
-      const minVal=rule.defaults[dept.id];
-      if(minVal!==undefined&&minVal!==''){
-        const deptPeople=people.filter(px=>px.departmentId===p.departmentId&&!px.archived).length;
-        const overlapping=requests.filter(r=>r.personId!==personId&&r.status==='approved'
-          &&r.startDate<=endDate&&r.endDate>=startDate
-          &&people.find(px=>px.id===r.personId&&px.departmentId===p.departmentId));
-        const remaining=deptPeople-overlapping.length-1; // -1 for current requester
-        if(remaining<minVal){
-          warnings.push({icon:'👥',msg:'Min. bezetting ('+minVal+') in '+dept.name+' niet gehaald: nog '+remaining+' aanwezig'});
-        }
-      }
-    }
     if(rule.id==='max-opeenvolgend'&&rule.value){
       if(days>rule.value){
         warnings.push({icon:'📅',msg:'Max. '+rule.value+' opeenvolgende verlofdagen overschreden ('+days+' aangevraagd)'});
@@ -2367,7 +2443,20 @@ function checkVerlofregels(personId,startDate,endDate,days){
   return warnings;
 }
 
+function updateInterimBadge(){
+  const interimWarnings=people.filter(p=>!p.archived&&p.statuut==='interim'&&p.interimDagen).filter(p=>{
+    const remaining=calcInterimCounter(p);
+    return remaining!==null&&remaining<=10;
+  });
+  const badge=document.getElementById('badge-interim');
+  if(badge){
+    if(interimWarnings.length>0){badge.textContent='⚠ '+interimWarnings.length;badge.style.display='';}
+    else{badge.style.display='none';}
+  }
+}
+
 function renderDashboard(){
+  updateInterimBadge();
   // Today's absent
   const today=new Date().toISOString().split('T')[0];
   const absent=requests.filter(r=>r.status==='approved'&&r.type!=='ziekte'&&r.startDate<=today&&r.endDate>=today);
@@ -2406,12 +2495,13 @@ function renderDashboard(){
       const person=people.find(p=>p.id===r.personId);
       const type=leaveTypes.find(t=>t.id===r.type);
       const dept=person?departments.find(d=>d.id===person.departmentId):null;
-      const approver=dept&&dept.approverId?people.find(p=>p.id===dept.approverId):null;
-      const approverColor=approver?getAvatarColor(fullName(approver)):'#999';
+      const approverNames=dept?getApproverNames(dept):[];
+      const approverLabel=approverNames.length>0?approverNames[0].split(' ')[0]:'';
+      const approverColor=approverLabel?getAvatarColor(approverNames[0]):'#999';
       return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="viewRequest('${r.id}')">
         <div style="flex:1"><div style="font-size:13px;font-weight:600">${person?fullName(person):'Onbekend'}</div>
         <div style="font-size:11px;color:var(--text3)">${formatDateShort(r.startDate)} → ${formatDateShort(r.endDate)}</div></div>
-        ${approver?`<span class="badge" style="background:${approverColor}18;color:${approverColor};font-size:10px;min-width:64px;text-align:center;display:inline-block">${approver.firstName}</span>`:''}
+        ${approverLabel?`<span class="badge" style="background:${approverColor}18;color:${approverColor};font-size:10px;min-width:64px;text-align:center;display:inline-block">${approverLabel}</span>`:''}
         <span class="badge" style="background:${type?type.color+'1a':'#eee'};color:${type?type.color:'#999'}">${type?type.symbol:'?'}</span>
       </div>`;
     }).join('');
@@ -2713,9 +2803,9 @@ async function approveRequest(id){
   // Log approver info
   const person=people.find(x=>x.id===r.personId);
   const dept=person?departments.find(d=>d.id===person.departmentId):null;
-  const approver=dept&&dept.approverId?people.find(x=>x.id===dept.approverId):null;
-  if(approver&&r.decidedBy!==fullName(approver)){
-    r.approverNote='Goedgekeurd door '+r.decidedBy+' (verantwoordelijke: '+fullName(approver)+')';
+  const approverNames=dept?getApproverNames(dept):[];
+  if(approverNames.length>0&&!approverNames.includes(r.decidedBy)){
+    r.approverNote='Goedgekeurd door '+r.decidedBy+' (verantwoordelijke: '+approverNames.join(', ')+')';
   }
   autoSave();renderRequests();renderDashboard();
   showToast('Aanvraag goedgekeurd ✅');
@@ -2743,7 +2833,7 @@ function viewRequest(id){
   const person=people.find(p=>p.id===r.personId);
   const type=leaveTypes.find(t=>t.id===r.type);
   const dept=person?departments.find(d=>d.id===person.departmentId):null;
-  const approver=dept&&dept.approverId?people.find(x=>x.id===dept.approverId):null;
+  const approverNames=dept?getApproverNames(dept):[];
   const conflicts=getConflicts(r);
   const dayLabel=r.halfDay?'½ dag ('+r.halfDayPeriod+')':r.days+' werkdag'+(r.days!==1?'en':'');
   
@@ -2781,6 +2871,7 @@ function viewRequest(id){
   }
 
   openModal('Aanvraag details',`
+    <div style="max-height:80vh;overflow-y:auto">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;padding:12px;background:var(--surface2);border-radius:var(--radius-sm)">
       <div class="avatar" style="background:${person?getAvatarColor(fullName(person)):'#ccc'}">${person?getInitials(fullName(person)):'?'}</div>
       <div><div style="font-weight:700">${person?fullName(person):'Onbekend'}</div><div style="font-size:12px;color:var(--text3)">${dept?dept.name:''}</div></div>
@@ -2793,7 +2884,7 @@ function viewRequest(id){
       <div><span style="color:var(--text3)">Status:</span> <span class="badge ${r.status==='approved'?'badge-green':r.status==='rejected'?'badge-red':'badge-yellow'}">${r.status==='approved'?'✅ Goedgekeurd':r.status==='rejected'?'❌ Geweigerd':'⏳ Openstaand'}</span></div>
       ${r.decidedDate?`<div><span style="color:var(--text3)">Beslist op:</span> <strong>${formatDate(r.decidedDate)}</strong></div>`:''}
       ${r.decidedBy?`<div><span style="color:var(--text3)">Beslist door:</span> <strong>${r.decidedBy}</strong></div>`:''}
-      ${approver&&r.status==='pending'?`<div><span style="color:var(--text3)">Verantwoordelijke:</span> <strong>${fullName(approver)}</strong></div>`:''}
+      ${approverNames.length>0&&r.status==='pending'?`<div><span style="color:var(--text3)">Goedkeurder${approverNames.length>1?'s':''}:</span> <strong>${approverNames.join(', ')}</strong></div>`:''}
     </div>
     ${saldoHtml}
     ${r.comment?`<div style="padding:10px;background:var(--surface2);border-radius:var(--radius-xs);font-size:12px;margin-bottom:12px"><strong>Opmerking:</strong> ${r.comment}</div>`:''}
@@ -2802,6 +2893,7 @@ function viewRequest(id){
       <div style="font-weight:700;color:var(--warn);margin-bottom:4px">⚠️ Conflicten:</div>
       ${conflicts.map(c=>`<div style="color:var(--text2);padding:2px 0">• ${c}</div>`).join('')}
     </div>`:''}
+    </div>
     ${r.status==='pending'?`<div class="modal-actions">
       <button class="btn" onclick="deleteRequest('${r.id}')" style="color:var(--text3);margin-right:auto">🗑 Verwijderen</button>
       <button class="btn btn-danger" onclick="rejectRequest('${r.id}')">❌ Weigeren</button>
@@ -3010,7 +3102,7 @@ function saveSickness(id){
   const days=calcWorkDays(startDate,endDate);
   const person=people.find(p=>p.id===personId);
   const dept=person?departments.find(d=>d.id===person.departmentId):null;
-  const approver=dept?people.find(p=>p.id===dept.approverId):null;
+  const approvers=dept?getApproverIds(dept).map(id=>people.find(p=>p.id===id)).filter(Boolean):[];
   
   const data={personId,type:'ziekte',startDate,endDate,days,halfDay:false,halfDayPeriod:'',
     comment,status:'approved',sickCertificate:!!hasCert,certImage:hasCert||'',
@@ -3028,12 +3120,10 @@ function saveSickness(id){
     const r=requests[requests.length-1]||requests.find(x=>x.id===id);
     if(r){
       r.notifiedHR=true;r.notifiedDept=true;
-      // Generate mailto/sms links
       const subject=encodeURIComponent(`Ziekmelding: ${person?fullName(person):'Medewerker'} — ${formatDate(startDate)} t/m ${formatDate(endDate)}`);
       const body=encodeURIComponent(`Beste,\n\n${person?fullName(person):'Een medewerker'} is ziek gemeld van ${formatDate(startDate)} tot ${formatDate(endDate)}.\n${comment?'Opmerking: '+comment+'\n':''}\nMet vriendelijke groeten,\nPersoneelbeheer Advanced Energy`);
-      
-      // Open mail client
-      window.open(`mailto:hr@advancedenergy.be${approver?','+approver.email:''}?subject=${subject}&body=${body}`,'_blank');
+      const approverEmails=approvers.map(a=>a.email).filter(Boolean).join(',');
+      window.open(`mailto:hr@advancedenergy.be${approverEmails?','+approverEmails:''}?subject=${subject}&body=${body}`,'_blank');
       showToast('Ziekmelding geregistreerd — mail geopend 📧');
     }
   }else{
@@ -3082,12 +3172,12 @@ function notifySickness(id){
   const r=requests.find(x=>x.id===id);if(!r)return;
   const person=people.find(p=>p.id===r.personId);
   const dept=person?departments.find(d=>d.id===person.departmentId):null;
-  const approver=dept?people.find(p=>p.id===dept.approverId):null;
+  const approvers=dept?getApproverIds(dept).map(id=>people.find(p=>p.id===id)).filter(Boolean):[];
   
   const subject=encodeURIComponent(`Ziekmelding: ${person?fullName(person):'Medewerker'} — ${formatDate(r.startDate)} t/m ${formatDate(r.endDate)}`);
   const body=encodeURIComponent(`Beste,\n\n${person?fullName(person):'Een medewerker'} is ziek gemeld van ${formatDate(r.startDate)} tot ${formatDate(r.endDate)}.\n${r.comment?'Opmerking: '+r.comment+'\n':''}\nMet vriendelijke groeten,\nPersoneelbeheer Advanced Energy`);
-  
-  window.open(`mailto:hr@advancedenergy.be${approver?','+approver.email:''}?subject=${subject}&body=${body}`,'_blank');
+  const approverEmails=approvers.map(a=>a.email).filter(Boolean).join(',');
+  window.open(`mailto:hr@advancedenergy.be${approverEmails?','+approverEmails:''}?subject=${subject}&body=${body}`,'_blank');
   r.notifiedHR=true;r.notifiedDept=true;
   autoSave();renderSickness();
   showToast('Mail geopend — notificatie verstuurd 📧');
@@ -3105,17 +3195,42 @@ async function deleteSickness(id){
 // --- Departments ---
 function openDeptModal(id){
   const d=id?departments.find(x=>x.id===id):null;
+  const parentOpts=departments.filter(x=>x.id!==id).map(x=>`<option value="${x.id}" ${d&&d.parentDeptId===x.id?'selected':''}>${x.name}</option>`).join('');
+  const managerOpts=people.filter(p=>!p.archived).map(p=>`<option value="${p.id}" ${d&&d.managerId===p.id?'selected':''}>${fullName(p)}</option>`).join('');
+  const approverIds=d?getApproverIds(d):[];
+  const approverChecks=people.filter(p=>!p.archived&&(p.isApprover||p.role==='admin')).map(p=>{
+    const checked=approverIds.includes(p.id)?'checked':'';
+    return `<label style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:12px;cursor:pointer"><input type="checkbox" class="md-approver-cb" value="${p.id}" ${checked} style="width:14px;height:14px;accent-color:var(--accent)"/> ${fullName(p)}</label>`;
+  }).join('');
   openModal(d?'Department bewerken':'Department toevoegen',`
     <div class="form-group">
       <label class="form-label">Naam <span class="req">*</span></label>
       <input class="form-input" id="md-name" value="${d?d.name:''}" onkeydown="if(event.key==='Enter')saveDept('${id||''}')"/>
     </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Verlofgoedkeurder(s) <span class="fi" onclick="toggleFieldInfo('info-dept-approver')">ⓘ</span></label>
+        <div style="max-height:150px;overflow-y:auto;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--surface)">
+          ${approverChecks||'<span style="font-size:11px;color:var(--text3)">Geen medewerkers met approver-rechten</span>'}
+        </div>
+        <div class="fi-box" id="info-dept-approver" style="display:none">Eén of meerdere personen die verlofaanvragen goedkeuren voor dit department. Eén goedkeuring volstaat.</div>
+      </div>
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Manager <span class="fi" onclick="toggleFieldInfo('info-dept-manager')">ⓘ</span></label>
+        <select class="form-input" id="md-manager">
+          <option value="">Geen manager</option>
+          ${managerOpts}
+        </select>
+        <div class="fi-box" id="info-dept-manager" style="display:none">De verantwoordelijke voor dit department. Wordt getoond als hoofd in het organigram. Dit is niet noodzakelijk dezelfde persoon als de approver.</div>
+      </div>
+    </div>
     <div class="form-group">
-      <label class="form-label">Approver</label>
-      <select class="form-input" id="md-approver">
-        <option value="">Geen approver</option>
-        ${people.filter(p=>p.isApprover||p.role==='admin').map(p=>`<option value="${p.id}" ${d&&d.approverId===p.id?'selected':''}>${fullName(p)}</option>`).join('')}
+      <label class="form-label">Parent department <span class="fi" onclick="toggleFieldInfo('info-dept-parent')">ⓘ</span></label>
+      <select class="form-input" id="md-parent">
+        <option value="">Geen (top-level)</option>
+        ${parentOpts}
       </select>
+      <div class="fi-box" id="info-dept-parent" style="display:none">Optioneel: als dit department onder een ander department valt, selecteer dan het bovenliggende department. Dit creëert een extra niveau in het organigram.</div>
     </div>
     <div class="modal-actions">
       <button class="btn" onclick="closeModal()">Annuleren</button>
@@ -3124,15 +3239,29 @@ function openDeptModal(id){
   `);
 }
 
+function getApproverIds(d){
+  if(!d)return [];
+  if(Array.isArray(d.approverIds))return d.approverIds;
+  // Upgrade path: oud formaat approverId (string) → array
+  if(d.approverId)return [d.approverId];
+  return [];
+}
+
+function getApproverNames(d){
+  return getApproverIds(d).map(id=>people.find(p=>p.id===id)).filter(Boolean).map(p=>fullName(p));
+}
+
 function saveDept(id){
   const name=document.getElementById('md-name').value.trim();
-  const approverId=document.getElementById('md-approver').value;
+  const approverIds=[...document.querySelectorAll('.md-approver-cb:checked')].map(cb=>cb.value);
+  const managerId=document.getElementById('md-manager').value;
+  const parentDeptId=document.getElementById('md-parent').value;
   if(!name){showToast('Naam is verplicht','error');return;}
   if(id){
     const d=departments.find(x=>x.id===id);
-    if(d){d.name=name;d.approverId=approverId;}
+    if(d){d.name=name;d.approverIds=approverIds;d.managerId=managerId;d.parentDeptId=parentDeptId;delete d.approverId;}
   }else{
-    departments.push({id:uid(),name,approverId});
+    departments.push({id:uid(),name,approverIds,managerId,parentDeptId});
   }
   closeModal();autoSave();renderDepartments();
   showToast('Department opgeslagen');
@@ -3178,11 +3307,12 @@ function openPersonModal(id){
             ${departments.map(d=>`<option value="${d.id}" ${p&&p.departmentId===d.id?'selected':''}>${d.name}</option>`).join('')}
           </select>
         </div>
-        <div class="form-group" id="mp-cat-group" style="display:none"><label class="form-label">Categorie</label>
+        <div class="form-group" id="mp-cat-group" style="display:none"><label class="form-label">Categorie <span class="fi" onclick="toggleFieldInfo('info-cat')">ⓘ</span></label>
           <select class="form-input" id="mp-cat">
             <option value="">Selecteer...</option>
             ${BAREMA_CATEGORIES.map(c=>`<option value="${c.id}" ${p&&p.baremaCategory===c.id?'selected':''}>${c.id} — ${c.name}</option>`).join('')}
           </select>
+          <div class="fi-box" id="info-cat" style="display:none">De baremacategorie bepaalt het minimumloon volgens PC 149.01. Hogere categorie = hoger minimumloon. Categorieën gaan van A (hulpwerkman) tot F (geschoolde werkman).</div>
         </div>
         <div class="form-row">
           <div class="form-group"><label class="form-label">Statuut</label>
@@ -3193,7 +3323,7 @@ function openPersonModal(id){
               <option value="zelfstandige" ${p&&p.statuut==='zelfstandige'?'selected':''}>Zelfstandige</option>
             </select>
           </div>
-          <div class="form-group"><label class="form-label">Paritair comité</label>
+          <div class="form-group"><label class="form-label">Paritair comité <span class="fi" onclick="toggleFieldInfo('info-pc')">ⓘ</span></label>
             <select class="form-input" id="mp-pc" onchange="syncPersonFields()">
               <option value="" ${!p||!p.paritairComite?'selected':''}>Selecteer...</option>
               <option value="200" ${p&&p.paritairComite==='200'?'selected':''}>200 — Bedienden</option>
@@ -3201,26 +3331,44 @@ function openPersonModal(id){
               <option value="149.01" ${p&&p.paritairComite==='149.01'?'selected':''}>149.01 — Arbeiders</option>
               <option value="nvt" ${p&&p.paritairComite==='nvt'?'selected':''}>N.v.t.</option>
             </select>
+            <div class="fi-box" id="info-pc" style="display:none">Het paritair comité bepaalt de loon- en arbeidsvoorwaarden. PC 149.01 activeert het baremasysteem met automatische loonberekening.</div>
           </div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label class="form-label">Rol</label>
+          <div class="form-group"><label class="form-label">Rol <span class="fi" onclick="toggleFieldInfo('info-role')">ⓘ</span></label>
             <select class="form-input" id="mp-role" onchange="syncPersonFields()">
               <option value="user" ${p&&p.role==='user'?'selected':''}>User</option>
               <option value="admin" ${p&&p.role==='admin'?'selected':''}>Admin</option>
             </select>
+            <div class="fi-box" id="info-role" style="display:none">Systeemrol: Admin heeft toegang tot alle instellingen en data. User ziet enkel eigen gegevens.</div>
           </div>
-          <div class="form-group"><label class="form-label">Approver</label>
+          <div class="form-group"><label class="form-label">Approver <span class="fi" onclick="toggleFieldInfo('info-approver')">ⓘ</span></label>
             <div style="display:flex;align-items:center;gap:8px;height:36px">
               <input type="checkbox" id="mp-approver" ${p&&p.isApprover?'checked':''} style="width:16px;height:16px;cursor:pointer"/>
               <label for="mp-approver" style="font-size:12px;color:var(--text2);cursor:pointer">Kan verlof goedkeuren</label>
             </div>
+            <div class="fi-box" id="info-approver" style="display:none">Bepaalt wie verlofaanvragen goedkeurt of weigert voor dit department. Dit is niet hetzelfde als de Manager (verantwoordelijke).</div>
           </div>
           <div class="form-group"><label class="form-label">Werkrooster</label>
             <select class="form-input" id="mp-schedule">
               ${schedules.map(s=>`<option value="${s.id}" ${p&&p.scheduleId===s.id?'selected':''}>${s.name}</option>`).join('')}
             </select>
           </div>
+        </div>
+        <div class="form-group"><label class="form-label">Teamrol <span class="fi" onclick="toggleFieldInfo('info-teamrole')">ⓘ</span></label>
+          <select class="form-input" id="mp-teamrole" onchange="if(this.value==='__other__'){this.style.display='none';document.getElementById('mp-teamrole-custom').style.display=''}">
+            <option value="" ${!p||!p.teamRole?'selected':''}>— Niet ingesteld —</option>
+            <option value="Zaakvoerder" ${p&&p.teamRole==='Zaakvoerder'?'selected':''}>Zaakvoerder</option>
+            <option value="Manager" ${p&&p.teamRole==='Manager'?'selected':''}>Manager</option>
+            <option value="Ploegleider" ${p&&p.teamRole==='Ploegleider'?'selected':''}>Ploegleider</option>
+            <option value="Technieker" ${p&&p.teamRole==='Technieker'?'selected':''}>Technieker</option>
+            <option value="Senior technieker" ${p&&p.teamRole==='Senior technieker'?'selected':''}>Senior technieker</option>
+            <option value="Administratief" ${p&&p.teamRole==='Administratief'?'selected':''}>Administratief</option>
+            <option value="Stagiair" ${p&&p.teamRole==='Stagiair'?'selected':''}>Stagiair</option>
+            <option value="__other__" ${p&&p.teamRole&&!['Zaakvoerder','Manager','Ploegleider','Technieker','Senior technieker','Administratief','Stagiair'].includes(p.teamRole)?'selected':''}>Andere...</option>
+          </select>
+          <input class="form-input" id="mp-teamrole-custom" placeholder="Vul je eigen rol in..." value="${p&&p.teamRole&&!['Zaakvoerder','Manager','Ploegleider','Technieker','Senior technieker','Administratief','Stagiair'].includes(p.teamRole)?p.teamRole:''}" style="display:${p&&p.teamRole&&!['Zaakvoerder','Manager','Ploegleider','Technieker','Senior technieker','Administratief','Stagiair'].includes(p.teamRole)?'':'none'};margin-top:4px"/>
+          <div class="fi-box" id="info-teamrole" style="display:none">De operationele functie binnen het team (bv. Ploegleider, Technieker). Dit bepaalt de positie in het organigram. Heeft geen invloed op systeemrechten of verlofgoedkeuring.</div>
         </div>
         <div class="form-row">
           <div class="form-group"><label class="form-label">Startdatum</label><input class="form-input" type="date" id="mp-start" value="${p?p.startDate:''}"/></div>
@@ -3275,13 +3423,17 @@ function openPersonModal(id){
     const showSalary=p.paritairComite==='149.01';
     const showChecklist=true;
     const clCompleted=p.checklistState&&p.checklistState._completed;
+    const fromReport=window._fromReport;window._fromReport=false;
+    const fromRequests=window._fromRequests;window._fromRequests=false;
     document.getElementById('modal-title-actions').innerHTML=`
+      ${fromReport?`<button class="btn btn-sm" onclick="closeModal();navigate('reports');renderReports()" style="font-size:11px;border-color:var(--accent);color:var(--accent)">← Rapport</button>`:''}
+      ${fromRequests?`<button class="btn btn-sm" onclick="closeModal();navigate('requests')" style="font-size:11px;border-color:var(--accent);color:var(--accent)">← Aanvragen</button>`:''}
       <button class="btn btn-sm" onclick="closeModal();openSaldoModal('${id}')" style="font-size:11px">📊 Saldo</button>
-      <button class="btn btn-sm" onclick="closeModal();openPersonCalendar('${id}')" style="font-size:11px">📅 Kalender</button>
-      ${showSalary?`<button class="btn btn-sm" onclick="closeModal();openSalaryModal('${id}')" style="font-size:11px">💶 Salaris</button>`:''}
-      ${showChecklist?`<button class="btn btn-sm" onclick="closeModal();openChecklist('${id}')" style="font-size:11px;color:${clCompleted?'var(--success)':'var(--accent)'}">${clCompleted?'✅':'☑️'} Checklist</button>`:''}
       <button class="btn btn-sm" onclick="closeModal();openMutationsModal('${id}')" style="font-size:11px">📝 Mutaties</button>
+      <button class="btn btn-sm" onclick="closeModal();openPersonCalendar('${id}')" style="font-size:11px">📅 Kalender</button>
       <button class="btn btn-sm" onclick="closeModal();openDocumentsModal('${id}')" style="font-size:11px">📁 Documenten</button>
+      ${showChecklist?`<button class="btn btn-sm" onclick="closeModal();openChecklist('${id}')" style="font-size:11px;color:${clCompleted?'var(--success)':'var(--accent)'}">${clCompleted?'✅':'☑️'} Checklist</button>`:''}
+      ${showSalary?`<button class="btn btn-sm" onclick="closeModal();openSalaryModal('${id}')" style="font-size:11px">💶 Salaris</button>`:''}
       <button class="btn btn-sm" onclick="archivePerson('${id}')" style="font-size:11px;color:var(--text3)">📦 Archief</button>`;
   }
   setTimeout(syncPersonFields,50);
@@ -3392,6 +3544,9 @@ function savePerson(id){
   const interimDagenVal=document.getElementById('mp-interim-dagen').value;
   const interimDagen=statuut==='interim'&&interimDagenVal!==''?parseInt(interimDagenVal):null;
   const werkGsm=formatPhone(document.getElementById('mp-werkgsm').value.trim());
+  const teamRoleSel=document.getElementById('mp-teamrole').value;
+  const teamRoleCustom=document.getElementById('mp-teamrole-custom').value.trim();
+  const teamRole=teamRoleSel==='__other__'?teamRoleCustom:(teamRoleSel||'');
   const endDate=document.getElementById('mp-end-contract').value||'';
   const noodNaam=document.getElementById('mp-nood-naam').value.trim();
   const noodRelatie=document.getElementById('mp-nood-relatie').value;
@@ -3400,13 +3555,13 @@ function savePerson(id){
   if(!lastName){showToast('Naam is verplicht','error');return;}
   if(!email){showToast('E-mail is verplicht','error');return;}
   if(!departmentId){showToast('Department is verplicht','error');return;}
-  const data={firstName,lastName,email,departmentId,role,isApprover,statuut,paritairComite,baremaCategory,startDate,endDate,scheduleId,gsm,tel,iban,birthDate,rrn,saldoOV,interimDagen,werkGsm,noodNaam,noodRelatie,noodGsm};
+  const data={firstName,lastName,email,departmentId,role,isApprover,statuut,paritairComite,baremaCategory,startDate,endDate,scheduleId,gsm,tel,iban,birthDate,rrn,saldoOV,interimDagen,werkGsm,teamRole,noodNaam,noodRelatie,noodGsm};
   if(id){
     const p=people.find(x=>x.id===id);
     if(p){
       // Log mutaties voor gewijzigde velden
       if(!p.mutations)p.mutations=[];
-      const fieldLabels={firstName:'Voornaam',lastName:'Naam',email:'E-mail',departmentId:'Department',role:'Rol',isApprover:'Approver',statuut:'Statuut',paritairComite:'Paritair Comité',baremaCategory:'Baremacategorie',startDate:'Startdatum',endDate:'Einddatum',scheduleId:'Werkrooster',gsm:'GSM',tel:'Telefoon',iban:'IBAN',birthDate:'Geboortedatum',rrn:'Rijksregisternr',saldoOV:'Saldo OV',interimDagen:'Interim dagen',werkGsm:'Werk GSM',noodNaam:'Noodcontact naam',noodRelatie:'Noodcontact relatie',noodGsm:'Noodcontact GSM'};
+      const fieldLabels={firstName:'Voornaam',lastName:'Naam',email:'E-mail',departmentId:'Department',role:'Rol',isApprover:'Approver',statuut:'Statuut',paritairComite:'Paritair Comité',baremaCategory:'Baremacategorie',startDate:'Startdatum',endDate:'Einddatum',scheduleId:'Werkrooster',gsm:'GSM',tel:'Telefoon',iban:'IBAN',birthDate:'Geboortedatum',rrn:'Rijksregisternr',saldoOV:'Saldo OV',interimDagen:'Interim dagen',werkGsm:'Werk GSM',teamRole:'Teamrol',noodNaam:'Noodcontact naam',noodRelatie:'Noodcontact relatie',noodGsm:'Noodcontact GSM'};
       const now=new Date();
       const timestamp=now.toISOString();
       const user=settings.currentUser||'Admin';
@@ -3460,10 +3615,11 @@ function savePerson(id){
 function calcInterimCounter(p){
   if(!p||p.statuut!=='interim'||!p.interimDagen||!p.startDate)return null;
   const today=new Date().toISOString().split('T')[0];
-  // Tel werkdagen van startdatum tot vandaag (of einddatum contract als dat eerder is)
+  // Vóór startdatum: saldo = interimDagen (nog niet begonnen)
+  if(today<p.startDate)return p.interimDagen;
+  // Na startdatum: tel werkdagen (excl. weekenden, feestdagen) en trek afwezigheden af
   const endDate=today;
   const totalWorkDays=calcWorkDays(p.startDate,endDate);
-  // Trek verlof- en ziektedagen af (die zijn geen gewerkte dagen)
   const absentDays=requests
     .filter(r=>r.personId===p.id&&r.status==='approved'&&r.startDate<=endDate&&r.endDate>=p.startDate)
     .reduce((sum,r)=>sum+(r.halfDay?0.5:(r.days||0)),0);
@@ -3638,6 +3794,7 @@ function openChecklist(personId){
     html+='</div>';
   }
   openModal('\u2611\uFE0F Onboarding Checklist \u2014 '+fullName(p),html);
+  document.getElementById('modal-title-actions').innerHTML='<button class="btn btn-sm" onclick="closeModal();openPersonModal(\''+personId+'\')" style="font-size:11px">← Fiche</button>';
 }
 
 function toggleChecklistItem(personId,itemId,checked){
@@ -3691,27 +3848,78 @@ function renderChecklistSettings(){
   var html='';
   Object.keys(sections).forEach(function(secName){
     var esc=secName.replace(/'/g,"\\'");
-    html+='<div style="margin-bottom:20px">';
-    html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">';
-    html+='<div style="font-weight:700;font-size:13px;color:var(--text2)">'+secName+'</div>';
-    html+='<div style="display:flex;gap:4px">';
-    html+='<button class="btn btn-sm" onclick="openChecklistItemModal(\'\',\''+esc+'\');" title="Item toevoegen" style="font-size:10px;color:var(--accent)">&#10133; Item</button>';
-    html+='<button class="btn btn-sm btn-danger" onclick="deleteChecklistSection(\''+esc+'\')" title="Hele sectie verwijderen" style="font-size:10px">&#128465; Sectie</button>';
-    html+='</div></div>';
-    sections[secName].forEach(function(item){
-      html+='<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surface);border-radius:var(--radius-xs);margin-bottom:4px;border:1px solid var(--border)">';
-      html+='<input type="checkbox" '+(item.active?'checked':'')+' onchange="toggleChecklistActive(\''+item.id+'\',this.checked)" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;flex-shrink:0"/>';
-      html+='<span style="flex:1;font-size:13px;'+(item.active?'':'opacity:.5')+'">'+item.name+'</span>';
-      html+='<button class="btn btn-sm" onclick="openChecklistItemModal(\''+item.id+'\',\'\')" style="font-size:11px">&#9999;&#65039;</button>';
-      html+='<button class="btn btn-sm btn-danger" onclick="deleteChecklistItem(\''+item.id+'\')" style="font-size:11px">&#128465;</button>';
-      html+='</div>';
-    });
+    var items=sections[secName];
+    var activeCount=items.filter(function(i){return i.active;}).length;
+    html+='<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface);border-radius:var(--radius-xs);margin-bottom:4px;border:1px solid var(--border);cursor:pointer" onclick="openChecklistSection(\''+esc+'\')">';
+    html+='<span style="font-size:16px">📋</span>';
+    html+='<div style="flex:1"><div style="font-weight:700;font-size:13px">'+secName+'</div>';
+    html+='<div style="font-size:11px;color:var(--text3)">'+items.length+' item'+(items.length!==1?'s':'')+' &middot; '+activeCount+' actief</div></div>';
+    html+='<button class="btn btn-sm" onclick="event.stopPropagation();renameChecklistSection(\''+esc+'\')" title="Hernoemen" style="font-size:11px">✏️</button>';
+    html+='<button class="btn btn-sm btn-danger" onclick="event.stopPropagation();deleteChecklistSection(\''+esc+'\')" title="Verwijderen" style="font-size:11px">🗑</button>';
     html+='</div>';
   });
-  var activeCount=checklistItems.filter(function(i){return i.active;}).length;
-  html+='<div style="margin-top:16px;padding:12px;background:var(--surface2);border-radius:var(--radius-sm);font-size:12px;color:var(--text3)">';
-  html+=checklistItems.length+' items totaal &middot; '+activeCount+' actief &middot; '+(checklistItems.length-activeCount)+' inactief</div>';
+  var totalActive=checklistItems.filter(function(i){return i.active;}).length;
+  html+='<div style="margin-top:12px;padding:10px;background:var(--surface2);border-radius:var(--radius-sm);font-size:12px;color:var(--text3)">';
+  html+=Object.keys(sections).length+' checklist'+(Object.keys(sections).length!==1?'s':'')+' &middot; '+checklistItems.length+' items totaal &middot; '+totalActive+' actief</div>';
   container.innerHTML=html;
+}
+
+function openChecklistSection(secName){
+  var items=checklistItems.filter(function(i){return i.section===secName;}).sort(function(a,b){return a.order-b.order;});
+  var esc=secName.replace(/'/g,"\\'");
+  var html='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">';
+  html+='<div style="font-size:12px;color:var(--text3)">'+items.length+' item'+(items.length!==1?'s':'')+'</div>';
+  html+='<button class="btn btn-sm btn-primary-outline" onclick="closeModal();openChecklistItemModal(\'\',\''+esc+'\')">➕ Item toevoegen</button>';
+  html+='</div>';
+  if(items.length===0){
+    html+='<div style="text-align:center;padding:30px;color:var(--text3);font-size:13px">Nog geen items in deze checklist. Voeg er een toe.</div>';
+  }else{
+    items.forEach(function(item){
+      html+='<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surface);border-radius:var(--radius-xs);margin-bottom:4px;border:1px solid var(--border)">';
+      html+='<input type="checkbox" '+(item.active?'checked':'')+' onchange="toggleChecklistActive(\''+item.id+'\',this.checked);openChecklistSection(\''+esc+'\')" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;flex-shrink:0"/>';
+      html+='<span style="flex:1;font-size:13px;'+(item.active?'':'opacity:.5;text-decoration:line-through')+'">'+item.name+'</span>';
+      html+='<button class="btn btn-sm" onclick="openChecklistItemModal(\''+item.id+'\',\'\')" style="font-size:11px">✏️</button>';
+      html+='<button class="btn btn-sm btn-danger" onclick="deleteChecklistItemFromSection(\''+item.id+'\',\''+esc+'\')" style="font-size:11px">🗑</button>';
+      html+='</div>';
+    });
+  }
+  // Check actief gebruik
+  var inUseCount=people.filter(function(p){return p.checklistState&&!p.archived;}).filter(function(p){
+    return items.some(function(i){return p.checklistState[i.id+'_completed'];});
+  }).length;
+  if(inUseCount>0){
+    html+='<div style="margin-top:12px;padding:8px 12px;background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);border-radius:var(--radius-xs);font-size:11px;color:var(--accent)">ℹ️ Deze checklist is actief bij '+inUseCount+' medewerker'+(inUseCount!==1?'s':'')+'</div>';
+  }
+  openModal('📋 '+secName,html);
+}
+
+async function renameChecklistSection(oldName){
+  const newName=await promptDialog('Nieuwe naam voor "'+oldName+'":',oldName);
+  if(newName===null)return;
+  const trimmed=newName.trim();
+  if(!trimmed){showToast('Naam is verplicht','error');return;}
+  if(trimmed===oldName)return;
+  const existingSections=[...new Set(checklistItems.map(i=>i.section))];
+  if(existingSections.some(s=>s.toLowerCase()===trimmed.toLowerCase())){
+    showToast('Deze sectienaam bestaat al','error');return;
+  }
+  checklistItems.forEach(function(i){if(i.section===oldName)i.section=trimmed;});
+  // Update checklistState bij medewerkers (sectienaam zit niet in state, alleen item IDs — geen actie nodig)
+  autoSave();renderChecklistSettings();
+  showToast('Checklist hernoemd naar "'+trimmed+'"');
+}
+
+async function deleteChecklistItemFromSection(itemId,secName){
+  const item=checklistItems.find(i=>i.id===itemId);
+  if(!item)return;
+  // Check gebruik
+  var inUseBy=people.filter(function(p){return p.checklistState&&p.checklistState[itemId+'_completed']&&!p.archived;});
+  var msg='Item "'+item.name+'" verwijderen?';
+  if(inUseBy.length>0)msg+='\n\n⚠️ Dit item is afgevinkt bij '+inUseBy.length+' medewerker'+(inUseBy.length!==1?'s':'')+'. Hun voortgang wordt aangepast.';
+  if(!await confirmDialog(msg))return;
+  checklistItems=checklistItems.filter(i=>i.id!==itemId);
+  autoSave();openChecklistSection(secName);
+  showToast('Item verwijderd');
 }
 
 function toggleChecklistActive(itemId,active){
@@ -3719,31 +3927,62 @@ function toggleChecklistActive(itemId,active){
   if(item){item.active=active;autoSave();renderChecklistSettings();}
 }
 
+function openNewChecklistModal(){
+  openModal('➕ Nieuwe checklist toevoegen',`
+    <div class="form-group">
+      <label class="form-label">Sectienaam <span class="req">*</span></label>
+      <input type="text" class="form-input" id="cli-new-checklist-name" placeholder="Bijv. Backoffice, Veiligheid, Onboarding IT..." autofocus/>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Annuleren</button>
+      <button class="btn btn-primary" onclick="saveNewChecklist()">Opslaan</button>
+    </div>
+  `);
+}
+
+function saveNewChecklist(){
+  const name=document.getElementById('cli-new-checklist-name').value.trim();
+  if(!name){showToast('Sectienaam is verplicht','error');return;}
+  const existingSections=[...new Set(checklistItems.map(i=>i.section))];
+  if(existingSections.some(s=>s.toLowerCase()===name.toLowerCase())){
+    alert('Deze sectienaam bestaat al. Kies een andere naam.');
+    document.getElementById('cli-new-checklist-name').value='';
+    document.getElementById('cli-new-checklist-name').focus();
+    return;
+  }
+  closeModal();
+  // Open direct item-toevoegen voor de nieuwe sectie
+  openChecklistItemModal('', name);
+}
+
 function openChecklistItemModal(itemId, preSection){
   const item=itemId?checklistItems.find(i=>i.id===itemId):null;
   const selSection=item?item.section:(preSection||'');
   const existingSections=[...new Set(checklistItems.map(i=>i.section))];
-  const hasMatch=existingSections.includes(selSection);
-  const showNewSection=!hasMatch&&!selSection;
-  const sectionOptions=existingSections.map(s=>`<option value="${s}" ${s===selSection?'selected':''}>${s}</option>`).join('');
+  const isNewInSection=!item&&selSection;
 
-  openModal(item?'✏️ Item bewerken':'➕ Nieuw checklist-item',`
-    <div class="form-row">
-      <div class="form-group" style="flex:1">
-        <label class="form-label">Sectie</label>
-        <select class="form-input" id="cli-section" onchange="document.getElementById('cli-new-section').style.display=this.value==='__new__'?'block':'none'">
-          ${sectionOptions}
-          <option value="__new__" ${showNewSection||existingSections.length===0?'selected':''}>+ Nieuwe sectie...</option>
-        </select>
-      </div>
-      <div class="form-group" style="flex:1;${showNewSection||existingSections.length===0?'':'display:none'}" id="cli-new-section">
-        <label class="form-label">Nieuwe sectienaam</label>
-        <input type="text" class="form-input" id="cli-new-section-name" placeholder="Bijv. Backoffice"/>
-      </div>
-    </div>
+  let sectionHtml='';
+  if(item){
+    // Edit mode: dropdown om sectie te wijzigen
+    const sectionOptions=existingSections.map(s=>`<option value="${s}" ${s===selSection?'selected':''}>${s}</option>`).join('');
+    sectionHtml=`<div class="form-group">
+      <label class="form-label">Sectie</label>
+      <select class="form-input" id="cli-section">${sectionOptions}</select>
+    </div>`;
+  }else if(selSection){
+    // Nieuw item in bestaande/nieuwe sectie: sectie vast tonen
+    sectionHtml=`<div class="form-group">
+      <label class="form-label">Sectie</label>
+      <div style="padding:8px 12px;background:var(--surface2);border-radius:var(--radius-xs);font-weight:600;font-size:13px">${selSection}</div>
+      <input type="hidden" id="cli-section" value="${selSection}"/>
+    </div>`;
+  }
+
+  openModal(item?'✏️ Item bewerken':'➕ Item toevoegen'+(selSection?' — '+selSection:''),`
+    ${sectionHtml}
     <div class="form-group">
-      <label class="form-label">Item naam</label>
-      <input type="text" class="form-input" id="cli-name" value="${item?item.name:''}" placeholder="Bijv. Toegangsbadge aanvragen"/>
+      <label class="form-label">Item naam <span class="req">*</span></label>
+      <input type="text" class="form-input" id="cli-name" value="${item?item.name:''}" placeholder="Bijv. Toegangsbadge aanvragen" autofocus/>
     </div>
     <div class="form-group">
       <label class="form-label">Actief</label>
@@ -3761,12 +4000,10 @@ function openChecklistItemModal(itemId, preSection){
 
 function saveChecklistItem(itemId){
   const name=document.getElementById('cli-name').value.trim();
-  if(!name){showToast('Naam is verplicht','error');return;}
-  let section=document.getElementById('cli-section').value;
-  if(section==='__new__'){
-    section=document.getElementById('cli-new-section-name').value.trim();
-    if(!section){showToast('Sectienaam is verplicht','error');return;}
-  }
+  if(!name){showToast('Item naam is verplicht','error');return;}
+  const sectionEl=document.getElementById('cli-section');
+  let section=sectionEl?sectionEl.value:'';
+  if(!section){showToast('Sectie is verplicht','error');return;}
   const active=document.getElementById('cli-active').value==='true';
 
   if(itemId){
@@ -3787,10 +4024,15 @@ async function deleteChecklistItem(itemId){
 }
 
 async function deleteChecklistSection(secName){
-  const count=checklistItems.filter(i=>i.section===secName).length;
-  if(!await confirmDialog(`Hele sectie "${secName}" verwijderen (${count} items)?`))return;
+  const items=checklistItems.filter(i=>i.section===secName);
+  var inUseBy=people.filter(function(p){return p.checklistState&&!p.archived;}).filter(function(p){
+    return items.some(function(i){return p.checklistState[i.id+'_completed'];});
+  });
+  var msg='Checklist "'+secName+'" verwijderen ('+items.length+' item'+(items.length!==1?'s':'')+')?\n\nDit kan niet ongedaan gemaakt worden.';
+  if(inUseBy.length>0)msg+='\n\n⚠️ Deze checklist is actief bij '+inUseBy.length+' medewerker'+(inUseBy.length!==1?'s':'')+'. Hun voortgang voor deze items gaat verloren.';
+  if(!await confirmDialog(msg))return;
   checklistItems=checklistItems.filter(i=>i.section!==secName);
-  autoSave();renderChecklistSettings();showToast('Sectie verwijderd');
+  autoSave();renderChecklistSettings();showToast('Checklist "'+secName+'" verwijderd');
 }
 
 // ═══ MUTATIES MODAL ═══
@@ -3804,8 +4046,8 @@ function openMutationsModal(personId){
   let html=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)">
     <div style="font-size:12px;color:var(--text3)">${muts.length} mutatie${muts.length!==1?'s':''} geregistreerd</div>
     <div style="display:flex;gap:6px">
-      <button class="btn btn-sm" onclick="closeModal();openPersonModal('${personId}')" style="font-size:11px">← Terug naar fiche</button>
       <button class="btn btn-sm btn-primary" onclick="openAddMutationModal('${personId}')" style="font-size:11px">➕ Manuele mutatie</button>
+      <button class="btn btn-sm" onclick="openSaldoAdjustmentModal('${personId}')" style="font-size:11px;border-color:var(--success);color:var(--success)">📊 Saldo aanpassen</button>
     </div>
   </div>`;
 
@@ -3829,6 +4071,7 @@ function openMutationsModal(personId){
   }
 
   openModal('📝 Mutaties — '+fullName(p),html);
+  document.getElementById('modal-title-actions').innerHTML=`<button class="btn btn-sm" onclick="closeModal();openPersonModal('${personId}')" style="font-size:11px">← Fiche</button>`;
 }
 
 async function deleteMutation(personId,mutId){
@@ -3918,12 +4161,16 @@ function openSaldoModal(personId){
 
   let adjustments='';
   if(p.allowanceAdjustments&&p.allowanceAdjustments.length>0){
-    adjustments=p.allowanceAdjustments.map((a,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+    adjustments=p.allowanceAdjustments.map((a,i)=>{
+      const t=leaveTypes.find(x=>x.id===a.typeId);
+      return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
       <span style="font-weight:600;color:${a.days>0?'var(--success)':'var(--danger)'};">${a.days>0?'+':''}\u200B${a.days}d</span>
-      <span style="flex:1;color:var(--text2)">${a.reason}</span>
+      <span style="color:var(--text2)">${t?t.symbol+' '+t.name:''}</span>
+      <span style="flex:1;color:var(--text3)">${a.reason||''}</span>
       <span style="color:var(--text3)">${formatDate(a.date)}</span>
-      <button class="btn btn-sm btn-danger" onclick="removeAdjustment('${personId}',${i})">🗑</button>
-    </div>`).join('');
+    </div>`;
+    }).join('');
+    adjustments+=`<div style="margin-top:8px;font-size:11px;color:var(--text3)">Saldo-aanpassingen worden beheerd via <a href="#" onclick="closeModal();openMutationsModal('${personId}');return false" style="color:var(--accent)">📝 Mutaties</a></div>`;
   }
 
   // Build mutation history: all approved requests + adjustments, chronological
@@ -4052,30 +4299,40 @@ function openSaldoModal(personId){
       </div>
     </div>
     ${adjustments?`<div style="margin-bottom:16px"><div style="font-weight:700;font-size:13px;margin-bottom:8px">Aanpassingen</div>${adjustments}</div>`:''}
-    <div style="border-top:1px solid var(--border);padding-top:16px">
-      <div style="font-weight:700;font-size:13px;margin-bottom:12px">Saldo aanpassen</div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Type</label>
-          <select class="form-input" id="adj-type">
-            ${leaveTypes.filter(t=>t.tracked).map(t=>`<option value="${t.id}">${t.symbol} ${t.name}</option>`).join('')}
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Dagen (+/-)</label>
-          <input type="number" class="form-input" id="adj-days" placeholder="+2 of -1" onkeydown="if(event.key==='Enter')addAdjustment('${personId}')"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Reden <span class="req">*</span></label>
-          <input class="form-input" id="adj-reason" placeholder="Bv. overdracht vorig jaar" onkeydown="if(event.key==='Enter')addAdjustment('${personId}')"/>
-        </div>
-      </div>
-      <button class="btn btn-primary btn-sm" onclick="addAdjustment('${personId}')">Aanpassing toevoegen</button>
-    </div>
   `,true);
+  document.getElementById('modal-title-actions').innerHTML=`<button class="btn btn-sm" onclick="closeModal();openPersonModal('${personId}')" style="font-size:11px">← Fiche</button>`;
 }
 
-function addAdjustment(personId){
+function openSaldoAdjustmentModal(personId){
+  const p=people.find(x=>x.id===personId);
+  if(!p)return;
+  const typeOpts=leaveTypes.filter(t=>t.tracked).map(t=>`<option value="${t.id}">${t.symbol} ${t.name}</option>`).join('');
+  openModal('📊 Saldo aanpassen — '+fullName(p),`
+    <div style="margin-bottom:16px;font-size:12px;color:var(--text3);line-height:1.6">
+      Pas het verlofsaldo aan. De aanpassing wordt opgeslagen als mutatie in het logboek.
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Verloftype</label>
+        <select class="form-input" id="adj-type">${typeOpts}</select>
+      </div>
+      <div class="form-group" style="width:120px">
+        <label class="form-label">Dagen (+/-)</label>
+        <input type="number" class="form-input" id="adj-days" placeholder="+2 of -1"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Reden <span class="req">*</span></label>
+      <input class="form-input" id="adj-reason" placeholder="Bv. correctie, overdracht vorig jaar, extra toegekend"/>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal();openMutationsModal('${personId}')">Annuleren</button>
+      <button class="btn btn-primary" onclick="saveSaldoAdjustment('${personId}')">Opslaan</button>
+    </div>
+  `);
+}
+
+function saveSaldoAdjustment(personId){
   const days=parseFloat(document.getElementById('adj-days').value);
   const reason=document.getElementById('adj-reason').value.trim();
   const typeId=document.getElementById('adj-type').value;
@@ -4083,17 +4340,22 @@ function addAdjustment(personId){
   if(!reason){showToast('Reden is verplicht','error');return;}
   const p=people.find(x=>x.id===personId);
   if(!p)return;
+  const t=leaveTypes.find(x=>x.id===typeId);
   if(!p.allowanceAdjustments)p.allowanceAdjustments=[];
   p.allowanceAdjustments.push({typeId,days,reason,date:new Date().toISOString().split('T')[0]});
-  autoSave();openSaldoModal(personId);
-  showToast('Saldo aangepast');
+  if(!p.mutations)p.mutations=[];
+  p.mutations.push({
+    id:uid(),
+    timestamp:new Date().toISOString(),
+    user:settings.currentUser||'Admin',
+    field:'Saldo aanpassing',
+    oldValue:t?t.symbol+' '+t.name:'',
+    newValue:(days>0?'+':'')+days+'d — '+reason
+  });
+  autoSave();closeModal();openMutationsModal(personId);
+  showToast('Saldo aangepast ('+(days>0?'+':'')+days+'d)');
 }
 
-async function removeAdjustment(personId,idx){
-  if(!await confirmDialog('Aanpassing verwijderen?'))return;
-  const p=people.find(x=>x.id===personId);
-  if(p&&p.allowanceAdjustments){p.allowanceAdjustments.splice(idx,1);autoSave();openSaldoModal(personId);}
-}
 
 // --- Leave Types ---
 function openTypeModal(id){
@@ -4423,7 +4685,7 @@ function renderPersonCalendar(){
     ${Object.keys(typeBreakdown).length>0?`<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">${Object.values(typeBreakdown).map(tb=>`<span class="badge" style="background:${tb.color}1a;color:${tb.color};font-size:11px">${tb.name}: ${tb.days}d</span>`).join('')}</div>`:''}
     <div style="max-height:400px;overflow-y:auto">${gridHtml}</div>
     <div class="modal-actions">
-      <button class="btn" onclick="closeModal();openPersonModal('${_calPersonId}')">← Terug naar fiche</button>
+      <button class="btn" onclick="closeModal();openPersonModal('${_calPersonId}')">← Fiche</button>
       <button class="btn" onclick="closeModal()">Sluiten</button>
     </div>
   `,true);
@@ -4492,7 +4754,7 @@ function renderDocumentsModal(personId){
     <div style="font-size:11px;color:var(--text3);margin-bottom:8px">${p.documents.length} document${p.documents.length!==1?'en':''}</div>
     <div style="max-height:350px;overflow-y:auto">${docsHtml}</div>
     <div class="modal-actions">
-      <button class="btn" onclick="closeModal();openPersonModal('${personId}')">← Terug naar fiche</button>
+      <button class="btn" onclick="closeModal();openPersonModal('${personId}')">← Fiche</button>
       <button class="btn" onclick="closeModal()">Sluiten</button>
     </div>
   `,true);
@@ -4527,11 +4789,9 @@ function addDocument(personId){
     };
     reader.readAsDataURL(file);
   }else{
-    p.documents.push(doc);
-    if(!p.mutations)p.mutations=[];
-    p.mutations.push({id:uid(),timestamp:new Date().toISOString(),user:settings.currentUser||'Admin',field:'Document toegevoegd',oldValue:'',newValue:doc.name+' ('+doc.type+')'});
-    autoSave();renderDocumentsModal(personId);
-    showToast('Document opgeslagen (zonder bestand)');
+    showToast('Selecteer een bijlage om een document toe te voegen','error');
+    fileInput.focus();
+    return;
   }
 }
 
@@ -4568,6 +4828,7 @@ async function deleteDocument(personId,docId){
 // --- Wallchart ---
 let wcDate=new Date();
 let wcMode='month'; // 'month' or 'week'
+let wcTypeFilter=null; // null = alles tonen, of een type id
 
 function wcPrev(){
   if(wcMode==='month')wcDate.setMonth(wcDate.getMonth()-1);
@@ -4608,9 +4869,19 @@ function renderWallchart(){
     document.getElementById('wc-subtitle').textContent=`Week ${getWeekNumber(days[0])} — ${days[0].toLocaleDateString('nl-BE',{day:'numeric',month:'short'})} t/m ${days[6].toLocaleDateString('nl-BE',{day:'numeric',month:'short',year:'numeric'})}`;
   }
 
-  // Legend
+  // Legend — alleen types die daadwerkelijk voorkomen in deze periode
   const legend=document.getElementById('wc-legend');
-  legend.innerHTML=leaveTypes.map(t=>`<span style="display:flex;align-items:center;gap:4px"><span class="clr-dot" style="background:${t.color}"></span>${t.symbol} ${t.name}</span>`).join('');
+  const periodStart=days[0].toISOString().split('T')[0];
+  const periodEnd=days[days.length-1].toISOString().split('T')[0];
+  const periodPeople=deptFilter?people.filter(p=>p.departmentId===deptFilter):people;
+  const usedTypeIds=new Set();
+  requests.filter(r=>r.status==='approved'&&r.startDate<=periodEnd&&r.endDate>=periodStart&&periodPeople.some(p=>p.id===r.personId))
+    .forEach(r=>usedTypeIds.add(r.type));
+  const usedTypes=leaveTypes.filter(t=>usedTypeIds.has(t.id));
+  legend.innerHTML=usedTypes.map(t=>{
+    const isActive=wcTypeFilter===t.id;
+    return `<span onclick="wcTypeFilter=${isActive?'null':"'"+t.id+"'"};renderWallchart()" style="display:flex;align-items:center;gap:4px;padding:3px 8px;border-radius:8px;cursor:pointer;border:2px solid ${isActive?t.color:'transparent'};background:${isActive?t.color+'18':'transparent'};font-weight:${isActive?'700':'400'};transition:all .15s"><span class="clr-dot" style="background:${t.color}"></span>${t.symbol} ${t.name}</span>`;
+  }).join('')+(wcTypeFilter?`<span onclick="wcTypeFilter=null;renderWallchart()" style="padding:3px 8px;border-radius:8px;cursor:pointer;border:1px solid #e2e8f0;color:#94a3b8;font-size:10px">✕ Filter wissen</span>`:'');
 
   // Header
   const thead=document.getElementById('wc-thead');
@@ -4649,12 +4920,18 @@ function renderWallchart(){
         const isHoliday=isPublicHoliday(ds);
         const req=requests.find(r=>r.personId===p.id&&r.status==='approved'&&r.startDate<=ds&&r.endDate>=ds);
         const type=req?leaveTypes.find(t=>t.id===req.type):null;
+        const isFiltered=wcTypeFilter&&type&&type.id!==wcTypeFilter;
         let bg=isWeekend?'#f1f1f5':isHoliday?'rgba(239,68,68,.06)':'';
         let content='';
         if(type){
           const half=req.halfDay;
-          bg=type.color+'33';
-          content=`<span title="${type.name}${half?' ('+req.halfDayPeriod+')':''}: ${fullName(p)}" style="display:block;width:100%;height:100%;background:${type.color}${half?'66':'cc'};border-radius:3px;color:#fff;font-size:9px;line-height:${wcMode==='week'?'28':'22'}px;text-align:center">${type.symbol}</span>`;
+          if(isFiltered){
+            bg='#f8f8fa';
+            content=`<span style="display:block;width:100%;height:100%;background:#e2e8f0;border-radius:3px;opacity:.3"></span>`;
+          }else{
+            bg=type.color+'33';
+            content=`<span title="${type.name}${half?' ('+req.halfDayPeriod+')':''}: ${fullName(p)}" style="display:block;width:100%;height:100%;background:${type.color}${half?'66':'cc'};border-radius:3px;color:#fff;font-size:9px;line-height:${wcMode==='week'?'28':'22'}px;text-align:center">${type.symbol}</span>`;
+          }
         }
         return `<td style="padding:2px;text-align:center;background:${bg};height:${wcMode==='week'?'32':'26'}px">${content}</td>`;
       }).join('')}
@@ -4684,6 +4961,24 @@ function showReportTab(tab,btn){
   document.getElementById('report-'+tab).style.display='block';
   if(btn){btn.parentElement.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));btn.classList.add('active');}
   renderReports();
+  if(tab==='accidents'){
+    // Fill year selector
+    const yearSel=document.getElementById('acc-year');
+    if(yearSel&&yearSel.options.length===0){
+      const curYear=new Date().getFullYear();
+      for(let y=curYear;y>=curYear-5;y--)yearSel.innerHTML+=`<option value="${y}">${y}</option>`;
+    }
+    // Restore hours from settings
+    const year=parseInt(document.getElementById('acc-year').value)||new Date().getFullYear();
+    const hoursInput=document.getElementById('acc-total-hours');
+    if(hoursInput&&accidentSettings.totalHours[year])hoursInput.value=accidentSettings.totalHours[year];
+    renderAccidentStats();
+  }
+}
+
+function openPersonFromReport(personId){
+  window._fromReport=true;
+  openPersonModal(personId);
 }
 
 function renderReports(){
@@ -4774,18 +5069,21 @@ function renderReports(){
       .reduce((s,r)=>{const t=leaveTypes.find(x=>x.id===r.type);return s+((t&&t.tracked)?(r.halfDay?0.5:r.days||0):0);},0);
     const sick=requests.filter(r=>r.personId===p.id&&r.type==='ziekte'&&r.startDate.startsWith(year))
       .reduce((s,r)=>s+(r.halfDay?0.5:r.days||0),0);
-    const remaining=total-used;
-    return `<tr>
+    const absence=requests.filter(r=>r.personId===p.id&&r.status==='approved'&&r.startDate.startsWith(year))
+      .reduce((s,r)=>{const t=leaveTypes.find(x=>x.id===r.type);return s+((t&&t.absenceTracked)?(r.halfDay?0.5:r.days||0):0);},0);
+    const remaining=total-used-planned;
+    return `<tr style="cursor:pointer" onclick="openPersonFromReport('${p.id}')" title="Klik om fiche te openen">
       <td><div style="display:flex;align-items:center;gap:8px">
         <div class="avatar" style="background:${getAvatarColor(fullName(p))};width:26px;height:26px;font-size:10px">${getInitials(fullName(p))}</div>
         <span style="font-weight:600">${fullName(p)}</span>
       </div></td>
       <td>${dept?dept.name:'—'}</td>
-      <td style="font-weight:600">${total}d</td>
-      <td>${used}d</td>
-      <td>${planned}d</td>
-      <td style="font-weight:700;color:${remaining>5?'var(--success)':remaining>0?'var(--warn)':'var(--danger)'}">${remaining}d</td>
-      <td style="color:${sick>0?'var(--danger)':'var(--text3)'}">${sick}d</td>
+      <td style="font-weight:600;text-align:center">${total}d</td>
+      <td style="text-align:center">${used}d</td>
+      <td style="text-align:center;color:${planned>0?'var(--warn)':'var(--text3)'}">${planned}d</td>
+      <td style="font-weight:700;text-align:center;color:${remaining>5?'var(--success)':remaining>0?'var(--warn)':'var(--danger)'}">${remaining}d</td>
+      <td style="text-align:center;color:${absence>0?'var(--text2)':'var(--text3)'}">${absence}d</td>
+      <td style="text-align:center;color:${sick>0?'var(--danger)':'var(--text3)'}">${sick}d</td>
     </tr>`;
   }).join('');
 
@@ -4805,17 +5103,346 @@ function renderReports(){
   }).join('');
 }
 
+// ═══ FIELD INFO TOGGLE ═══
+function toggleFieldInfo(id){
+  const el=document.getElementById(id);
+  if(!el)return;
+  // Close all others
+  document.querySelectorAll('.fi-box').forEach(b=>{if(b.id!==id)b.style.display='none';});
+  el.style.display=el.style.display==='none'?'block':'none';
+}
+
+// ═══ ORGANIGRAM ═══
+function renderOrganigram(){
+  const container=document.getElementById('organigram-container');
+  if(!container)return;
+  const activePeople=people.filter(p=>!p.archived);
+  const activeDepts=departments.filter(d=>activePeople.some(p=>p.departmentId===d.id));
+
+  // Build hierarchy: top-level depts (no parent), then children
+  const topDepts=activeDepts.filter(d=>!d.parentDeptId||!activeDepts.find(x=>x.id===d.parentDeptId));
+  const childDepts=activeDepts.filter(d=>d.parentDeptId&&activeDepts.find(x=>x.id===d.parentDeptId));
+
+  // Directie / zaakvoerders at top
+  const directie=activeDepts.find(d=>d.id==='dept-directie')||topDepts[0];
+  const zaakvoerders=directie?activePeople.filter(p=>p.departmentId===directie.id):[];
+  const otherTopDepts=topDepts.filter(d=>d!==directie);
+
+  const deptColor={
+    'dept-directie':'#1e293b','dept-install':'#1e40af','dept-service':'#065f46',
+    'dept-back':'#6b21a8','dept-verkoop':'#c2410c','dept-onderhoud':'#0e7490'
+  };
+  const deptColorLight={
+    'dept-directie':'#f8fafc','dept-install':'#eff6ff','dept-service':'#ecfdf5',
+    'dept-back':'#faf5ff','dept-verkoop':'#fff7ed','dept-onderhoud':'#ecfeff'
+  };
+  function getColor(dId){return deptColor[dId]||'#334155';}
+  function getColorLight(dId){return deptColorLight[dId]||'#f8fafc';}
+  function avatarBg(n){let h=0;for(let i=0;i<n.length;i++)h=n.charCodeAt(i)+((h<<5)-h);return 'hsl('+Math.abs(h)%360+',45%,42%)';}
+  function ini(n){return n.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();}
+
+  function renderPersonCard(p,showRole){
+    const role=p.teamRole||'';
+    const isLead=role==='Ploegleider'||role==='Manager'||role==='Zaakvoerder';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;background:${isLead?'rgba(59,130,246,.04)':'#fff'};border:1px solid ${isLead?'rgba(59,130,246,.15)':'#f1f5f9'}">
+      <div style="width:26px;height:26px;border-radius:50%;background:${avatarBg(fullName(p))};display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:700;flex-shrink:0">${ini(fullName(p))}</div>
+      <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:12px;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${fullName(p)}</div>
+      ${role?`<div style="font-size:10px;color:#64748b">${role}</div>`:''}</div>
+      ${isLead?'<div style="font-size:10px;padding:1px 6px;border-radius:4px;background:rgba(59,130,246,.1);color:#2563eb;font-weight:600;white-space:nowrap">'+role+'</div>':''}
+    </div>`;
+  }
+
+  function renderDeptBlock(d){
+    const dPeople=activePeople.filter(p=>p.departmentId===d.id);
+    const manager=d.managerId?dPeople.find(p=>p.id===d.managerId)||activePeople.find(p=>p.id===d.managerId):null;
+    const leads=dPeople.filter(p=>p.teamRole==='Ploegleider'&&p!==manager);
+    const others=dPeople.filter(p=>p!==manager&&!leads.includes(p));
+    const children=childDepts.filter(c=>c.parentDeptId===d.id);
+    const color=getColor(d.id);
+    const colorLight=getColorLight(d.id);
+
+    let html=`<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;border-top:3px solid ${color};overflow:hidden">
+      <div style="padding:12px 14px;background:${colorLight}">
+        <div style="font-weight:700;font-size:14px;color:${color}">${d.name}</div>
+        <div style="font-size:11px;color:#94a3b8">${dPeople.length} medewerker${dPeople.length!==1?'s':''}</div>
+        ${manager?`<div style="display:flex;align-items:center;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid rgba(0,0,0,.06)">
+          <div style="width:28px;height:28px;border-radius:50%;background:${avatarBg(fullName(manager))};display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:700">${ini(fullName(manager))}</div>
+          <div><div style="font-weight:600;font-size:12px;color:#1e293b">${fullName(manager)}</div><div style="font-size:10px;color:#64748b">${manager.teamRole||'Manager'}</div></div>
+        </div>`:''}
+      </div>
+      <div style="padding:8px;display:flex;flex-direction:column;gap:3px">`;
+    leads.forEach(p=>{html+=renderPersonCard(p,true);});
+    others.forEach(p=>{html+=renderPersonCard(p,false);});
+    html+=`</div>`;
+
+    // Child departments
+    if(children.length>0){
+      html+=`<div style="padding:8px;border-top:1px dashed #e2e8f0;display:flex;gap:10px;flex-wrap:wrap">`;
+      children.forEach(c=>{html+=`<div style="flex:1;min-width:200px">${renderDeptBlock(c)}</div>`;});
+      html+=`</div>`;
+    }
+
+    html+=`</div>`;
+    return html;
+  }
+
+  // Build full organigram
+  let html=`<div style="text-align:center;margin-bottom:32px">
+    <div style="font-size:20px;font-weight:700;color:#1e293b">Advanced Energy</div>
+    <div style="font-size:12px;color:#94a3b8;margin-top:2px">Organisatiestructuur · ${activePeople.length} medewerkers · ${activeDepts.length} departments</div>
+  </div>`;
+
+  // Zaakvoerders block
+  if(zaakvoerders.length>0){
+    html+=`<div style="display:flex;justify-content:center;margin-bottom:24px">
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;border-top:3px solid #1e293b;padding:16px 20px;min-width:280px">
+        <div style="font-weight:700;font-size:13px;color:#1e293b;text-align:center;margin-bottom:10px">${directie?directie.name:'Directie'}</div>
+        <div style="display:flex;flex-direction:column;gap:4px">`;
+    zaakvoerders.forEach(p=>{html+=renderPersonCard(p,true);});
+    html+=`</div></div></div>`;
+
+    // Connector line
+    html+=`<div style="display:flex;justify-content:center;margin-bottom:24px"><div style="width:2px;height:32px;background:linear-gradient(to bottom,#cbd5e1,#e2e8f0)"></div></div>`;
+
+    // Horizontal connector
+    if(otherTopDepts.length>1){
+      html+=`<div style="display:flex;justify-content:center;margin-bottom:0"><div style="height:2px;background:#e2e8f0;width:${Math.min(otherTopDepts.length*220,900)}px"></div></div>`;
+    }
+  }
+
+  // Department blocks
+  html+=`<div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;align-items:flex-start">`;
+  otherTopDepts.forEach(d=>{
+    html+=`<div style="flex:0 1 220px;min-width:200px">
+      <div style="display:flex;justify-content:center;margin-bottom:12px"><div style="width:2px;height:20px;background:#e2e8f0"></div></div>
+      ${renderDeptBlock(d)}
+    </div>`;
+  });
+  html+=`</div>`;
+
+  container.innerHTML=html;
+}
+
+async function exportOrganigramPDF(){
+  showToast('PDF wordt gegenereerd...');
+  const container=document.getElementById('organigram-container');
+  if(!container)return;
+  // Use html2canvas + jsPDF approach via canvas
+  const {jsPDF}=await import('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js').catch(()=>({}));
+  // Fallback: print-friendly approach
+  const printWin=window.open('','_blank');
+  printWin.document.write(`<!DOCTYPE html><html><head><title>Organigram — Advanced Energy</title><style>
+    *{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:24px;background:#fff}
+    @media print{body{padding:10mm}@page{size:A3 landscape;margin:10mm}}
+  </style></head><body>${container.innerHTML}
+  <script>setTimeout(function(){window.print();},300)<\/script></body></html>`);
+  printWin.document.close();
+}
+
+// ═══ ARBEIDSONGEVALLEN ═══
+function renderAccidentStats(){
+  const yearSel=document.getElementById('acc-year');
+  if(!yearSel)return;
+  const year=parseInt(yearSel.value)||new Date().getFullYear();
+  const hoursInput=document.getElementById('acc-total-hours');
+  const hours=parseFloat(hoursInput?hoursInput.value:0)||0;
+  // Persist hours per year
+  if(hours>0){accidentSettings.totalHours[year]=hours;autoSave();}
+  else if(accidentSettings.totalHours[year]&&hoursInput){hoursInput.value=accidentSettings.totalHours[year];}
+
+  const yearAccidents=accidents.filter(a=>a.date&&a.date.startsWith(''+year)&&!a.deleted);
+  const werkplek=yearAccidents.filter(a=>a.locatie==='werkplek');
+  const woonwerk=yearAccidents.filter(a=>a.locatie==='woon-werk');
+  const totalLostDays=yearAccidents.reduce((s,a)=>s+(a.verlorenDagen||0),0);
+  const werkplekLostDays=werkplek.reduce((s,a)=>s+(a.verlorenDagen||0),0);
+  const forfaitDays=yearAccidents.reduce((s,a)=>s+(a.forfaitDagen||0),0);
+
+  const totalHours=hours||accidentSettings.totalHours[year]||0;
+  // FOD formules — enkel werkplek ongevallen voor Fg
+  const fg=totalHours>0?(werkplek.length/totalHours*1000000):0;
+  const egWerkelijk=totalHours>0?(werkplekLostDays/totalHours*1000):0;
+  const egGlobaal=totalHours>0?((werkplekLostDays+forfaitDays)/totalHours*1000):0;
+
+  const cards=document.getElementById('acc-stats-cards');
+  if(cards){
+    cards.innerHTML=`
+      <div class="card"><div class="stat"><div class="stat-value" style="color:var(--danger)">${yearAccidents.length}</div><div class="stat-label">Ongevallen ${year}</div></div></div>
+      <div class="card"><div class="stat"><div class="stat-value" style="color:${fg>25?'var(--danger)':fg>10?'var(--warn)':'var(--success)'}">${totalHours>0?fg.toFixed(2):'—'}</div><div class="stat-label">Frequentiegraad (Fg)</div><div style="font-size:10px;color:var(--text3);margin-top:2px">per 1.000.000 uren</div></div></div>
+      <div class="card"><div class="stat"><div class="stat-value" style="color:${egWerkelijk>1?'var(--danger)':egWerkelijk>0.3?'var(--warn)':'var(--success)'}">${totalHours>0?egWerkelijk.toFixed(3):'—'}</div><div class="stat-label">Werkelijke ernstgraad</div><div style="font-size:10px;color:var(--text3);margin-top:2px">per 1.000 uren</div></div></div>
+      <div class="card"><div class="stat"><div class="stat-value" style="color:${egGlobaal>1.5?'var(--danger)':egGlobaal>0.5?'var(--warn)':'var(--success)'}">${totalHours>0?egGlobaal.toFixed(3):'—'}</div><div class="stat-label">Globale ernstgraad</div><div style="font-size:10px;color:var(--text3);margin-top:2px">incl. forfait</div></div></div>
+    `;
+  }
+
+  const container=document.getElementById('acc-table-container');
+  if(!container)return;
+  if(yearAccidents.length===0){
+    container.innerHTML='<div style="text-align:center;padding:30px;color:var(--text3);font-size:13px">Geen arbeidsongevallen geregistreerd in '+year+'.</div>';
+    return;
+  }
+  let html='<div style="max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm)"><table class="tbl" style="margin:0"><thead><tr><th>Datum</th><th>Medewerker</th><th>Locatie</th><th>Ernst</th><th>Verloren dagen</th><th>Forfait</th><th>Omschrijving</th><th></th></tr></thead><tbody>';
+  yearAccidents.sort((a,b)=>b.date.localeCompare(a.date)).forEach(a=>{
+    const p=people.find(x=>x.id===a.personId);
+    const locLabel=a.locatie==='werkplek'?'🏭 Werkplek':'🚗 Woon-werk';
+    const ernstLabel=a.ernst==='dodelijk'?'💀 Dodelijk':a.ernst==='blijvend'?'🔴 Blijvend':a.ernst==='tijdelijk'?'🟡 Tijdelijk':'🟢 Geen verzuim';
+    html+=`<tr>
+      <td style="white-space:nowrap;font-size:12px">${formatDate(a.date)}</td>
+      <td style="font-weight:600;font-size:12px">${p?fullName(p):'Onbekend'}</td>
+      <td style="font-size:12px">${locLabel}</td>
+      <td style="font-size:12px">${ernstLabel}</td>
+      <td style="text-align:center;font-weight:600">${a.verlorenDagen||0}d</td>
+      <td style="text-align:center;font-weight:600;color:${a.forfaitDagen>0?'var(--danger)':'var(--text3)'}">${a.forfaitDagen||0}d</td>
+      <td style="font-size:12px;color:var(--text2)">${a.omschrijving||'—'}</td>
+      <td><div style="display:flex;gap:4px">
+        <button class="btn btn-sm" onclick="openAccidentModal('${a.id}')" style="font-size:10px">✏️</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteAccident('${a.id}')" style="font-size:10px">🗑</button>
+      </div></td>
+    </tr>`;
+  });
+  html+='</tbody></table></div>';
+
+  // Formule toelichting
+  html+=`<div style="margin-top:16px;padding:12px;background:var(--surface2);border-radius:var(--radius-sm);font-size:11px;color:var(--text3);line-height:1.7">
+    <strong>FOD formules:</strong><br/>
+    Fg = (${werkplek.length} werkplekongevallen ÷ ${totalHours||'?'} uren) × 1.000.000 = <strong>${totalHours>0?fg.toFixed(2):'—'}</strong><br/>
+    Eg werkelijk = (${werkplekLostDays} verloren dagen ÷ ${totalHours||'?'} uren) × 1.000 = <strong>${totalHours>0?egWerkelijk.toFixed(3):'—'}</strong><br/>
+    Eg globaal = ((${werkplekLostDays} + ${forfaitDays} forfait) ÷ ${totalHours||'?'} uren) × 1.000 = <strong>${totalHours>0?egGlobaal.toFixed(3):'—'}</strong>
+  </div>`;
+
+  container.innerHTML=html;
+}
+
+function openAccidentModal(accId){
+  const acc=accId?accidents.find(a=>a.id===accId):null;
+  const personOpts=people.filter(p=>!p.archived).map(p=>`<option value="${p.id}" ${acc&&acc.personId===p.id?'selected':''}>${fullName(p)}</option>`).join('');
+
+  openModal(acc?'✏️ Ongeval bewerken':'➕ Arbeidsongeval registreren',`
+    <div class="form-row">
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Medewerker <span class="req">*</span></label>
+        <select class="form-input" id="acc-person">${personOpts}</select>
+      </div>
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Datum ongeval <span class="req">*</span></label>
+        <input type="date" class="form-input" id="acc-date" value="${acc?acc.date:new Date().toISOString().split('T')[0]}"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Locatie</label>
+        <select class="form-input" id="acc-locatie">
+          <option value="werkplek" ${!acc||acc.locatie==='werkplek'?'selected':''}>🏭 Op de werkplek</option>
+          <option value="woon-werk" ${acc&&acc.locatie==='woon-werk'?'selected':''}>🚗 Woon-werkverkeer</option>
+        </select>
+      </div>
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Ernst</label>
+        <select class="form-input" id="acc-ernst" onchange="updateForfait()">
+          <option value="geen" ${acc&&acc.ernst==='geen'?'selected':''}>Geen verzuim</option>
+          <option value="tijdelijk" ${!acc||acc.ernst==='tijdelijk'?'selected':''}>Tijdelijk letsel</option>
+          <option value="blijvend" ${acc&&acc.ernst==='blijvend'?'selected':''}>Blijvende ongeschiktheid</option>
+          <option value="dodelijk" ${acc&&acc.ernst==='dodelijk'?'selected':''}>Dodelijk</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Verloren kalenderdagen</label>
+        <input type="number" class="form-input" id="acc-lost-days" min="0" value="${acc?acc.verlorenDagen||0:0}" placeholder="0"/>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">Kalenderdagen van dag na ongeval tot werkhervatting</div>
+      </div>
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Forfait dagen</label>
+        <input type="number" class="form-input" id="acc-forfait" min="0" value="${acc?acc.forfaitDagen||0:0}" placeholder="0"/>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">7.500d bij dodelijk of 100% blijvend</div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1">
+        <label class="form-label">Datum werkhervatting</label>
+        <input type="date" class="form-input" id="acc-return-date" value="${acc?acc.returnDate||'':''}"/>
+      </div>
+      <div class="form-group" style="flex:1">
+        <label class="form-label">% Blijvende ongeschiktheid</label>
+        <input type="number" class="form-input" id="acc-pct-invalid" min="0" max="100" step="1" value="${acc?acc.pctInvalid||0:0}" placeholder="0"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Omschrijving</label>
+      <textarea class="form-input" id="acc-desc" rows="2" placeholder="Korte beschrijving van het ongeval...">${acc?acc.omschrijving||'':''}</textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Annuleren</button>
+      <button class="btn btn-primary" onclick="saveAccident('${accId||''}')">Opslaan</button>
+    </div>
+  `);
+}
+
+function updateForfait(){
+  const ernst=document.getElementById('acc-ernst').value;
+  const forfaitEl=document.getElementById('acc-forfait');
+  if(ernst==='dodelijk')forfaitEl.value=7500;
+  else if(ernst==='blijvend'){
+    const pct=parseInt(document.getElementById('acc-pct-invalid').value)||0;
+    forfaitEl.value=pct===100?7500:Math.round(7500*pct/100);
+  }else forfaitEl.value=0;
+}
+
+function saveAccident(accId){
+  const personId=document.getElementById('acc-person').value;
+  const date=document.getElementById('acc-date').value;
+  if(!personId||!date){showToast('Medewerker en datum zijn verplicht','error');return;}
+  const data={
+    personId,date,
+    locatie:document.getElementById('acc-locatie').value,
+    ernst:document.getElementById('acc-ernst').value,
+    verlorenDagen:parseInt(document.getElementById('acc-lost-days').value)||0,
+    forfaitDagen:parseInt(document.getElementById('acc-forfait').value)||0,
+    returnDate:document.getElementById('acc-return-date').value||'',
+    pctInvalid:parseInt(document.getElementById('acc-pct-invalid').value)||0,
+    omschrijving:document.getElementById('acc-desc').value.trim()
+  };
+  if(accId){
+    const acc=accidents.find(a=>a.id===accId);
+    if(acc)Object.assign(acc,data);
+  }else{
+    data.id='acc_'+uid();
+    data.createdAt=new Date().toISOString();
+    accidents.push(data);
+  }
+  // Log mutatie bij medewerker
+  const p=people.find(x=>x.id===personId);
+  if(p){
+    if(!p.mutations)p.mutations=[];
+    const locLabel=data.locatie==='werkplek'?'werkplek':'woon-werk';
+    p.mutations.push({id:uid(),timestamp:new Date().toISOString(),user:settings.currentUser||'Admin',field:accId?'Arbeidsongeval gewijzigd':'Arbeidsongeval geregistreerd',oldValue:'',newValue:formatDate(data.date)+' — '+locLabel+', '+data.verlorenDagen+'d verloren'});
+  }
+  closeModal();autoSave();renderAccidentStats();
+  showToast('Arbeidsongeval '+(accId?'bijgewerkt':'geregistreerd'));
+}
+
+async function deleteAccident(accId){
+  if(!await confirmDialog('Arbeidsongeval verwijderen?'))return;
+  accidents=accidents.filter(a=>a.id!==accId);
+  autoSave();renderAccidentStats();
+  showToast('Ongeval verwijderd');
+}
+
 // --- Export functies ---
 function exportReportCSV(){
   const year=new Date().getFullYear();
-  let csv='Medewerker;Department;Totaal recht;Opgenomen;Resterend;Ziektedagen\n';
+  let csv='Medewerker;Department;Recht;Opgenomen;Gepland;Resterend;Afwezigheid;Ziektedagen\n';
+  const today=new Date().toISOString().split('T')[0];
   people.forEach(p=>{
     const dept=departments.find(d=>d.id===p.departmentId);
     const total=getTotalAllowance(p);
     const used=getUsedDays(p.id);
+    const planned=requests.filter(r=>r.personId===p.id&&r.status==='approved'&&r.startDate>today)
+      .reduce((s,r)=>{const t=leaveTypes.find(x=>x.id===r.type);return s+((t&&t.tracked)?(r.halfDay?0.5:r.days||0):0);},0);
     const sick=requests.filter(r=>r.personId===p.id&&r.type==='ziekte'&&r.startDate.startsWith(year))
       .reduce((s,r)=>s+(r.halfDay?0.5:r.days||0),0);
-    csv+=`${fullName(p)};${dept?dept.name:''};${total};${used};${total-used};${sick}\n`;
+    const absence=requests.filter(r=>r.personId===p.id&&r.status==='approved'&&r.startDate.startsWith(year))
+      .reduce((s,r)=>{const t=leaveTypes.find(x=>x.id===r.type);return s+((t&&t.absenceTracked)?(r.halfDay?0.5:r.days||0):0);},0);
+    csv+=`${fullName(p)};${dept?dept.name:''};${total};${used};${planned};${total-used-planned};${absence};${sick}\n`;
   });
   downloadFile('verlofoverzicht_'+year+'.csv',csv,'text/csv');
   showToast('CSV geëxporteerd 📊');
@@ -4930,7 +5557,7 @@ function openSalaryModal(personId){
         <button class="btn btn-sm" onclick="manageSalaryReasonTypes('${personId}')">⚙️ Types beheren</button>
         <button class="btn btn-sm" onclick="openLoonberekening('${personId}')">🧮 Loonberekening</button>
       </div>
-      <button class="btn btn-sm" onclick="closeModal();openPersonModal('${personId}')">← Terug naar fiche</button>
+      <button class="btn btn-sm" onclick="closeModal();openPersonModal('${personId}')">← Fiche</button>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
       <div>
@@ -4966,7 +5593,7 @@ function openSalaryModal(personId){
           <div style="font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3)">Salaris-historiek</div>
           <button class="btn btn-sm btn-primary-outline" onclick="addSalaryMutation('${personId}')">➕ Mutatie</button>
         </div>
-        <div style="max-height:320px;overflow-y:auto">
+        <div style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm)">
           <table class="tbl" style="font-size:12px">
             <thead><tr><th>Datum</th><th>Type</th><th style="text-align:right">Uurloon</th><th style="text-align:right">Verschil</th><th></th></tr></thead>
             <tbody>
@@ -5646,8 +6273,8 @@ function previewBulkIndexation(){
     if(!sal)return;
     const dept=departments.find(function(d){return d.id===p.departmentId;});
     const alreadyHas=p.salaryHistory.some(function(m){return m.type==='index'&&m.date===date&&!m.deleted;});
-    const raise=pct>0?Math.round(sal.current*pct)/100:0;
-    const newRate=Math.round((sal.current+raise)*100)/100;
+    const raise=pct>0?Math.round(sal.currentRate*pct)/100:0;
+    const newRate=Math.round((sal.currentRate+raise)*100)/100;
     const status=alreadyHas
       ?'<span style="color:var(--warn);font-weight:600">⚠️ Al geïndexeerd op deze datum</span>'
       :'<span style="color:var(--success)">✅ Toe te passen</span>';
@@ -5656,7 +6283,7 @@ function previewBulkIndexation(){
     html+='<td style="font-weight:600">'+fullName(p)+'</td>';
     html+='<td style="text-align:center"><span class="badge badge-blue">'+( p.baremaCategory||'—')+'</span></td>';
     html+='<td>'+(dept?dept.name:'—')+'</td>';
-    html+='<td style="text-align:right;font-weight:600">€ '+sal.current.toFixed(2)+'</td>';
+    html+='<td style="text-align:right;font-weight:600">€ '+sal.currentRate.toFixed(2)+'</td>';
     if(pct>0){
       html+='<td style="text-align:right;color:var(--success);font-weight:600">+€ '+raise.toFixed(2)+'</td>';
       html+='<td style="text-align:right;font-weight:700;color:var(--accent)">€ '+newRate.toFixed(2)+'</td>';
@@ -5694,15 +6321,25 @@ async function confirmBulkIndexation(){
   toApply.forEach(function(p){
     const sal=calcCurrentSalary(p);
     if(!sal)return;
-    const raise=Math.round(sal.current*pct)/100;
-    const newRate=Math.round((sal.current+raise)*100)/100;
+    const raise=Math.round(sal.currentRate*pct)/100;
+    const newRate=Math.round((sal.currentRate+raise)*100)/100;
     p.salaryHistory.push({
       id:uid(),
       type:'index',
-      amount:newRate,
+      amount:raise,
       date:date,
       comment:'Indexatie +'+pct+'%',
       locked:true
+    });
+    // Log mutatie
+    if(!p.mutations)p.mutations=[];
+    p.mutations.push({
+      id:uid(),
+      timestamp:new Date().toISOString(),
+      user:settings.currentUser||'Admin',
+      field:'Loonindexatie',
+      oldValue:'€ '+sal.currentRate.toFixed(2)+'/u',
+      newValue:'€ '+newRate.toFixed(2)+'/u (+'+pct+'% = +€ '+raise.toFixed(2)+')'
     });
     count++;
   });
@@ -5760,7 +6397,7 @@ async function resetData(){
   localStorage.removeItem('vb_werkgeverskost');
   localStorage.removeItem('vb_uurkostParams');
   localStorage.removeItem('vb_verlofregels');
-  localStorage.removeItem('vb_checklistItems');
+  localStorage.removeItem('vb_checklistItems');localStorage.removeItem('vb_accidents');localStorage.removeItem('vb_accidentSettings');
   location.reload();
 }
 
@@ -5784,7 +6421,7 @@ if(localStorage.getItem('vb_seed_version')!==SEED_VERSION){
   localStorage.removeItem('vb_werkgeverskost');
   localStorage.removeItem('vb_uurkostParams');
   localStorage.removeItem('vb_verlofregels');
-  localStorage.removeItem('vb_checklistItems');
+  localStorage.removeItem('vb_checklistItems');localStorage.removeItem('vb_accidents');localStorage.removeItem('vb_accidentSettings');
   localStorage.setItem('vb_seed_version',SEED_VERSION);
   departments=[];people=[];leaveTypes=[];schedules=[];requests=[];candidates=[];channels=[];baremaData=[];ancienniteitData=[];verlofregels=[];checklistItems=[];
 }
@@ -5795,12 +6432,12 @@ if(localStorage.getItem('vb_seed_version')!==SEED_VERSION){
 // Seed demo data
 if(departments.length===0&&people.length===0){
   departments=[
-    {id:'dept-install',name:'Installatie',approverId:''},
-    {id:'dept-service',name:'Service',approverId:''},
-    {id:'dept-back',name:'Backoffice',approverId:''},
-    {id:'dept-directie',name:'Directie',approverId:''},
-    {id:'dept-verkoop',name:'Verkoop',approverId:''},
-    {id:'dept-onderhoud',name:'Onderhoud',approverId:''}
+    {id:'dept-install',name:'Installatie',approverIds:[],parentDeptId:'',managerId:''},
+    {id:'dept-service',name:'Service',approverIds:[],parentDeptId:'',managerId:''},
+    {id:'dept-back',name:'Backoffice',approverIds:[],parentDeptId:'',managerId:''},
+    {id:'dept-directie',name:'Directie',approverIds:[],parentDeptId:'',managerId:''},
+    {id:'dept-verkoop',name:'Verkoop',approverIds:[],parentDeptId:'',managerId:''},
+    {id:'dept-onderhoud',name:'Onderhoud',approverIds:[],parentDeptId:'',managerId:''}
   ];
   people=[
     // Bestaande demo medewerkers — VERWIJDERD (vervangen door echte data)
@@ -5838,12 +6475,12 @@ if(departments.length===0&&people.length===0){
     {id:'x20',firstName:'Stef',lastName:'Aerts',email:'stef@advancedenergy.be',departmentId:'dept-install',role:'user',isApprover:false,startDate:'2026-04-01',scheduleId:'fulltime',statuut:'arbeider',paritairComite:'149.01',baremaCategory:'C',gsm:'+32 485 33 20 17',tel:'',werkGsm:'',iban:'BE23 7340 5512 0098',birthDate:'1999-02-10',noodNaam:'Karolien Aerts',noodRelatie:'mama',noodGsm:'+32 478 60 11 34',allowanceAdjustments:[],
       salaryHistory:[{id:'s20a',type:'start',amount:18.45,date:'2026-04-01',comment:'Startloon cat. C barema 2026',locked:true}]}
   ];
-  departments[0].approverId='x5';  // Installatie -> Bert Resseler
-  departments[1].approverId='x5';  // Service -> Bert Resseler
-  departments[2].approverId='x14'; // Backoffice -> Mien Puttemans
-  departments[3].approverId='x5';  // Directie -> Bert Resseler
-  departments[4].approverId='x8';  // Verkoop -> Chris Vanroelen
-  departments[5].approverId='x17'; // Onderhoud -> Pieter-Jan De Clercq
+  departments[0].approverIds=['x5'];  // Installatie -> Bert Resseler
+  departments[1].approverIds=['x5'];  // Service -> Bert Resseler
+  departments[2].approverIds=['x14']; // Backoffice -> Mien Puttemans
+  departments[3].approverIds=['x5'];  // Directie -> Bert Resseler
+  departments[4].approverIds=['x8'];  // Verkoop -> Chris Vanroelen
+  departments[5].approverIds=['x17']; // Onderhoud -> Pieter-Jan De Clercq
   
   const today=new Date();
   const todayStr=today.toISOString().split('T')[0];
@@ -6063,6 +6700,8 @@ var firebaseDb=null;
           try{if(d.ancienniteitData){var cv=JSON.parse(d.ancienniteitData);if(cv.length>0)ancienniteitData=cv;}}catch(e){}
           try{if(d.verlofregels){var cv=JSON.parse(d.verlofregels);if(Array.isArray(cv))verlofregels=cv;}}catch(e){}
           try{if(d.checklistItems){var cv=JSON.parse(d.checklistItems);if(Array.isArray(cv))checklistItems=cv;}}catch(e){}
+          try{if(d.accidents){var av=JSON.parse(d.accidents);if(Array.isArray(av))accidents=av;}}catch(e){}
+          try{if(d.accidentSettings){var asv=JSON.parse(d.accidentSettings);if(typeof asv==='object')accidentSettings=asv;}}catch(e){}
           return ch;
         }
 
@@ -6111,6 +6750,8 @@ var firebaseDb=null;
             uurkostParams:JSON.stringify(typeof uurkostParams!=='undefined'?uurkostParams:{}),
             verlofregels:JSON.stringify(typeof verlofregels!=='undefined'?verlofregels:[]),
             checklistItems:JSON.stringify(typeof checklistItems!=='undefined'?checklistItems:[]),
+            accidents:JSON.stringify(typeof accidents!=='undefined'?accidents:[]),
+            accidentSettings:JSON.stringify(typeof accidentSettings!=='undefined'?accidentSettings:{totalHours:{}}),
             updatedAt:new Date().toISOString()
           }).then(function(){
             console.log('🔥 Firestore saved');
