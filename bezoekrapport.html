@@ -356,6 +356,19 @@
 
   @media(max-width:500px){.fields-row{flex-direction:column;}}
 </style>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<script>
+try{
+  if(typeof firebase!=="undefined"&&!firebase.apps.length){
+    firebase.initializeApp({apiKey:"AIzaSyBKU-wCjV4Au4ngRG52Zmmxbzc3N3D8VBU",authDomain:"advanced-intranet.firebaseapp.com",projectId:"advanced-intranet",storageBucket:"advanced-intranet.firebasestorage.app",messagingSenderId:"309856938024",appId:"1:309856938024:web:2108715f92c5dea2da2d1d"});
+    window.fbDb=firebase.firestore();
+    window.fbStorage=firebase.storage();
+    console.log("Firebase OK");
+  }
+}catch(e){console.warn("Firebase init skip:",e.message);}
+</script>
 </head>
 <body>
 
@@ -5328,6 +5341,51 @@ function finalizeAllReports(){
     return;
   }
   const types=[...completedTypes].map(t=>TYPES[t].label).join(', ');
+  // Save to Firebase
+  if(window.fbDb){
+    const docId='br_'+Date.now()+'_'+Math.random().toString(36).substr(2,8);
+    const payload={
+      klantNaam:naam,
+      klantAdres:adres,
+      completedTypes:[...completedTypes],
+      selected:[...selected],
+      deletedItems:[...deletedItems],
+      itemData:JSON.stringify(itemData),
+      createdAt:new Date().toISOString()
+    };
+    // Upload photos to Storage first, then save doc
+    (async function(){
+      try{
+        // Collect all photos from itemData and upload to Storage
+        const updatedItemData={...itemData};
+        for(const[sk,data] of Object.entries(updatedItemData)){
+          if(data&&data.photos&&data.photos.length>0){
+            const urls=[];
+            for(let pi=0;pi<data.photos.length;pi++){
+              const photoSrc=data.photos[pi];
+              if(photoSrc&&photoSrc.startsWith('data:')){
+                try{
+                  const resp=await fetch(photoSrc);
+                  const blob=await resp.blob();
+                  const path='bezoekrapport/'+docId+'/'+sk+'/foto_'+pi+'.jpg';
+                  const ref=window.fbStorage.ref(path);
+                  await ref.put(blob);
+                  const url=await ref.getDownloadURL();
+                  urls.push(url);
+                }catch(ue){console.warn('Upload skip:',ue.message);urls.push('');}
+              }else if(photoSrc){urls.push(photoSrc);}
+            }
+            updatedItemData[sk]={...data,storageUrls:urls,photoCount:urls.filter(u=>u).length};
+            // Remove base64 from payload to save space
+            delete updatedItemData[sk].photos;
+          }
+        }
+        payload.itemData=JSON.stringify(updatedItemData);
+        await window.fbDb.collection('bezoekrapport').doc(docId).set(payload);
+        console.log('Firebase saved:',docId);
+      }catch(e){console.warn('Firebase save error:',e.message);}
+    })();
+  }
   document.getElementById('suc-msg').textContent=`Alle rapporten (${types}) zijn opgeslagen.`;
   showPanel('panel-4');
   localStorage.removeItem('bzr-data');
