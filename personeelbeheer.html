@@ -223,6 +223,13 @@ select.form-input{cursor:pointer;}
     </div>
   </div>
   <div class="sb-nav">
+    <div id="birthday-alert" style="display:none;margin:0 4px 10px;padding:10px 12px;background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:10px;cursor:pointer" onclick="showPage('people')">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:20px">🎂</span>
+        <div><div style="font-weight:700;font-size:12px;color:#92400e" id="birthday-names"></div>
+        <div style="font-size:10px;color:#a16207">Proficiat!</div></div>
+      </div>
+    </div>
     <div class="sb-section">Overzicht</div>
     <button class="sb-item active" data-page="dashboard" onclick="try{showPage('dashboard')}catch(e){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});document.getElementById('page-dashboard').classList.add('active');document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active')});this.classList.add('active')}">
       <span class="sb-item-icon">📊</span>Dashboard
@@ -237,7 +244,10 @@ select.form-input{cursor:pointer;}
     </button>
     <button class="sb-item" data-page="people" onclick="try{showPage('people')}catch(e){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});document.getElementById('page-people').classList.add('active');document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active')});this.classList.add('active')}">
       <span class="sb-item-icon">👥</span>Medewerkers
-      <span class="sb-item-badge" id="badge-interim" style="display:none;background:#eab308">0</span>
+      <span style="display:flex;gap:4px;margin-left:auto;align-items:center">
+        <span class="sb-item-badge" id="badge-birthday" style="display:none;background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e;margin-left:0">🎂</span>
+        <span class="sb-item-badge" id="badge-interim" style="display:none;background:#eab308;margin-left:0">0</span>
+      </span>
     </button>
     <button class="sb-item" data-page="departments" onclick="try{showPage('departments')}catch(e){document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});document.getElementById('page-departments').classList.add('active');document.querySelectorAll('.sb-item').forEach(function(b){b.classList.remove('active')});this.classList.add('active')}">
       <span class="sb-item-icon">📂</span>Departments
@@ -378,6 +388,7 @@ document.addEventListener('click',function(e){
               <th style="cursor:pointer;user-select:none" onclick="sortPeople('schedule')">Rooster <span id="sort-schedule" style="opacity:.3;display:inline-block;width:12px;text-align:center">↕</span></th>
               <th style="cursor:pointer;user-select:none" onclick="sortPeople('saldo')">Saldo <span id="sort-saldo" style="opacity:.3;display:inline-block;width:12px;text-align:center">↕</span></th>
               <th>Saldo OV</th>
+              <th style="cursor:pointer;user-select:none" onclick="sortPeople('totafwezig')">Afwezig <span id="sort-totafwezig" style="opacity:.3;display:inline-block;width:12px;text-align:center">↕</span></th>
               <th class="interim-col" style="display:none">Interim dagen</th>
               <th class="interim-col" style="display:none">Interim counter</th>
               <th></th>
@@ -409,10 +420,12 @@ document.addEventListener('click',function(e){
               <option value="">Alle kanalen</option>
             </select>
           </div>
-          <table class="tbl">
-            <thead><tr><th>Kandidaat</th><th>Kanaal</th><th>Positie</th><th>Status</th><th>CV</th><th>Gesprek</th><th></th></tr></thead>
+          <div style="max-height:50vh;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm)">
+          <table class="tbl" style="margin:0">
+            <thead style="position:sticky;top:0;z-index:2;background:var(--surface)"><tr><th>Kandidaat</th><th>Kanaal</th><th>Positie</th><th>Status</th><th>CV</th><th>Gesprek</th><th></th></tr></thead>
             <tbody id="candidates-table"></tbody>
           </table>
+          </div>
           <button class="btn btn-sm" style="margin-top:12px;width:100%;justify-content:center;border-style:dashed;color:var(--text3)" onclick="openCandidateModal()">➕ Kandidaat toevoegen</button>
         </div>
       </div>
@@ -574,7 +587,17 @@ document.addEventListener('click',function(e){
             <div class="card-title" style="margin-bottom:2px">📏 Verlofregels</div>
             <div style="font-size:11px;color:var(--text3)">Configureer beperkingen voor verlofaanvragen. Bij overschrijding verschijnt een waarschuwing (geen blokkering).</div>
           </div>
-          <div id="verlofregels-content" style="max-height:400px;overflow-y:auto"></div>
+          <div id="verlofregels-content" style="max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm)"></div>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+            <div>
+              <div class="card-title" style="margin-bottom:2px">⏰ Aanvraagtermijnen</div>
+              <div style="font-size:11px;color:var(--text3)">Hoeveel dagen op voorhand moet een aanvraag ingediend worden, afhankelijk van de duur. Bij overschrijding verschijnt een zachte waarschuwing.</div>
+            </div>
+            <button class="btn btn-sm btn-primary-outline" onclick="openTermijnModal()">➕ Termijn toevoegen</button>
+          </div>
+          <div id="termijnen-content"></div>
         </div>
       </div>
       <div id="settings-checklist" class="settings-panel" style="display:none">
@@ -582,9 +605,12 @@ document.addEventListener('click',function(e){
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
             <div>
               <div class="card-title" style="margin-bottom:2px">☑️ Onboarding Checklist</div>
-              <div style="font-size:11px;color:var(--text3)">Beheer de onboarding checklists die aan nieuwe medewerkers worden toegekend. Klik op een checklist om de items te beheren.</div>
+              <div style="font-size:11px;color:var(--text3)">Beheer de checklistgroepen en koppel ze aan templates per afdeling. Bij het openen van een checklist kan je groepen toevoegen of verwijderen per medewerker.</div>
             </div>
-            <button class="btn btn-sm btn-primary-outline" onclick="openNewChecklistModal()">➕ Checklist toevoegen</button>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-sm btn-primary-outline" onclick="openNewChecklistModal()">➕ Groep toevoegen</button>
+              <button class="btn btn-sm" onclick="openChecklistTemplatesModal()" style="border-color:var(--accent);color:var(--accent)">🏷️ Templates</button>
+            </div>
           </div>
           <div id="checklist-sections-container"></div>
         </div>
@@ -1044,7 +1070,7 @@ document.addEventListener('click',function(e){
         if(fl.length===0){
           h+=`<div style="text-align:center;padding:48px;color:#94a3b8"><div style="font-size:36px;margin-bottom:8px">📭</div><div style="font-weight:500">Geen aanvragen gevonden</div></div>`;
         }else{
-          h+=`<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="border-bottom:2px solid #e2e8f4">`;
+          h+=`<div style="max-height:65vh;overflow-y:auto;border:1px solid #e2e8f4;border-radius:8px"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead style="position:sticky;top:0;z-index:2;background:#fff"><tr style="border-bottom:2px solid #e2e8f4">`;
           if(showCheck)h+=`<th style="width:36px;padding:10px 0 10px 14px"><input type="checkbox" ${S.selected.size===pendInView.length&&pendInView.length>0?'checked':''} onchange="raToggleAll()" style="cursor:pointer"/></th>`;
           ['Medewerker','Afdeling','Saldo verlof','Saldo ADV','Afwezigheidstype','Periode','Dagen','Status','Conflicten',''].forEach((hd,i)=>{
             h+=`<th style="text-align:${i===9?'right':'left'};padding:10px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8">${hd}</th>`;
@@ -1089,13 +1115,19 @@ document.addEventListener('click',function(e){
               '<span style="color:#cbd5e1;font-size:12px">—</span>'}</td>`;
             h+=`<td style="padding:10px 12px;text-align:right"><div style="display:flex;gap:4px;justify-content:flex-end">`;
             if(r.status==='pending'){
-              h+=`<button onclick="raAction('${r.id}','approved')" title="Goedkeuren" style="width:30px;height:30px;border-radius:8px;border:none;background:#dcfce7;color:#166534;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center">✅</button>`;
-              h+=`<button onclick="raAction('${r.id}','rejected')" title="Weigeren" style="width:30px;height:30px;border-radius:8px;border:none;background:#fee2e2;color:#991b1b;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center">❌</button>`;
+              h+=`<button onclick="raAction('${r.id}','approved')" title="Goedkeuren" style="width:28px;height:28px;border-radius:8px;border:none;background:#dcfce7;color:#166534;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center">✅</button>`;
+              h+=`<button onclick="raAction('${r.id}','rejected')" title="Weigeren" style="width:28px;height:28px;border-radius:8px;border:none;background:#fee2e2;color:#991b1b;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center">❌</button>`;
             }
-            h+=`<button onclick="raDetail('${r.id}')" title="Detail" style="width:30px;height:30px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center">👁</button>`;
+            if(r.status==='approved'){
+              h+=`<button onclick="event.stopPropagation();deleteRequest('${r.id}')" title="Verlof annuleren (saldo wordt hersteld)" style="width:28px;height:28px;border-radius:8px;border:1px solid #fca5a5;background:#fff;color:#ef4444;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center">🗑</button>`;
+            }
+            if(r.status==='pending'){
+              h+=`<button onclick="event.stopPropagation();deleteRequest('${r.id}')" title="Aanvraag verwijderen" style="width:28px;height:28px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;color:#94a3b8;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center">🗑</button>`;
+            }
+            h+=`<button onclick="raDetail('${r.id}')" title="Detail" style="width:28px;height:28px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center">👁</button>`;
             h+=`</div></td></tr>`;
           });
-          h+=`</tbody></table>`;
+          h+=`</tbody></table></div>`;
         }
         h+=`</div><div style="margin-top:8px;font-size:11px;color:#94a3b8;display:flex;justify-content:space-between">
           <span>${fl.length} aanvra${fl.length===1?'ag':'gen'}</span>
@@ -1284,21 +1316,25 @@ document.addEventListener('click',function(e){
         <button class="tab" onclick="filterSickness('all',this)">Alle meldingen</button>
       </div>
       <div class="card">
-        <table class="tbl">
-          <thead><tr><th>Medewerker</th><th>Van</th><th>Tot</th><th>Dagen</th><th>Briefje</th><th>Notificaties</th><th></th></tr></thead>
+        <div style="max-height:50vh;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm)">
+        <table class="tbl" style="margin:0">
+          <thead style="position:sticky;top:0;z-index:2;background:var(--surface)"><tr><th>Medewerker</th><th>Van</th><th>Tot</th><th>Dagen</th><th>Briefje</th><th>Notificaties</th><th></th></tr></thead>
           <tbody id="sickness-table"></tbody>
         </table>
+        </div>
       </div>
       <div class="card" style="margin-top:16px">
         <div class="card-title">📊 Bradford Factor <span style="font-weight:400;font-size:11px;color:var(--text3)">(S² × D — rollende 52 weken)</span></div>
-        <table class="tbl">
-          <thead><tr>
+        <div style="max-height:50vh;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm)">
+        <table class="tbl" style="margin:0">
+          <thead style="position:sticky;top:0;z-index:2;background:var(--surface)"><tr>
             <th>Medewerker</th><th>Periodes (S)</th><th>Totaal dagen (D)</th>
             <th style="cursor:pointer;user-select:none" onclick="sortBradford()">Bradford Score <span id="sort-bradford" style="display:inline-block;width:12px;text-align:center">↓</span></th>
             <th>Risico</th>
           </tr></thead>
           <tbody id="bradford-table"></tbody>
         </table>
+        </div>
       </div>
     </div>
   </div>
@@ -1355,8 +1391,9 @@ document.addEventListener('click',function(e){
       <!-- Per medewerker -->
       <div id="report-perPerson" class="report-panel" style="display:none">
         <div class="card">
-          <table class="tbl">
-            <thead>
+          <div style="max-height:65vh;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm)">
+          <table class="tbl" style="margin:0">
+            <thead style="position:sticky;top:0;z-index:2;background:var(--surface)">
               <tr>
                 <th rowspan="2" style="vertical-align:bottom">Medewerker</th>
                 <th rowspan="2" style="vertical-align:bottom">Department</th>
@@ -1373,15 +1410,18 @@ document.addEventListener('click',function(e){
             </thead>
             <tbody id="rp-person-table"></tbody>
           </table>
+          </div>
         </div>
       </div>
       <!-- Per type -->
       <div id="report-perType" class="report-panel" style="display:none">
         <div class="card">
-          <table class="tbl">
-            <thead><tr><th>Type</th><th>Categorie</th><th>Totaal dagen</th><th>Aantal aanvragen</th><th>Gem. duur</th></tr></thead>
+          <div style="max-height:65vh;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm)">
+          <table class="tbl" style="margin:0">
+            <thead style="position:sticky;top:0;z-index:2;background:var(--surface)"><tr><th>Type</th><th>Categorie</th><th>Totaal dagen</th><th>Aantal aanvragen</th><th>Gem. duur</th></tr></thead>
             <tbody id="rp-type-table"></tbody>
           </table>
+          </div>
         </div>
       </div>
       <!-- Arbeidsongevallen -->
@@ -1586,12 +1626,17 @@ const DEFAULT_CHECKLIST_ITEMS=[
   {id:'cl_35',section:'Administratie & verzekeringen',name:'Arbeidsovereenkomst',active:true,order:35}
 ];
 let checklistItems=[];
+let checklistTemplates=[];
 let accidents=[];
 let accidentSettings={totalHours:{}};
 const DEFAULT_VERLOFREGELS=[
   {id:'max-afwezig',label:'Max. gelijktijdig afwezig',desc:'Maximum aantal medewerkers dat tegelijk afwezig mag zijn binnen een department',icon:'🚫',perDept:true,defaults:{}},
-  {id:'max-opeenvolgend',label:'Max. opeenvolgende verlofdagen',desc:'Maximum aantal aaneensluitende verlofdagen per aanvraag',icon:'📅',perDept:false,value:15},
-  {id:'min-vooraf',label:'Min. dagen op voorhand',desc:'Minimum aantal werkdagen dat een aanvraag op voorhand moet worden ingediend',icon:'⏰',perDept:false,value:5}
+  {id:'max-opeenvolgend',label:'Max. opeenvolgende verlofdagen',desc:'Maximum aantal aaneensluitende verlofdagen per aanvraag',icon:'📅',perDept:false,value:15}
+];
+let aanvraagtermijnen=[
+  {id:'term_1',name:'Klein verlof',minDagen:1,maxDagen:2,voorafDagen:3,icon:'📌'},
+  {id:'term_2',name:'Week verlof',minDagen:3,maxDagen:5,voorafDagen:14,icon:'📅'},
+  {id:'term_3',name:'Groot verlof',minDagen:6,maxDagen:99,voorafDagen:30,icon:'🗓️'}
 ];
 
 // Barema PC 149.01 data
@@ -1704,6 +1749,7 @@ function autoSave(){
     localStorage.setItem('vb_channels',JSON.stringify(channels));
     localStorage.setItem('vb_settings',JSON.stringify(settings));
     localStorage.setItem('vb_checklistItems',JSON.stringify(checklistItems));
+    localStorage.setItem('vb_checklistTemplates',JSON.stringify(checklistTemplates));
     localStorage.setItem('vb_accidents',JSON.stringify(accidents));
     localStorage.setItem('vb_accidentSettings',JSON.stringify(accidentSettings));
     localStorage.setItem('vb_barema',JSON.stringify(baremaData));
@@ -1712,6 +1758,7 @@ function autoSave(){
     localStorage.setItem('vb_werkgeverskost',JSON.stringify(werkgeverskostData));
     localStorage.setItem('vb_uurkostParams',JSON.stringify(uurkostParams));
     localStorage.setItem('vb_verlofregels',JSON.stringify(verlofregels));
+    localStorage.setItem('vb_aanvraagtermijnen',JSON.stringify(aanvraagtermijnen));
   }catch(e){}
 }
 
@@ -1731,7 +1778,9 @@ function restore(){
     const wk=localStorage.getItem('vb_werkgeverskost');if(wk)werkgeverskostData=JSON.parse(wk);
     const up=localStorage.getItem('vb_uurkostParams');if(up)uurkostParams=JSON.parse(up);
     const vr=localStorage.getItem('vb_verlofregels');if(vr)verlofregels=JSON.parse(vr);
+    const at=localStorage.getItem('vb_aanvraagtermijnen');if(at)aanvraagtermijnen=JSON.parse(at);
     const cli=localStorage.getItem('vb_checklistItems');if(cli)checklistItems=JSON.parse(cli);
+    const clt=localStorage.getItem('vb_checklistTemplates');if(clt)checklistTemplates=JSON.parse(clt);
     const acc=localStorage.getItem('vb_accidents');if(acc)accidents=JSON.parse(acc);
     const acs=localStorage.getItem('vb_accidentSettings');if(acs)accidentSettings=JSON.parse(acs);
   }catch(e){console.error('Restore error:',e);}
@@ -2408,7 +2457,7 @@ function sortPeople(key){
 
 function renderPeople(){
   // Update sort indicators
-  ['name','dept','role','schedule','saldo'].forEach(k=>{
+  ['name','dept','role','schedule','saldo','totafwezig'].forEach(k=>{
     const el=document.getElementById('sort-'+k);
     if(el)el.textContent=peopleSortKey===k?(peopleSortAsc?'↑':'↓'):'↕';
     if(el)el.style.opacity=peopleSortKey===k?'1':'.3';
@@ -2435,6 +2484,7 @@ function renderPeople(){
       else if(peopleSortKey==='role'){const order=p=>(p.role==='admin'?0:2)-(p.isApprover?1:0);va=order(a);vb=order(b);}
       else if(peopleSortKey==='schedule'){const sa=schedules.find(s=>s.id===a.scheduleId);const sb=schedules.find(s=>s.id===b.scheduleId);va=(sa?sa.name:'').toLowerCase();vb=(sb?sb.name:'').toLowerCase();}
       else if(peopleSortKey==='saldo'){va=getTotalAllowance(a)-getUsedDays(a.id);vb=getTotalAllowance(b)-getUsedDays(b.id);}
+      else if(peopleSortKey==='totafwezig'){va=getTotalAbsent(a.id).totaal;vb=getTotalAbsent(b.id).totaal;}
       else{va=0;vb=0;}
       if(va<vb)return peopleSortAsc?-1:1;
       if(va>vb)return peopleSortAsc?1:-1;
@@ -2460,9 +2510,10 @@ function renderPeople(){
       // Licht ongeval monitoring badge
       const monitorAccs=pAccidents.filter(a=>a.ernst==='licht'&&(!a.followUp||!a.followUp._closed));
       const monitorBadge=monitorAccs.length>0?`<span style="display:inline-flex;align-items:center;gap:2px;background:#fff7ed;color:#c2410c;font-size:10px;font-weight:600;padding:1px 6px;border-radius:10px;margin-left:4px;cursor:pointer" onclick="event.stopPropagation();raSetTab('ongevallen');showPage('requests')" title="Licht ongeval in monitoring">⏳</span>`:'';
+      const isBday=isBirthdayToday(p);
       return `<tr style="cursor:pointer;${isArchived?'opacity:.5;background:var(--surface2);':''}" onclick="if(!event.target.closest('button,a,span[onclick]'))openPersonModal('${p.id}')">
         <td style="padding:6px 12px"><div style="display:flex;align-items:center;gap:10px">
-          <div class="avatar" style="width:30px;height:30px;font-size:11px;background:${isArchived?'#aaa':getAvatarColor(fullName(p))}">${getInitials(fullName(p))}</div>
+          ${isBday?`<div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#fef3c7,#fde68a);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0" title="🎂 Proficiat ${fullName(p)}!">🎂</div>`:`<div class="avatar" style="width:30px;height:30px;font-size:11px;background:${isArchived?'#aaa':getAvatarColor(fullName(p))}">${getInitials(fullName(p))}</div>`}
           <div><div style="font-weight:600;font-size:13px">${fullName(p)}${accBadge}${monitorBadge}${isArchived?' <span class="badge badge-gray" style="font-size:9px;margin-left:4px">📦 Archief'+(p.archivedReason==='contract verlopen'?' (verlopen)':'')+'</span>':''}${!isArchived&&p.endDate?` <span style="font-size:10px;color:var(--text3);margin-left:4px">⏰ ${formatDate(p.endDate)}</span>`:''}</div><div style="font-size:10px;color:var(--text3)">${p.email}</div></div>
         </div></td>
         <td style="padding:6px 12px;font-size:12px">${dept?dept.name:'—'}</td>
@@ -2475,6 +2526,14 @@ function renderPeople(){
         <td style="padding:6px 12px;text-align:center">
           ${isArchived?'<span style="font-size:11px;color:var(--text3)">—</span>':`
           <span style="font-size:11px;font-weight:600;cursor:pointer;color:var(--accent);text-decoration:underline dotted" onclick="openPersonModal('${p.id}');setTimeout(function(){var f=document.getElementById('mp-saldo-ov');if(f){f.scrollIntoView({block:'center'});f.focus();}},200)" title="Klik om aan te passen">${p.saldoOV!=null?p.saldoOV+'u':'—'}</span>`}
+        </td>
+        <td style="padding:6px 12px;text-align:center">
+          ${isArchived?'<span style="font-size:11px;color:var(--text3)">—</span>':`${(()=>{
+            const abs=getTotalAbsent(p.id);
+            const tip='🏖 Verlof: '+abs.verlof+'d\\n📅 ADV: '+abs.adv+'d\\n🤒 Ziekte: '+abs.ziekte+'d\\n📋 Overig: '+abs.afwezigheid+'d'+(abs.extern>0?'\\n🏭 Extern: '+abs.extern+'d':'');
+            const clr=abs.totaal>30?'var(--danger)':abs.totaal>15?'var(--warn)':'var(--text3)';
+            return abs.totaal>0?'<span style="font-size:11px;font-weight:600;color:'+clr+';cursor:help" title="'+tip+'">'+abs.totaal+'d</span>':'<span style="font-size:11px;color:var(--text3)">0d</span>';
+          })()}`}
         </td>
         <td class="interim-col" style="padding:6px 12px;text-align:center;display:none">
           ${p.statuut==='interim'&&p.interimDagen!=null?`<span style="font-size:11px;font-weight:600">${p.interimDagen}d</span>`:'<span style="font-size:11px;color:var(--text3)">—</span>'}
@@ -2580,6 +2639,7 @@ function renderSettings(){
 
   // Verlofregels
   renderVerlofregels();
+  renderTermijnen();
 }
 
 function renderVerlofregels(){
@@ -2640,6 +2700,107 @@ function saveVerlofRegel(ruleId,deptId,value){
   autoSave();
 }
 
+function renderTermijnen(){
+  const container=document.getElementById('termijnen-content');
+  if(!container)return;
+  if(aanvraagtermijnen.length===0){
+    container.innerHTML='<div style="text-align:center;padding:20px;color:var(--text3);font-size:12px">Geen termijnen ingesteld. Voeg er een toe.</div>';
+    return;
+  }
+  const sorted=[...aanvraagtermijnen].sort((a,b)=>a.minDagen-b.minDagen);
+  let html='<div style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden"><table class="tbl" style="margin:0;font-size:12px"><thead style="position:sticky;top:0;background:var(--surface)"><tr>';
+  html+='<th style="width:40px"></th><th>Naam</th><th style="text-align:center">Van (dagen)</th><th style="text-align:center">Tot (dagen)</th><th style="text-align:center">Min. op voorhand</th><th style="width:70px"></th>';
+  html+='</tr></thead><tbody>';
+  sorted.forEach(t=>{
+    html+='<tr>';
+    html+='<td style="text-align:center;font-size:16px">'+t.icon+'</td>';
+    html+='<td style="font-weight:600">'+t.name+'</td>';
+    html+='<td style="text-align:center">'+t.minDagen+'</td>';
+    html+='<td style="text-align:center">'+(t.maxDagen>=99?'∞':t.maxDagen)+'</td>';
+    html+='<td style="text-align:center"><strong>'+t.voorafDagen+'</strong> dagen</td>';
+    html+='<td style="text-align:right"><div style="display:flex;gap:4px;justify-content:flex-end">';
+    html+='<button class="btn btn-sm" onclick="openTermijnModal(\''+t.id+'\')" style="padding:4px 6px;font-size:11px">✏️</button>';
+    html+='<button class="btn btn-sm btn-danger" onclick="deleteTermijn(\''+t.id+'\')" style="padding:4px 6px;font-size:11px">🗑</button>';
+    html+='</div></td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+
+  // Visuele preview
+  html+='<div style="margin-top:12px;padding:10px 12px;background:var(--surface2);border-radius:var(--radius-sm);font-size:11px;color:var(--text3)">';
+  html+='<strong>Preview:</strong> ';
+  sorted.forEach((t,i)=>{
+    html+=t.icon+' '+t.minDagen+(t.maxDagen>=99?'+':'-'+t.maxDagen)+'d → '+t.voorafDagen+'d vooraf';
+    if(i<sorted.length-1)html+=' · ';
+  });
+  html+='</div>';
+
+  container.innerHTML=html;
+}
+
+function openTermijnModal(termijnId){
+  const t=termijnId?aanvraagtermijnen.find(x=>x.id===termijnId):null;
+  openModal(t?'✏️ Termijn bewerken':'➕ Termijn toevoegen',`
+    <div class="form-group">
+      <label class="form-label">Naam <span class="req">*</span></label>
+      <input type="text" class="form-input" id="tm-name" value="${t?t.name:''}" placeholder="Bijv. Klein verlof, Kerstperiode..."/>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Van (min. dagen) <span class="req">*</span></label>
+        <input type="number" class="form-input" id="tm-min" min="1" value="${t?t.minDagen:''}" placeholder="1"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tot (max. dagen) <span class="req">*</span></label>
+        <input type="number" class="form-input" id="tm-max" min="1" value="${t?t.maxDagen:''}" placeholder="99 = onbeperkt"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Minimaal op voorhand (dagen) <span class="req">*</span></label>
+      <input type="number" class="form-input" id="tm-vooraf" min="0" value="${t?t.voorafDagen:''}" placeholder="Bijv. 14"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Icoon</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${['📌','📅','🗓️','⏰','🏖','🎄','🔧','📋','🎉'].map(e=>`<button type="button" class="btn btn-sm tm-icon-btn" onclick="document.getElementById('tm-icon').value='${e}';document.querySelectorAll('.tm-icon-btn').forEach(b=>b.style.border='1px solid var(--border)');this.style.border='2px solid var(--accent)'" style="font-size:16px;padding:4px 8px;border:${t&&t.icon===e?'2px solid var(--accent)':'1px solid var(--border)'}">${e}</button>`).join('')}
+      </div>
+      <input type="hidden" id="tm-icon" value="${t?t.icon:'📌'}"/>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Annuleren</button>
+      <button class="btn btn-primary" onclick="saveTermijn('${termijnId||''}')">Opslaan</button>
+    </div>
+  `);
+}
+
+function saveTermijn(termijnId){
+  const name=document.getElementById('tm-name').value.trim();
+  const minDagen=parseInt(document.getElementById('tm-min').value);
+  const maxDagen=parseInt(document.getElementById('tm-max').value);
+  const voorafDagen=parseInt(document.getElementById('tm-vooraf').value);
+  const icon=document.getElementById('tm-icon').value||'📌';
+  if(!name){showToast('Naam is verplicht','error');return;}
+  if(isNaN(minDagen)||minDagen<1){showToast('Min. dagen is verplicht (≥1)','error');return;}
+  if(isNaN(maxDagen)||maxDagen<minDagen){showToast('Max. dagen moet ≥ min. dagen zijn','error');return;}
+  if(isNaN(voorafDagen)||voorafDagen<0){showToast('Vooraf dagen is verplicht (≥0)','error');return;}
+
+  if(termijnId){
+    const t=aanvraagtermijnen.find(x=>x.id===termijnId);
+    if(t){t.name=name;t.minDagen=minDagen;t.maxDagen=maxDagen;t.voorafDagen=voorafDagen;t.icon=icon;}
+  } else {
+    aanvraagtermijnen.push({id:'term_'+uid(),name,minDagen,maxDagen,voorafDagen,icon});
+  }
+  autoSave();closeModal();renderTermijnen();
+  showToast('Termijn opgeslagen');
+}
+
+async function deleteTermijn(termijnId){
+  if(!await confirmDialog('Aanvraagtermijn verwijderen?'))return;
+  aanvraagtermijnen=aanvraagtermijnen.filter(t=>t.id!==termijnId);
+  autoSave();renderTermijnen();
+  showToast('Termijn verwijderd');
+}
+
 function checkVerlofregels(personId,startDate,endDate,days){
   // Returns array of warnings (not blocking)
   const warnings=[];
@@ -2665,15 +2826,19 @@ function checkVerlofregels(personId,startDate,endDate,days){
         warnings.push({icon:'📅',msg:'Max. '+rule.value+' opeenvolgende verlofdagen overschreden ('+days+' aangevraagd)'});
       }
     }
-    if(rule.id==='min-vooraf'&&rule.value){
-      const today=new Date();
-      const start=new Date(startDate);
-      const diffDays=Math.floor((start-today)/(1000*60*60*24));
-      if(diffDays<rule.value){
-        warnings.push({icon:'⏰',msg:'Min. '+rule.value+' dagen op voorhand aanvragen (nog '+diffDays+' dagen)'});
-      }
-    }
   });
+
+  // Check aanvraagtermijnen
+  const matchingTermijn=aanvraagtermijnen.find(t=>days>=t.minDagen&&days<=t.maxDagen);
+  if(matchingTermijn&&matchingTermijn.voorafDagen){
+    const today=new Date();
+    const start=new Date(startDate+'T00:00:00');
+    const diffDays=Math.floor((start-today)/(1000*60*60*24));
+    if(diffDays<matchingTermijn.voorafDagen){
+      warnings.push({icon:'⏰',msg:matchingTermijn.name+': min. '+matchingTermijn.voorafDagen+' dagen op voorhand aanvragen (nog '+Math.max(0,diffDays)+' dagen)'});
+    }
+  }
+
   return warnings;
 }
 
@@ -2689,8 +2854,34 @@ function updateInterimBadge(){
   }
 }
 
+function isBirthdayToday(p){
+  if(!p.birthDate||p.archived)return false;
+  const today=new Date();
+  const bd=new Date(p.birthDate+'T00:00:00');
+  return bd.getDate()===today.getDate()&&bd.getMonth()===today.getMonth();
+}
+
+function checkBirthdays(){
+  const jarigen=people.filter(p=>isBirthdayToday(p));
+  const el=document.getElementById('birthday-alert');
+  const namesEl=document.getElementById('birthday-names');
+  const badgeEl=document.getElementById('badge-birthday');
+  if(el&&namesEl){
+    if(jarigen.length>0){
+      namesEl.textContent=jarigen.map(p=>fullName(p)).join(', ');
+      el.style.display='';
+    } else {
+      el.style.display='none';
+    }
+  }
+  if(badgeEl){
+    badgeEl.style.display=jarigen.length>0?'':'none';
+  }
+}
+
 function renderDashboard(){
   updateInterimBadge();
+  checkBirthdays();
   // Today's absent
   const today=new Date().toISOString().split('T')[0];
   const absent=requests.filter(r=>r.status==='approved'&&r.type!=='ziekte'&&r.startDate<=today&&r.endDate>=today);
@@ -3456,6 +3647,7 @@ function openDeptModal(id){
           ${managerOpts}
         </select>
         <div class="fi-box" id="info-dept-manager" style="display:none">De verantwoordelijke voor dit department. Wordt getoond als hoofd in het organigram. Dit is niet noodzakelijk dezelfde persoon als de approver.</div>
+        <div id="md-manager-warn" style="display:none;margin-top:6px;padding:8px 10px;background:#fef3c7;border:1px solid #fde68a;border-radius:var(--radius-xs);font-size:11px;color:#92400e"></div>
       </div>
     </div>
     <div class="form-group">
@@ -3491,6 +3683,22 @@ function saveDept(id){
   const managerId=document.getElementById('md-manager').value;
   const parentDeptId=document.getElementById('md-parent').value;
   if(!name){showToast('Naam is verplicht','error');return;}
+
+  // Check of de geselecteerde manager een passende teamrol heeft
+  if(managerId){
+    const mgr=people.find(p=>p.id===managerId);
+    const warn=document.getElementById('md-manager-warn');
+    if(mgr&&!['Manager','Zaakvoerder','Ploegleider'].includes(mgr.teamRole)){
+      if(warn&&warn.style.display==='none'){
+        const rolTxt=mgr.teamRole?'"'+mgr.teamRole+'"':'niet ingesteld';
+        warn.style.display='';
+        warn.innerHTML='⚠️ <strong>'+fullName(mgr)+'</strong> heeft teamrol '+rolTxt+'. Pas dit eventueel aan in <strong>Medewerkers → '+fullName(mgr)+' → Teamrol</strong>.<br><span style="font-size:10px;color:#a16207;margin-top:4px;display:inline-block">Klik nogmaals op Opslaan om toch door te gaan.</span>';
+        return;
+      }
+    }
+    if(warn)warn.style.display='none';
+  }
+
   if(id){
     const d=departments.find(x=>x.id===id);
     if(d){d.name=name;d.approverIds=approverIds;d.managerId=managerId;d.parentDeptId=parentDeptId;delete d.approverId;}
@@ -3604,6 +3812,14 @@ function openPersonModal(id){
           <input class="form-input" id="mp-teamrole-custom" placeholder="Vul je eigen rol in..." value="${p&&p.teamRole&&!['Zaakvoerder','Manager','Ploegleider','Technieker','Senior technieker','Administratief','Stagiair'].includes(p.teamRole)?p.teamRole:''}" style="display:${p&&p.teamRole&&!['Zaakvoerder','Manager','Ploegleider','Technieker','Senior technieker','Administratief','Stagiair'].includes(p.teamRole)?'':'none'};margin-top:4px"/>
           <div class="fi-box" id="info-teamrole" style="display:none">De operationele functie binnen het team (bv. Ploegleider, Technieker). Dit bepaalt de positie in het organigram. Heeft geen invloed op systeemrechten of verlofgoedkeuring.</div>
         </div>
+        <div class="form-group"><label class="form-label">Ploeg van <span class="fi" onclick="toggleFieldInfo('info-reportsto')">ⓘ</span></label>
+          <select class="form-input" id="mp-reportsto">
+            <option value="">— Geen ploeg —</option>
+            ${people.filter(x=>!x.archived&&x.id!==(p?p.id:'')&&(x.teamRole==='Ploegleider'||x.teamRole==='Manager'||x.teamRole==='Zaakvoerder'||x.teamRole==='Senior technieker')).sort((a,b)=>fullName(a).localeCompare(fullName(b))).map(x=>`<option value="${x.id}" ${p&&p.reportsTo===x.id?'selected':''}>${fullName(x)} — ${x.teamRole}</option>`).join('')}
+            ${p&&p.reportsTo&&!people.find(x=>x.id===p.reportsTo&&(x.teamRole==='Ploegleider'||x.teamRole==='Manager'||x.teamRole==='Zaakvoerder'||x.teamRole==='Senior technieker'))?`<option value="${p.reportsTo}" selected>⚠️ ${fullName(people.find(x=>x.id===p.reportsTo))||p.reportsTo} (geen ploegleider meer)</option>`:''}
+          </select>
+          <div class="fi-box" id="info-reportsto" style="display:none">De ploegleider of ploegbaas. Bepaalt de ploegindeling in het organigram: deze persoon en zijn ploegleden worden samen getoond.</div>
+        </div>
         <div class="form-row">
           <div class="form-group"><label class="form-label">Startdatum</label><input class="form-input" type="date" id="mp-start" value="${p?p.startDate:''}"/></div>
           <div class="form-group"><label class="form-label">Einddatum <span style="font-weight:400;color:var(--text3)">(einde contract)</span></label><input class="form-input" type="date" id="mp-end-contract" value="${p?p.endDate||'':''}"/></div>
@@ -3615,6 +3831,21 @@ function openPersonModal(id){
           <div class="form-group"><label class="form-label">📋 Saldo OV (uren)</label><input class="form-input" type="number" step="0.5" min="0" id="mp-saldo-ov" value="${p&&p.saldoOV!=null?p.saldoOV:''}" placeholder="0"/></div>
           <div class="form-group"></div>
         </div>
+        ${p?`<div id="mp-absence-overview" style="padding:10px 12px;background:var(--surface2);border-radius:var(--radius-sm);margin-bottom:12px">
+          <div style="font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:6px">📊 Afwezigheid ${new Date().getFullYear()}</div>
+          ${(()=>{
+            const abs=getTotalAbsent(p.id);
+            const items=[
+              {icon:'🏖',label:'Verlof',val:abs.verlof},
+              {icon:'📅',label:'ADV',val:abs.adv},
+              {icon:'🤒',label:'Ziekte',val:abs.ziekte},
+              {icon:'📋',label:'Overig',val:abs.afwezigheid},
+              {icon:'🏭',label:'Extern',val:abs.extern}
+            ].filter(x=>x.val>0);
+            if(items.length===0)return '<div style="font-size:12px;color:var(--text3)">Geen afwezigheid geregistreerd</div>';
+            return '<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">'+items.map(x=>'<span style="font-size:12px">'+x.icon+' '+x.label+': <strong>'+x.val+'d</strong></span>').join('')+'<span style="font-size:12px;font-weight:700;margin-left:auto;color:var(--accent)">= '+abs.totaal+'d totaal</span></div>';
+          })()}
+        </div>`:''}
         <div id="mp-interim-fields" style="display:${p&&p.statuut==='interim'?'block':'none'}">
           <div class="form-row">
             <div class="form-group"><label class="form-label">📋 Interim dagen</label><input class="form-input" type="number" step="1" min="0" id="mp-interim-dagen" value="${p&&p.interimDagen!=null?p.interimDagen:''}" placeholder="Aantal werkdagen interim contract"/></div>
@@ -3785,17 +4016,18 @@ function savePerson(id){
   const noodNaam=document.getElementById('mp-nood-naam').value.trim();
   const noodRelatie=document.getElementById('mp-nood-relatie').value;
   const noodGsm=formatPhone(document.getElementById('mp-nood-gsm').value.trim());
+  const reportsTo=document.getElementById('mp-reportsto').value||'';
   if(!firstName){showToast('Voornaam is verplicht','error');return;}
   if(!lastName){showToast('Naam is verplicht','error');return;}
   if(!email){showToast('E-mail is verplicht','error');return;}
   if(!departmentId){showToast('Department is verplicht','error');return;}
-  const data={firstName,lastName,email,departmentId,role,isApprover,statuut,paritairComite,baremaCategory,startDate,endDate,scheduleId,gsm,tel,iban,birthDate,rrn,saldoOV,interimDagen,werkGsm,teamRole,noodNaam,noodRelatie,noodGsm};
+  const data={firstName,lastName,email,departmentId,role,isApprover,statuut,paritairComite,baremaCategory,startDate,endDate,scheduleId,gsm,tel,iban,birthDate,rrn,saldoOV,interimDagen,werkGsm,teamRole,reportsTo,noodNaam,noodRelatie,noodGsm};
   if(id){
     const p=people.find(x=>x.id===id);
     if(p){
       // Log mutaties voor gewijzigde velden
       if(!p.mutations)p.mutations=[];
-      const fieldLabels={firstName:'Voornaam',lastName:'Naam',email:'E-mail',departmentId:'Department',role:'Rol',isApprover:'Approver',statuut:'Statuut',paritairComite:'Paritair Comité',baremaCategory:'Baremacategorie',startDate:'Startdatum',endDate:'Einddatum',scheduleId:'Werkrooster',gsm:'GSM',tel:'Telefoon',iban:'IBAN',birthDate:'Geboortedatum',rrn:'Rijksregisternr',saldoOV:'Saldo OV',interimDagen:'Interim dagen',werkGsm:'Werk GSM',teamRole:'Teamrol',noodNaam:'Noodcontact naam',noodRelatie:'Noodcontact relatie',noodGsm:'Noodcontact GSM'};
+      const fieldLabels={firstName:'Voornaam',lastName:'Naam',email:'E-mail',departmentId:'Department',role:'Rol',isApprover:'Approver',statuut:'Statuut',paritairComite:'Paritair Comité',baremaCategory:'Baremacategorie',startDate:'Startdatum',endDate:'Einddatum',scheduleId:'Werkrooster',gsm:'GSM',tel:'Telefoon',iban:'IBAN',birthDate:'Geboortedatum',rrn:'Rijksregisternr',saldoOV:'Saldo OV',interimDagen:'Interim dagen',werkGsm:'Werk GSM',teamRole:'Teamrol',reportsTo:'Ploeg van',noodNaam:'Noodcontact naam',noodRelatie:'Noodcontact relatie',noodGsm:'Noodcontact GSM'};
       const now=new Date();
       const timestamp=now.toISOString();
       const user=settings.currentUser||'Admin';
@@ -3820,6 +4052,11 @@ function savePerson(id){
             newDisplay=ns?ns.name:newVal||'(leeg)';
           }else if(key==='isApprover'){
             oldDisplay=oldVal?'Ja':'Nee';newDisplay=newVal?'Ja':'Nee';
+          }else if(key==='reportsTo'){
+            const op=people.find(x=>x.id===oldVal);
+            const np=people.find(x=>x.id===newVal);
+            oldDisplay=op?fullName(op):oldVal||'(geen ploeg)';
+            newDisplay=np?fullName(np):newVal||'(geen ploeg)';
           }else if(key==='startDate'||key==='endDate'||key==='birthDate'){
             oldDisplay=oldVal?formatDate(oldVal):'(leeg)';
             newDisplay=newVal?formatDate(newVal):'(leeg)';
@@ -3984,21 +4221,69 @@ function getUsedDays(personId,typeId){
     },0);
 }
 
+function getTotalAbsent(personId){
+  const year=new Date().getFullYear();
+  const yearStart=year+'-01-01';
+  const yearEnd=year+'-12-31';
+  const pReqs=requests.filter(r=>r.personId===personId&&(r.status==='approved'||r.type==='ziekte')&&r.startDate>=yearStart&&r.startDate<=yearEnd);
+  const result={verlof:0,adv:0,ziekte:0,afwezigheid:0,extern:0,totaal:0};
+  pReqs.forEach(r=>{
+    const t=leaveTypes.find(x=>x.id===r.type);
+    const days=r.halfDay?0.5:(r.days||0);
+    if(!t){result.afwezigheid+=days;}
+    else if(t.category==='verlof')result.verlof+=days;
+    else if(t.category==='adv')result.adv+=days;
+    else if(t.category==='ziekte'||r.type==='ziekte')result.ziekte+=days;
+    else if(t.category==='extern')result.extern+=days;
+    else result.afwezigheid+=days;
+    result.totaal+=days;
+  });
+  return result;
+}
+
 function openChecklist(personId){
   const p=people.find(x=>x.id===personId);
   if(!p)return;
   if(!p.checklistState)p.checklistState={};
+  if(!p.checklistSections)p.checklistSections=[];
 
-  // Bouw secties op basis van actieve checklistItems
-  const activeItems=checklistItems.filter(i=>i.active).sort((a,b)=>a.order-b.order);
+  // Als checklist leeg is, bied template aan
+  if(p.checklistSections.length===0&&!p.checklistState._completed){
+    const dept=departments.find(d=>d.id===p.departmentId);
+    const deptName=dept?dept.name:'';
+    // Zoek matching template
+    const matchedTemplate=checklistTemplates.find(t=>t.deptId===p.departmentId)||checklistTemplates.find(t=>t.deptId==='_all');
+    const allSections=[...new Set(checklistItems.filter(i=>i.active).map(i=>i.section))];
+
+    let html='<div style="text-align:center;padding:20px 0">';
+    html+='<div style="font-size:36px;margin-bottom:8px">📋</div>';
+    html+='<div style="font-weight:600;font-size:14px;margin-bottom:4px">Geen checklist toegewezen</div>';
+    html+='<div style="font-size:12px;color:var(--text3);margin-bottom:20px">Kies een template of stel handmatig samen voor '+fullName(p)+'</div>';
+
+    if(matchedTemplate){
+      html+='<button class="btn btn-primary" style="margin-bottom:12px" onclick="applyChecklistTemplate(\''+personId+'\',\''+matchedTemplate.id+'\')">🏷️ Template toepassen: '+matchedTemplate.name+'</button><br>';
+    }
+
+    if(allSections.length>0){
+      html+='<button class="btn btn-sm" onclick="openChecklistEditor(\''+personId+'\')">✏️ Handmatig samenstellen</button>';
+    } else {
+      html+='<div style="font-size:11px;color:var(--text3);margin-top:8px">Nog geen checklistgroepen aangemaakt. Ga naar <strong>Instellingen → Checklist</strong>.</div>';
+    }
+    html+='</div>';
+    openModal('☑️ Onboarding Checklist — '+fullName(p),html);
+    return;
+  }
+
+  // Toon bestaande checklist
+  const assignedItems=checklistItems.filter(i=>i.active&&p.checklistSections.includes(i.section));
   const sections={};
-  activeItems.forEach(item=>{
+  assignedItems.forEach(item=>{
     if(!sections[item.section])sections[item.section]=[];
     sections[item.section].push(item);
   });
 
-  const totalItems=activeItems.length;
-  const checkedCount=activeItems.filter(i=>p.checklistState[i.id]).length;
+  const totalItems=assignedItems.length;
+  const checkedCount=assignedItems.filter(i=>p.checklistState[i.id]).length;
   const statuutLabel=p.statuut?p.statuut.charAt(0).toUpperCase()+p.statuut.slice(1):'';
   const dept=departments.find(d=>d.id===p.departmentId);
   const deptLabel=dept?dept.name:'';
@@ -4008,14 +4293,16 @@ function openChecklist(personId){
     +'<div style="font-size:12px;color:var(--text3)">Startdatum: <strong style="color:var(--text)">'+startFormatted+'</strong>'
     +' &nbsp;\u2022&nbsp; '+statuutLabel+' \u2014 '+deptLabel
     +' &nbsp;\u2022&nbsp; <span id="checklist-progress">'+checkedCount+'/'+totalItems+' afgevinkt</span></div>'
-    +'<button class="btn btn-sm btn-danger" onclick="confirmDeleteChecklist(\''+personId+'\')">\uD83D\uDDD1 Checklist resetten</button>'
-    +'</div>';
+    +'<div style="display:flex;gap:4px">'
+    +'<button class="btn btn-sm" onclick="openChecklistEditor(\''+personId+'\')" title="Groepen bewerken">✏️</button>'
+    +'<button class="btn btn-sm btn-danger" onclick="confirmDeleteChecklist(\''+personId+'\')" title="Checklist resetten">\uD83D\uDDD1</button>'
+    +'</div></div>';
 
   if(totalItems===0){
-    html+='<div style="text-align:center;padding:40px;color:var(--text3)">Geen actieve checklist-items. Ga naar Instellingen → Checklist om items te beheren.</div>';
+    html+='<div style="text-align:center;padding:40px;color:var(--text3)">Geen items in de toegewezen groepen. Klik ✏️ om groepen toe te voegen.</div>';
   } else {
     html+='<div style="margin-bottom:12px;background:var(--accent-bg);border-radius:var(--radius-sm);overflow:hidden"><div id="checklist-bar" style="height:6px;background:var(--accent);border-radius:var(--radius-sm);transition:width .3s;width:'+(totalItems>0?Math.round(checkedCount/totalItems*100):0)+'%"></div></div>';
-    html+='<div id="checklist-container" style="max-height:60vh;overflow-y:auto">';
+    html+='<div id="checklist-container" style="max-height:60vh;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm);padding:0 8px">';
     Object.keys(sections).forEach(function(secName){
       html+='<div style="font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border)">'+secName+'</div>';
       sections[secName].forEach(function(item){
@@ -4031,6 +4318,162 @@ function openChecklist(personId){
   document.getElementById('modal-title-actions').innerHTML='<button class="btn btn-sm" onclick="closeModal();openPersonModal(\''+personId+'\')" style="font-size:11px">← Fiche</button>';
 }
 
+function openChecklistEditor(personId){
+  const p=people.find(x=>x.id===personId);
+  if(!p)return;
+  if(!p.checklistSections)p.checklistSections=[];
+  const allSections=[...new Set(checklistItems.filter(i=>i.active).map(i=>i.section))];
+
+  let html='<div style="font-size:12px;color:var(--text3);margin-bottom:16px">Vink de groepen aan die je wilt toewijzen aan <strong>'+fullName(p)+'</strong>. Je kunt ook losse items toevoegen.</div>';
+  html+='<div style="max-height:50vh;overflow-y:auto">';
+  allSections.forEach(sec=>{
+    const items=checklistItems.filter(i=>i.active&&i.section===sec);
+    const isAssigned=p.checklistSections.includes(sec);
+    html+='<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:'+(isAssigned?'var(--accent-bg)':'var(--surface)')+';border:1px solid '+(isAssigned?'var(--accent)':'var(--border)')+';border-radius:var(--radius-xs);margin-bottom:4px;cursor:pointer">';
+    html+='<input type="checkbox" class="cl-editor-cb" value="'+sec+'" '+(isAssigned?'checked':'')+' style="width:18px;height:18px;accent-color:var(--accent);flex-shrink:0"/>';
+    html+='<div style="flex:1"><div style="font-weight:600;font-size:13px">'+sec+'</div>';
+    html+='<div style="font-size:11px;color:var(--text3)">'+items.length+' item'+(items.length!==1?'s':'')+'</div></div>';
+    html+='</label>';
+  });
+  html+='</div>';
+
+  // Extra los item toevoegen
+  html+='<div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border)">';
+  html+='<div style="display:flex;gap:6px;align-items:center">';
+  html+='<input type="text" id="cl-custom-item" class="form-input" placeholder="Los item toevoegen..." style="flex:1;font-size:12px"/>';
+  html+='<select id="cl-custom-section" class="form-input" style="width:160px;font-size:12px">';
+  allSections.forEach(s=>{html+='<option value="'+s+'">'+s+'</option>';});
+  html+='</select>';
+  html+='<button class="btn btn-sm btn-primary-outline" onclick="addCustomChecklistItem(\''+personId+'\')">➕</button>';
+  html+='</div></div>';
+
+  html+='<div class="modal-actions" style="margin-top:16px">';
+  html+='<button class="btn" onclick="closeModal();openChecklist(\''+personId+'\')">Annuleren</button>';
+  html+='<button class="btn btn-primary" onclick="saveChecklistEditor(\''+personId+'\')">Opslaan</button>';
+  html+='</div>';
+
+  openModal('✏️ Checklist samenstellen — '+fullName(p),html);
+}
+
+function saveChecklistEditor(personId){
+  const p=people.find(x=>x.id===personId);
+  if(!p)return;
+  const checked=[...document.querySelectorAll('.cl-editor-cb:checked')].map(cb=>cb.value);
+  p.checklistSections=checked;
+  autoSave();closeModal();
+  openChecklist(personId);
+  showToast('Checklist bijgewerkt');
+}
+
+function addCustomChecklistItem(personId){
+  const name=document.getElementById('cl-custom-item').value.trim();
+  const section=document.getElementById('cl-custom-section').value;
+  if(!name){showToast('Item naam is verplicht','error');return;}
+  const maxOrder=checklistItems.reduce((m,i)=>Math.max(m,i.order||0),0);
+  checklistItems.push({id:'cl_'+uid(),section,name,active:true,order:maxOrder+1});
+  autoSave();
+  document.getElementById('cl-custom-item').value='';
+  showToast('Item "'+name+'" toegevoegd aan '+section);
+}
+
+function applyChecklistTemplate(personId,templateId){
+  const p=people.find(x=>x.id===personId);
+  const t=checklistTemplates.find(x=>x.id===templateId);
+  if(!p||!t)return;
+  p.checklistSections=[...t.sections];
+  if(!p.checklistState)p.checklistState={};
+  autoSave();closeModal();
+  openChecklist(personId);
+  showToast('Template "'+t.name+'" toegepast');
+}
+
+// ═══ CHECKLIST TEMPLATES ═══
+function openChecklistTemplatesModal(){
+  const allSections=[...new Set(checklistItems.filter(i=>i.active).map(i=>i.section))];
+  let html='<div style="font-size:12px;color:var(--text3);margin-bottom:16px">Templates koppelen checklistgroepen aan afdelingen. Bij een nieuwe medewerker wordt het juiste template voorgesteld.</div>';
+
+  if(checklistTemplates.length===0){
+    html+='<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px">Nog geen templates. Maak er een aan.</div>';
+  } else {
+    html+='<div style="max-height:50vh;overflow-y:auto">';
+    checklistTemplates.forEach(t=>{
+      const dept=t.deptId==='_all'?'Alle afdelingen':departments.find(d=>d.id===t.deptId);
+      const deptName=typeof dept==='string'?dept:(dept?dept.name:'⚠️ Onbekend');
+      html+='<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xs);margin-bottom:4px">';
+      html+='<div style="flex:1"><div style="font-weight:600;font-size:13px">'+t.name+'</div>';
+      html+='<div style="font-size:11px;color:var(--text3)">📂 '+deptName+' · '+t.sections.length+' groep'+(t.sections.length!==1?'en':'')+'</div></div>';
+      html+='<button class="btn btn-sm" onclick="editChecklistTemplate(\''+t.id+'\')" style="font-size:11px">✏️</button>';
+      html+='<button class="btn btn-sm btn-danger" onclick="deleteChecklistTemplate(\''+t.id+'\')" style="font-size:11px">🗑</button>';
+      html+='</div>';
+    });
+    html+='</div>';
+  }
+
+  html+='<div class="modal-actions" style="margin-top:16px">';
+  html+='<button class="btn" onclick="closeModal();renderChecklistSettings()">Sluiten</button>';
+  html+='<button class="btn btn-primary" onclick="editChecklistTemplate(\'\')">➕ Template aanmaken</button>';
+  html+='</div>';
+
+  openModal('🏷️ Checklist Templates',html);
+}
+
+function editChecklistTemplate(tplId){
+  const t=tplId?checklistTemplates.find(x=>x.id===tplId):null;
+  const allSections=[...new Set(checklistItems.filter(i=>i.active).map(i=>i.section))];
+
+  let deptOpts='<option value="_all" '+(t&&t.deptId==='_all'?'selected':'')+'>Alle afdelingen</option>';
+  departments.forEach(d=>{deptOpts+='<option value="'+d.id+'" '+(t&&t.deptId===d.id?'selected':'')+'>'+d.name+'</option>';});
+
+  let secChecks='';
+  allSections.forEach(sec=>{
+    const checked=t&&t.sections.includes(sec)?'checked':'';
+    secChecks+='<label style="display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer;font-size:13px"><input type="checkbox" class="tpl-sec-cb" value="'+sec+'" '+checked+' style="width:16px;height:16px;accent-color:var(--accent)"/> '+sec+'</label>';
+  });
+
+  openModal((t?'✏️ Template bewerken':'➕ Template aanmaken'),`
+    <div class="form-group">
+      <label class="form-label">Template naam <span class="req">*</span></label>
+      <input type="text" class="form-input" id="tpl-name" value="${t?t.name:''}" placeholder="Bijv. Technieker installatie"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Afdeling</label>
+      <select class="form-input" id="tpl-dept">${deptOpts}</select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Checklistgroepen</label>
+      <div style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-xs);padding:8px 12px">${secChecks}</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal();openChecklistTemplatesModal()">Annuleren</button>
+      <button class="btn btn-primary" onclick="saveChecklistTemplate('${tplId||''}')">Opslaan</button>
+    </div>
+  `);
+}
+
+function saveChecklistTemplate(tplId){
+  const name=document.getElementById('tpl-name').value.trim();
+  if(!name){showToast('Template naam is verplicht','error');return;}
+  const deptId=document.getElementById('tpl-dept').value;
+  const sections=[...document.querySelectorAll('.tpl-sec-cb:checked')].map(cb=>cb.value);
+  if(sections.length===0){showToast('Selecteer minstens 1 groep','error');return;}
+
+  if(tplId){
+    const t=checklistTemplates.find(x=>x.id===tplId);
+    if(t){t.name=name;t.deptId=deptId;t.sections=sections;}
+  } else {
+    checklistTemplates.push({id:'tpl_'+uid(),name,deptId,sections});
+  }
+  autoSave();closeModal();openChecklistTemplatesModal();
+  showToast('Template opgeslagen');
+}
+
+async function deleteChecklistTemplate(tplId){
+  if(!await confirmDialog('Template verwijderen?'))return;
+  checklistTemplates=checklistTemplates.filter(t=>t.id!==tplId);
+  autoSave();openChecklistTemplatesModal();
+  showToast('Template verwijderd');
+}
+
 function toggleChecklistItem(personId,itemId,checked){
   const p=people.find(x=>x.id===personId);
   if(!p)return;
@@ -4043,15 +4486,15 @@ function toggleChecklistItem(personId,itemId,checked){
   if(label){label.style.opacity=checked?'.5':'1';label.style.textDecoration=checked?'line-through':'none';}
 
   // Update progress
-  const activeItems=checklistItems.filter(i=>i.active);
-  const total=activeItems.length;
-  const done=activeItems.filter(i=>p.checklistState[i.id]).length;
+  const assignedItems=checklistItems.filter(i=>i.active&&p.checklistSections&&p.checklistSections.includes(i.section));
+  const total=assignedItems.length;
+  const done=assignedItems.filter(i=>p.checklistState[i.id]).length;
   const prog=document.getElementById('checklist-progress');
   if(prog)prog.innerHTML=done+'/'+total+' afgevinkt'+(done===total?' &nbsp;<span style="color:var(--success);font-weight:700">\u2705 Volledig!</span>':'');
   const bar=document.getElementById('checklist-bar');
-  if(bar)bar.style.width=Math.round(done/total*100)+'%';
+  if(bar)bar.style.width=(total>0?Math.round(done/total*100):0)+'%';
 
-  if(done===total){
+  if(done===total&&total>0){
     setTimeout(async function(){
       if(await confirmDialog('Alle items zijn afgevinkt! Checklist definitief voltooien?')){
         p.checklistState={_completed:true,_completedDate:new Date().toISOString().split('T')[0]};
@@ -4063,9 +4506,9 @@ function toggleChecklistItem(personId,itemId,checked){
 }
 
 async function confirmDeleteChecklist(personId){
-  if(!await confirmDialog('Checklist resetten voor deze medewerker? Alle afgevinkte items worden ongedaan gemaakt.'))return;
+  if(!await confirmDialog('Checklist resetten voor deze medewerker? Alle afgevinkte items en toegewezen groepen worden verwijderd.'))return;
   const p=people.find(x=>x.id===personId);
-  if(p){p.checklistState={};autoSave();}
+  if(p){p.checklistState={};p.checklistSections=[];autoSave();}
   closeModal();
   showToast('Checklist gereset');
 }
@@ -4298,7 +4741,7 @@ function openMutationsModal(personId){
         <td style="font-size:12px;font-weight:600">${m.field}</td>
         <td style="font-size:12px;${m.oldValue?'color:var(--danger)':'color:var(--text3)'}">${m.oldValue||'(leeg)'}</td>
         <td style="font-size:12px;${m.newValue?'color:var(--success)':'color:var(--text3)'}">${m.newValue||'(leeg)'}</td>
-        <td><button class="btn btn-sm btn-danger" onclick="deleteMutation('${personId}','${m.id}')" style="font-size:10px" title="Verwijderen">🗑</button></td>
+        <td><button class="btn btn-sm" onclick="deleteMutation('${personId}','${m.id}')" style="font-size:10px;color:var(--text3)" title="Terugdraaien of corrigeren">↩️</button></td>
       </tr>`;
     });
     html+='</tbody></table></div>';
@@ -4309,13 +4752,94 @@ function openMutationsModal(personId){
 }
 
 async function deleteMutation(personId,mutId){
-  if(!await confirmDialog('Deze mutatie verwijderen uit het logboek?'))return;
   const p=people.find(x=>x.id===personId);
   if(!p||!p.mutations)return;
-  p.mutations=p.mutations.filter(m=>m.id!==mutId);
+  const m=p.mutations.find(x=>x.id===mutId);
+  if(!m)return;
+
+  // Bepaal of deze mutatie veilig teruggedraaid kan worden
+  const safeFields=['Saldo OV','Saldo aanpassing','Baremacategorie','Teamrol','GSM','Telefoon','Werk GSM','IBAN','Geboortedatum','Rijksregisternr','Voornaam','Naam','E-mail','Noodcontact naam','Noodcontact relatie','Noodcontact GSM','Paritair Comité','Startdatum','Einddatum','Overuren'];
+  const riskyFields=['Department','Werkrooster','Rol','Approver','Statuut','Interim dagen','Status','Aanvraag goedgekeurd','Aanvraag geweigerd','Aanvraag verwijderd','Arbeidsongeval geregistreerd','Arbeidsongeval gewijzigd','Arbeidsongeval afgesloten','Arbeidsongeval verergerd'];
+  const isSafe=safeFields.includes(m.field);
+  const isRisky=riskyFields.includes(m.field)||m.field.startsWith('Arbeidsongeval')||m.field==='Status';
+  // Manuele mutaties zijn altijd safe (geen data-effect)
+  const isManual=m.user&&m.field&&!safeFields.includes(m.field)&&!isRisky;
+
+  if(isSafe&&m.oldValue&&m.oldValue!=='(leeg)'){
+    // Veilige rollback — bied aan
+    const overlay=document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:10001';
+    overlay.innerHTML=`<div style="background:#fff;border-radius:12px;padding:24px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+      <div style="font-size:14px;font-weight:700;margin-bottom:12px">↩️ Mutatie terugdraaien</div>
+      <div style="font-size:12px;color:#475569;margin-bottom:6px"><strong>${m.field}</strong> wordt teruggezet:</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:10px;background:#f8fafc;border-radius:8px;margin-bottom:16px;font-size:12px">
+        <span style="color:var(--success);font-weight:600">${m.newValue||'(leeg)'}</span>
+        <span style="color:var(--text3)">→</span>
+        <span style="color:var(--danger);font-weight:600">${m.oldValue}</span>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn" onclick="this.closest('div[style*=fixed]').remove()">Annuleren</button>
+        <button class="btn btn-primary" onclick="doRollback('${personId}','${mutId}');this.closest('div[style*=fixed]').remove()">↩️ Terugdraaien</button>
+      </div>
+    </div>`;
+    document.body.appendChild(overlay);
+  } else {
+    // Risicovolle of geen rollback mogelijk — markeer als gecorrigeerd
+    if(!await confirmDialog('⚠️ Markeren als gecorrigeerd?\n\nDeze mutatie kan niet automatisch worden teruggedraaid zonder risico op data-inconsistentie. De logentry wordt verwijderd maar de onderliggende data blijft ongewijzigd.'))return;
+    p.mutations=p.mutations.filter(x=>x.id!==mutId);
+    // Log dat er een correctie is gedaan
+    p.mutations.push({id:uid(),timestamp:new Date().toISOString(),user:settings.currentUser||'Admin',field:'⚠️ Logcorrectie',oldValue:m.field+': '+( m.oldValue||'(leeg)')+' → '+(m.newValue||'(leeg)'),newValue:'Verwijderd zonder rollback'});
+    autoSave();
+    openMutationsModal(personId);
+    showToast('⚠️ Mutatie verwijderd (geen rollback — pas data handmatig aan indien nodig)','warn');
+  }
+}
+
+function rollbackMutation(p,m){
+  // Map label terug naar veldnaam
+  const labelToKey={
+    'Voornaam':'firstName','Naam':'lastName','E-mail':'email','GSM':'gsm','Telefoon':'tel',
+    'Werk GSM':'werkGsm','IBAN':'iban','Geboortedatum':'birthDate','Rijksregisternr':'rrn',
+    'Saldo OV':'saldoOV','Baremacategorie':'baremaCategory','Teamrol':'teamRole',
+    'Paritair Comité':'paritairComite','Startdatum':'startDate','Einddatum':'endDate',
+    'Noodcontact naam':'noodNaam','Noodcontact relatie':'noodRelatie','Noodcontact GSM':'noodGsm',
+    'Ploeg van':'reportsTo'
+  };
+
+  // Speciaal geval: saldo-aanpassing → verwijder laatste matching adjustment
+  if(m.field==='Saldo aanpassing'&&m.newValue&&p.allowanceAdjustments){
+    const daysMatch=m.newValue.match(/^([+-]?\d+(?:\.\d+)?)d/);
+    if(daysMatch){
+      const days=parseFloat(daysMatch[1]);
+      // Zoek de meest recente adjustment met dezelfde dagen
+      for(let i=p.allowanceAdjustments.length-1;i>=0;i--){
+        if(p.allowanceAdjustments[i].days===days){
+          p.allowanceAdjustments.splice(i,1);
+          break;
+        }
+      }
+    }
+    return;
+  }
+
+  const key=labelToKey[m.field];
+  if(!key)return;
+  const oldVal=m.oldValue;
+  if(oldVal==='(leeg)'||oldVal==='')p[key]='';
+  else if(key==='saldoOV'){p[key]=parseFloat(oldVal)||0;}
+  else p[key]=oldVal;
+}
+
+function doRollback(personId,mutId){
+  const p=people.find(x=>x.id===personId);
+  if(!p||!p.mutations)return;
+  const m=p.mutations.find(x=>x.id===mutId);
+  if(!m)return;
+  rollbackMutation(p,m);
+  p.mutations=p.mutations.filter(x=>x.id!==mutId);
   autoSave();
   openMutationsModal(personId);
-  showToast('Mutatie verwijderd');
+  showToast('↩️ Teruggedraaid: '+m.field);
 }
 
 function openAddMutationModal(personId){
@@ -5389,8 +5913,11 @@ function renderOrganigram(){
   function renderDeptBlock(d){
     const dPeople=activePeople.filter(p=>p.departmentId===d.id);
     const manager=d.managerId?dPeople.find(p=>p.id===d.managerId)||activePeople.find(p=>p.id===d.managerId):null;
-    const leads=dPeople.filter(p=>p.teamRole==='Ploegleider'&&p!==manager);
-    const others=dPeople.filter(p=>p!==manager&&!leads.includes(p));
+    // Fallback: als geen manager is ingesteld, zoek iemand met teamRole Manager/Zaakvoerder
+    const effectiveManager=manager||dPeople.find(p=>p.teamRole==='Manager'||p.teamRole==='Zaakvoerder')||null;
+    const leads=dPeople.filter(p=>p.teamRole==='Ploegleider'&&p!==effectiveManager).sort((a,b)=>fullName(a).localeCompare(fullName(b)));
+    const approvers=dPeople.filter(p=>p.isApprover&&p!==effectiveManager&&!leads.includes(p)).sort((a,b)=>fullName(a).localeCompare(fullName(b)));
+    const others=dPeople.filter(p=>p!==effectiveManager&&!leads.includes(p)&&!approvers.includes(p)).sort((a,b)=>fullName(a).localeCompare(fullName(b)));
     const children=childDepts.filter(c=>c.parentDeptId===d.id);
     const color=getColor(d.id);
     const colorLight=getColorLight(d.id);
@@ -5399,14 +5926,36 @@ function renderOrganigram(){
       <div style="padding:12px 14px;background:${colorLight}">
         <div style="font-weight:700;font-size:14px;color:${color}">${d.name}</div>
         <div style="font-size:11px;color:#94a3b8">${dPeople.length} medewerker${dPeople.length!==1?'s':''}</div>
-        ${manager?`<div style="display:flex;align-items:center;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid rgba(0,0,0,.06)">
-          <div style="width:28px;height:28px;border-radius:50%;background:${avatarBg(fullName(manager))};display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:700">${ini(fullName(manager))}</div>
-          <div><div style="font-weight:600;font-size:12px;color:#1e293b">${fullName(manager)}</div><div style="font-size:10px;color:#64748b">${manager.teamRole||'Manager'}</div></div>
+        ${effectiveManager?`<div style="display:flex;align-items:center;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid rgba(0,0,0,.06)">
+          <div style="width:28px;height:28px;border-radius:50%;background:${avatarBg(fullName(effectiveManager))};display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:700">${ini(fullName(effectiveManager))}</div>
+          <div><div style="font-weight:600;font-size:12px;color:#1e293b">${fullName(effectiveManager)}</div><div style="font-size:10px;color:#64748b">${effectiveManager.teamRole||'Verantwoordelijke'}</div></div>
         </div>`:''}
       </div>
       <div style="padding:8px;display:flex;flex-direction:column;gap:3px">`;
-    leads.forEach(p=>{html+=renderPersonCard(p,true);});
-    others.forEach(p=>{html+=renderPersonCard(p,false);});
+
+    // Groepeer medewerkers per ploegleider (via reportsTo)
+    const leadsWithTeam=leads.filter(l=>others.concat(approvers).some(p=>p.reportsTo===l.id));
+    const leadsWithoutTeam=leads.filter(l=>!leadsWithTeam.includes(l));
+    const assignedToLead=new Set();
+
+    // Render ploegen: ploegleider + zijn/haar teamleden
+    leadsWithTeam.forEach(lead=>{
+      const teamMembers=[...approvers,...others].filter(p=>p.reportsTo===lead.id).sort((a,b)=>fullName(a).localeCompare(fullName(b)));
+      teamMembers.forEach(p=>assignedToLead.add(p.id));
+      html+=`<div style="border:1px solid #e8ecf4;border-radius:8px;padding:4px;margin-bottom:2px;background:#fafbfe">`;
+      html+=renderPersonCard(lead,true);
+      teamMembers.forEach(p=>{
+        html+=`<div style="margin-left:18px;border-left:2px solid #e2e8f0;padding-left:6px;margin-top:2px">${renderPersonCard(p,false)}</div>`;
+      });
+      html+=`</div>`;
+    });
+
+    // Ploegleiders zonder teamleden
+    leadsWithoutTeam.forEach(p=>{html+=renderPersonCard(p,true);});
+    // Approvers die niet aan een lead gekoppeld zijn
+    approvers.filter(p=>!assignedToLead.has(p.id)).forEach(p=>{html+=renderPersonCard(p,true);});
+    // Overige medewerkers die niet aan een lead gekoppeld zijn
+    others.filter(p=>!assignedToLead.has(p.id)).forEach(p=>{html+=renderPersonCard(p,false);});
     html+=`</div>`;
 
     // Child departments
@@ -5429,10 +5978,10 @@ function renderOrganigram(){
   // Zaakvoerders block
   if(zaakvoerders.length>0){
     html+=`<div style="display:flex;justify-content:center;margin-bottom:24px">
-      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;border-top:3px solid #1e293b;padding:16px 20px;min-width:280px">
-        <div style="font-weight:700;font-size:13px;color:#1e293b;text-align:center;margin-bottom:10px">${directie?directie.name:'Directie'}</div>
-        <div style="display:flex;flex-direction:column;gap:4px">`;
-    zaakvoerders.forEach(p=>{html+=renderPersonCard(p,true);});
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;border-top:3px solid #1e293b;padding:14px 20px;max-width:720px">
+        <div style="font-weight:700;font-size:13px;color:#1e293b;text-align:center;margin-bottom:8px">${directie?directie.name:'Directie'}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">`;
+    zaakvoerders.forEach(p=>{html+=`<div style="flex:0 0 auto;max-width:220px">${renderPersonCard(p,true)}</div>`;});
     html+=`</div></div></div>`;
 
     // Connector line
@@ -5444,13 +5993,51 @@ function renderOrganigram(){
     }
   }
 
-  // Department blocks
+  // Department blocks — groepeer departementen met dezelfde manager
+  // Sorteer: depts met dezelfde managerId naast elkaar
+  const sortedDepts=[...otherTopDepts].sort((a,b)=>{
+    const mA=a.managerId||'zzz_'+a.id;
+    const mB=b.managerId||'zzz_'+b.id;
+    if(mA!==mB)return mA.localeCompare(mB);
+    return (a.name||'').localeCompare(b.name||'');
+  });
+
+  // Groepeer in clusters van depts met dezelfde manager
+  const groups=[];
+  let currentGroup=null;
+  sortedDepts.forEach(d=>{
+    const mId=d.managerId||null;
+    if(mId&&currentGroup&&currentGroup.managerId===mId){
+      currentGroup.depts.push(d);
+    } else {
+      currentGroup={managerId:mId,depts:[d]};
+      groups.push(currentGroup);
+    }
+  });
+
   html+=`<div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;align-items:flex-start">`;
-  otherTopDepts.forEach(d=>{
-    html+=`<div style="flex:0 1 220px;min-width:200px">
-      <div style="display:flex;justify-content:center;margin-bottom:12px"><div style="width:2px;height:20px;background:#e2e8f0"></div></div>
-      ${renderDeptBlock(d)}
-    </div>`;
+  groups.forEach(g=>{
+    if(g.depts.length>1&&g.managerId){
+      // Meerdere depts met dezelfde manager → groepeer visueel
+      const mgr=activePeople.find(p=>p.id===g.managerId);
+      const mgrName=mgr?fullName(mgr):'';
+      html+=`<div style="flex:0 1 ${g.depts.length*230}px;min-width:${g.depts.length*210}px">
+        <div style="display:flex;justify-content:center;margin-bottom:12px"><div style="width:2px;height:20px;background:#e2e8f0"></div></div>
+        ${mgrName?`<div style="text-align:center;font-size:10px;color:#94a3b8;margin-bottom:6px;font-weight:500">👤 ${mgrName}</div>`:''}
+        <div style="display:flex;gap:12px;align-items:flex-start">`;
+      g.depts.forEach(d=>{
+        html+=`<div style="flex:1;min-width:200px">${renderDeptBlock(d)}</div>`;
+      });
+      html+=`</div></div>`;
+    } else {
+      // Enkele dept
+      g.depts.forEach(d=>{
+        html+=`<div style="flex:0 1 220px;min-width:200px">
+          <div style="display:flex;justify-content:center;margin-bottom:12px"><div style="width:2px;height:20px;background:#e2e8f0"></div></div>
+          ${renderDeptBlock(d)}
+        </div>`;
+      });
+    }
   });
   html+=`</div>`;
 
@@ -6831,8 +7418,8 @@ async function resetData(){
   localStorage.removeItem('vb_salaryReasons');
   localStorage.removeItem('vb_werkgeverskost');
   localStorage.removeItem('vb_uurkostParams');
-  localStorage.removeItem('vb_verlofregels');
-  localStorage.removeItem('vb_checklistItems');localStorage.removeItem('vb_accidents');localStorage.removeItem('vb_accidentSettings');
+  localStorage.removeItem('vb_verlofregels');localStorage.removeItem('vb_aanvraagtermijnen');
+  localStorage.removeItem('vb_checklistItems');localStorage.removeItem('vb_checklistTemplates');localStorage.removeItem('vb_accidents');localStorage.removeItem('vb_accidentSettings');
   location.reload();
 }
 
@@ -6855,13 +7442,13 @@ if(localStorage.getItem('vb_seed_version')!==SEED_VERSION){
   localStorage.removeItem('vb_salaryReasons');
   localStorage.removeItem('vb_werkgeverskost');
   localStorage.removeItem('vb_uurkostParams');
-  localStorage.removeItem('vb_verlofregels');
-  localStorage.removeItem('vb_checklistItems');localStorage.removeItem('vb_accidents');localStorage.removeItem('vb_accidentSettings');
+  localStorage.removeItem('vb_verlofregels');localStorage.removeItem('vb_aanvraagtermijnen');
+  localStorage.removeItem('vb_checklistItems');localStorage.removeItem('vb_checklistTemplates');localStorage.removeItem('vb_accidents');localStorage.removeItem('vb_accidentSettings');
   localStorage.setItem('vb_seed_version',SEED_VERSION);
-  departments=[];people=[];leaveTypes=[];schedules=[];requests=[];candidates=[];channels=[];baremaData=[];ancienniteitData=[];verlofregels=[];checklistItems=[];
+  departments=[];people=[];leaveTypes=[];schedules=[];requests=[];candidates=[];channels=[];baremaData=[];ancienniteitData=[];verlofregels=[];aanvraagtermijnen=[];checklistItems=[];
 }
 }catch(e){
-  departments=[];people=[];leaveTypes=[];schedules=[];requests=[];candidates=[];channels=[];baremaData=[];ancienniteitData=[];verlofregels=[];checklistItems=[];
+  departments=[];people=[];leaveTypes=[];schedules=[];requests=[];candidates=[];channels=[];baremaData=[];ancienniteitData=[];verlofregels=[];aanvraagtermijnen=[];checklistItems=[];
 }
 
 // Seed demo data
