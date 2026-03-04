@@ -4,7 +4,21 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap");
 :root{--bg:#f0f4ff;--surface:#fff;--border:#e2e8f4;--accent:#3b82f6;--radius:14px;--shadow:0 2px 8px rgba(0,0,0,.06);}
 *{margin:0;padding:0;box-sizing:border-box;}html,body,#root{height:100%;width:100%;font-family:"DM Sans",sans-serif;}
-button{font-family:inherit;cursor:pointer;}input,select,textarea{font-family:inherit;font-size:13px;}</style></head><body>
+button{font-family:inherit;cursor:pointer;}input,select,textarea{font-family:inherit;font-size:13px;}</style>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<script>
+try{
+  if(typeof firebase!=="undefined"){
+    firebase.initializeApp({apiKey:"AIzaSyBKU-wCjV4Au4ngRG52Zmmxbzc3N3D8VBU",authDomain:"advanced-intranet.firebaseapp.com",projectId:"advanced-intranet",storageBucket:"advanced-intranet.firebasestorage.app",messagingSenderId:"309856938024",appId:"1:309856938024:web:2108715f92c5dea2da2d1d"});
+    window.fbDb=firebase.firestore();
+    window.fbStorage=firebase.storage();
+    console.log("Firebase OK");
+  }
+}catch(e){console.warn("Firebase init skip:",e.message);}
+</script>
+</head><body>
 <div id="root"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
@@ -904,6 +918,75 @@ function BackofficePortal() {
   const [toonNieuwProject, setToonNieuwProject] = useState(false);
   const [brRapporten, setBrRapporten] = useState({});
   const [bewerkRapport, setBewerkRapport] = useState(null);
+
+  // Firebase bezoekrapporten
+  const [brFirebase, setBrFirebase] = useState(false);
+
+  useEffect(() => {
+    if (!window.fbDb) return;
+    const TYPES_MAP = {
+      solar:{l:"Zon / Thuisbatterij",items:[{k:"woning",l:"Woning",s:1},{k:"dak",l:"Dak",s:0},{k:"traject",l:"Kabelroute DC",s:0},{k:"omvormer",l:"Omvormer",s:1},{k:"loc-bat",l:"Locatie batterij",s:0},{k:"internet",l:"Internet",s:0},{k:"elek-bord",l:"Elektrisch bord",s:1},{k:"hoofdzek",l:"Zekering meter",s:1},{k:"beschrijving-s",l:"Project algemeen",s:0}]},
+      airmo:{l:"Lucht/Lucht Mono",items:[{k:"woning",l:"Woning",s:1},{k:"binnenunit",l:"Binnenunit",s:0},{k:"buitenunit",l:"Buitenunit",s:0},{k:"elek-aansl",l:"Elek. aansluiting",s:0},{k:"beschrijving",l:"Project algemeen",s:0}]},
+      airmu:{l:"Lucht/Lucht Multi",items:[{k:"woning",l:"Woning",s:1},{k:"binnenunit-m-1",l:"Binnenunit 1",s:0},{k:"binnenunit-m-2",l:"Binnenunit 2",s:0},{k:"buitenunit-m",l:"Buitenunit",s:0},{k:"elek-aansl-m",l:"Elek. aansluiting",s:0},{k:"beschrijving-m",l:"Project algemeen",s:0}]},
+      airwater:{l:"Lucht/Water WP",items:[{k:"woning",l:"Woning",s:1},{k:"vloervw-w",l:"Vloerverwarming",s:0},{k:"radiatoren-w",l:"Radiatoren",s:0},{k:"binnenunit-w",l:"Binnenunit",s:0},{k:"buitenunit-w",l:"Buitenunit",s:0},{k:"elek-bord",l:"Elektrisch bord",s:1},{k:"hoofdzek",l:"Zekering meter",s:1},{k:"beschrijving-w",l:"Project algemeen",s:0}]},
+      geo:{l:"Geothermie",items:[{k:"woning",l:"Woning",s:1},{k:"vloervw-g",l:"Vloerverwarming",s:0},{k:"radiatoren-g",l:"Radiatoren",s:0},{k:"binnenunit-g",l:"Binnenunit",s:0},{k:"geo-info",l:"Geothermische info",s:0},{k:"wifi-voelers-g",l:"Wifi en voelers",s:0},{k:"elek-bord",l:"Elektrisch bord",s:1},{k:"hoofdzek",l:"Zekering meter",s:1},{k:"beschrijving-g",l:"Project algemeen",s:0}]},
+      charge:{l:"Laadpaal",items:[{k:"woning",l:"Woning",s:1},{k:"loc-laadpunt",l:"Loc. laadpunt",s:0},{k:"internet",l:"Internet",s:0},{k:"elek-bord",l:"Elektrisch bord",s:1},{k:"hoofdzek",l:"Zekering meter",s:1},{k:"kabelroute",l:"Kabelroute",s:0},{k:"beschrijving-c",l:"Project algemeen",s:0}]},
+      water:{l:"Waterverzachter",items:[{k:"woning",l:"Woning",s:1},{k:"loc-waterverz",l:"Waterverzachter",s:0},{k:"condensafvoer-wt",l:"Condensafvoer",s:0},{k:"elek-waterverz",l:"Electriciteit",s:0},{k:"wateraansl-wt",l:"Wateraansluiting",s:0},{k:"beschrijving-wt",l:"Project algemeen",s:0}]},
+      heatboiler:{l:"Warmtepompboiler",items:[{k:"woning",l:"Woning",s:1},{k:"loc-heatboiler",l:"Warmtepompboiler",s:0},{k:"ubink-hb",l:"Ubink kanalen",s:0},{k:"condensafvoer-hb",l:"Condensafvoer",s:0},{k:"elek-heatboiler",l:"Electriciteit",s:0},{k:"beschrijving-hb",l:"Project algemeen",s:0}]}
+    };
+    const ALL_FIELDS = ["parking","phaseType","fixType","unitType","connType","mountType","locationType","panelCount","fuelType","location","condensStatus","elekStatus","replaceType","condensPump","strings","mppTrackers","boilerTech","boilerSize"];
+    const unsub = window.fbDb.collection("bezoekrapport").orderBy("createdAt","desc").onSnapshot(snap => {
+      const raps = {};
+      snap.forEach(doc => {
+        const d = doc.data();
+        let iD = {};
+        try { iD = typeof d.itemData === "string" ? JSON.parse(d.itemData) : (d.itemData || {}); } catch(e) {}
+        const ct = d.completedTypes || [];
+        const del = d.deletedItems || [];
+        const types = {};
+        ct.forEach(tk => {
+          const def = TYPES_MAP[tk];
+          if (!def) return;
+          let pT = 0, iDn = 0, iTt = 0;
+          const items = def.items.filter(x => {
+            const sk = x.s ? x.k : tk + "_" + x.k;
+            return !del.includes(sk);
+          }).map(x => {
+            const sk = x.s ? x.k : tk + "_" + x.k;
+            const dd = iD[sk] || {};
+            const pc = dd.photoCount || (dd.storageUrls || []).length || 0;
+            pT += pc;
+            const row = { key: x.k, label: x.l, notes: dd.notes || "", _photoCount: pc, storageUrls: dd.storageUrls || [] };
+            ALL_FIELDS.forEach(fk => { row[fk] = dd[fk] || null; iTt++; if (dd[fk]) iDn++; });
+            if (dd.boardType) row.boardType = dd.boardType;
+            if (dd.meterType) row.meterType = dd.meterType;
+            if (dd.dakTypes) row.dakTypes = dd.dakTypes;
+            if (dd.equipment) row.equipment = dd.equipment;
+            return row;
+          });
+          const pS = items.length > 0 ? Math.min(100, Math.round(pT / items.length * 100)) : 0;
+          const iS = iTt > 0 ? Math.round(iDn / iTt * 100) : 0;
+          types[tk] = { photo: pS, info: iS, completed: true, label: def.l, items };
+        });
+        if (Object.keys(types).length === 0) return;
+        raps[doc.id] = {
+          projectId: null, klant: d.klantNaam || "Onbekend", adres: d.klantAdres || "",
+          types, items: iD,
+          ontvangen: d.createdAt ? new Date(d.createdAt).toLocaleString("nl-BE") : "",
+          dossierNr: null, pdf: false, gekoppeld: false, firebaseId: doc.id
+        };
+      });
+      if (Object.keys(raps).length > 0) {
+        setBrRapporten(prev => {
+          const merged = { ...raps };
+          Object.entries(prev).forEach(([k, v]) => { if (v.gekoppeld || v.projectId) merged[k] = v; });
+          return merged;
+        });
+        setBrFirebase(true);
+      }
+    }, err => { console.warn("Firebase BR error:", err); });
+    return () => unsub();
+  }, []);
   const [fotoEditor, setFotoEditor] = useState(null);
   const [openRap, setOpenRap] = useState({});
   const [dragPhoto, setDragPhoto] = useState(null); // {rapId, fromKey, photoIdx, dataUrl} // {rapId, typeKey, itemKey, photos}
@@ -2892,7 +2975,7 @@ function BackofficePortal() {
               </div>
               <div style={{ display: "flex", gap: 12 }}>
                 {[
-                  { label: "Totaal", val: Object.keys(brRapporten).length, color: "#6366F1" },
+                  { label: brFirebase?"\uD83D\uDD34 Live":"Totaal", val: Object.keys(brRapporten).length, color: brFirebase?"#22C55E":"#6366F1" },
                   { label: "Gekoppeld", val: Object.values(brRapporten).filter(r => r.gekoppeld).length, color: "#22C55E" },
                   { label: "Open", val: Object.values(brRapporten).filter(r => !r.gekoppeld).length, color: "#F59E0B" },
                 ].map(s => (
