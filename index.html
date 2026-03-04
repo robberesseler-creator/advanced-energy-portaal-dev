@@ -4,20 +4,7 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap");
 :root{--bg:#f0f4ff;--surface:#fff;--border:#e2e8f4;--accent:#3b82f6;--radius:14px;--shadow:0 2px 8px rgba(0,0,0,.06);}
 *{margin:0;padding:0;box-sizing:border-box;}html,body,#root{height:100%;width:100%;font-family:"DM Sans",sans-serif;}
-button{font-family:inherit;cursor:pointer;}input,select,textarea{font-family:inherit;font-size:13px;}</style>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
-<script>
-try{
-  if(typeof firebase!=="undefined"){
-    firebase.initializeApp({apiKey:"AIzaSyBKU-wCjV4Au4ngRG52Zmmxbzc3N3D8VBU",authDomain:"advanced-intranet.firebaseapp.com",projectId:"advanced-intranet",storageBucket:"advanced-intranet.firebasestorage.app",messagingSenderId:"309856938024",appId:"1:309856938024:web:2108715f92c5dea2da2d1d"});
-    window.fbDb=firebase.firestore();
-    window.fbStorage=firebase.storage();
-  }
-}catch(e){console.warn("Firebase init overgeslagen:",e.message);}
-</script>
-</head><body>
+button{font-family:inherit;cursor:pointer;}input,select,textarea{font-family:inherit;font-size:13px;}</style></head><body>
 <div id="root"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
@@ -26,6 +13,101 @@ try{
 const { useState, useMemo, useEffect } = React;
 
 /* ─── DATA & CONFIGURATIE ─── */
+
+
+  // ═══ Bezoekrapport veld-opties (zelfde als mobiele app) ═══
+  const BR_FIELD_OPTIONS = {
+    parking: { label: "Parking", options: [["beschikbaar","Beschikbaar"],["aanvragen","Aanvragen"]], color: "#F59E0B" },
+    phaseType: { label: "Aansluiting", options: [["2-fase","2-fase"],["3x400V","3x400V"],["3x230V","3x230V"]], color: "#3B82F6" },
+    fixType: { label: "Bevestiging", options: [["vloerblokken","Vloerblokken"],["muurbeugel","Muurbeugel"]], color: "#22C55E" },
+    unitType: { label: "Binnenunit", options: [["wandmodel","Wandmodel"],["vloermodel","Vloermodel"]], color: "#8B5CF6" },
+    connType: { label: "Aansluiting", options: [["stekker","Via stekker"],["bord","Via bord"]], color: "#EC4899" },
+    mountType: { label: "Montage", options: [["muurmontage","Muur"],["paal","Paal"]], color: "#06B6D4" },
+    locationType: { label: "Locatie", options: [["kelder","Kelder"],["gelijkvloers","Gelijkvloers"],["verdieping","Verdieping"]], color: "#F97316" },
+    location: { label: "Locatie", options: [["kelder","Kelder"],["gelijkvloers","Gelijkvloers"],["verdieping","Verdieping"]], color: "#10B981" },
+    condensStatus: { label: "Condensafvoer", options: [["aanwezig","Aanwezig"],["niet-aanwezig","Niet aanwezig"],["te-verplaatsen","Verplaatsen"]], color: "#6366F1" },
+    elekStatus: { label: "Electriciteit", options: [["aanwezig","Aanwezig"],["niet-aanwezig","Niet aanwezig"],["te-verplaatsen","Verplaatsen"]], color: "#A855F7" },
+    fuelType: { label: "Brandstof", options: [["gas","Gas"],["mazout","Mazout"]], color: "#EF4444" },
+    replaceType: { label: "Vervanging", options: [["doorstromer","Doorstromer"],["boilervat-apart","Boilervat"],["boilervat-cv","Boilervat CV"]], color: "#D946EF" },
+    condensPump: { label: "Condenspomp", options: [["ja","Ja"],["nee","Nee"]], color: "#0EA5E9" },
+    boilerTech: { label: "Techniek", options: [["monobloc","Monobloc"],["split","Split"]], color: "#14B8A6" },
+    boilerSize: { label: "Inhoud", options: [["<200","<200L"],["200","200L"],["260","260L"]], color: "#F59E0B" },
+    panelCount: { label: "Panelen", input: "number", color: "#EAB308" },
+    strings: { label: "Strings", input: "number", color: "#8B5CF6" },
+    mppTrackers: { label: "MPP Trackers", input: "number", color: "#3B82F6" },
+  };
+
+  const BR_TYPE_FIELDS = {
+    solar: {
+      "woning": ["parking"],
+      "dak": ["panelCount"],
+      "omvormer": ["strings","mppTrackers","location"],
+      "loc-bat": ["location"],
+      "elek-bord": ["phaseType"],
+      "beschrijving-s": [],
+    },
+    airmo: {
+      "woning": ["parking"],
+      "binnenunit": ["unitType"],
+      "buitenunit": ["fixType"],
+      "elek-aansl": ["connType"],
+      "beschrijving": [],
+    },
+    airmu: {
+      "woning": ["parking"],
+      "binnenunit-m-1": ["unitType"],
+      "binnenunit-m-2": ["unitType"],
+      "buitenunit-m": ["fixType"],
+      "elek-aansl-m": ["connType"],
+      "beschrijving-m": [],
+    },
+    airwater: {
+      "woning": ["parking","fuelType"],
+      "vloervw-w": [],
+      "radiatoren-w": [],
+      "binnenunit-w": ["unitType"],
+      "buitenunit-w": ["fixType"],
+      "elek-bord": ["phaseType"],
+      "hoofdzek": [],
+      "beschrijving-w": [],
+    },
+    geo: {
+      "woning": ["parking","fuelType"],
+      "vloervw-g": [],
+      "radiatoren-g": [],
+      "binnenunit-g": ["unitType"],
+      "geo-info": [],
+      "wifi-voelers-g": [],
+      "elek-bord": ["phaseType"],
+      "hoofdzek": [],
+      "beschrijving-g": [],
+    },
+    charge: {
+      "woning": ["parking"],
+      "loc-laadpunt": ["mountType"],
+      "internet": [],
+      "elek-bord": ["phaseType"],
+      "hoofdzek": [],
+      "kabelroute": [],
+      "beschrijving-c": [],
+    },
+    water: {
+      "woning": ["parking"],
+      "loc-waterverz": ["locationType"],
+      "condensafvoer-wt": ["condensStatus"],
+      "elek-waterverz": ["elekStatus"],
+      "wateraansl-wt": [],
+      "beschrijving-wt": [],
+    },
+    heatboiler: {
+      "woning": ["parking"],
+      "loc-heatboiler": ["locationType","replaceType","boilerTech","boilerSize"],
+      "ubink-hb": [],
+      "condensafvoer-hb": ["condensStatus","condensPump"],
+      "elek-heatboiler": ["elekStatus"],
+      "beschrijving-hb": [],
+    },
+  };
 
 const TECHNIEKEN = {
   "lucht-water-wp": { naam: "Lucht/water-WP", volledig: "Lucht/water-warmtepomp", kleur: "#2563EB", icoon: "\u{1F4A7}" },
@@ -822,87 +904,6 @@ function BackofficePortal() {
   const [toonNieuwProject, setToonNieuwProject] = useState(false);
   const [brRapporten, setBrRapporten] = useState({});
   const [bewerkRapport, setBewerkRapport] = useState(null);
-
-  // Firebase bezoekrapporten
-  const [brFirebase, setBrFirebase] = useState(false);
-
-  useEffect(() => {
-    if (!window.fbDb) return;
-    const TYPES_MAP = {
-      solar:{l:"Zon / Thuisbatterij",items:[{k:"woning",l:"Woning",s:1},{k:"dak",l:"Dak",s:0},{k:"traject",l:"Kabelroute DC",s:0},{k:"omvormer",l:"Omvormer",s:1},{k:"loc-bat",l:"Locatie batterij",s:0},{k:"internet",l:"Internet",s:0},{k:"elek-bord",l:"Elektrisch bord",s:1},{k:"hoofdzek",l:"Zekering meter",s:1},{k:"beschrijving-s",l:"Project algemeen",s:0}]},
-      airmo:{l:"Lucht/Lucht Mono",items:[{k:"woning",l:"Woning",s:1},{k:"binnenunit",l:"Binnenunit",s:0},{k:"buitenunit",l:"Buitenunit",s:0},{k:"elek-aansl",l:"Elek. aansluiting",s:0},{k:"beschrijving",l:"Project algemeen",s:0}]},
-      airmu:{l:"Lucht/Lucht Multi",items:[{k:"woning",l:"Woning",s:1},{k:"binnenunit-m-1",l:"Binnenunit 1",s:0},{k:"binnenunit-m-2",l:"Binnenunit 2",s:0},{k:"buitenunit-m",l:"Buitenunit",s:0},{k:"elek-aansl-m",l:"Elek. aansluiting",s:0},{k:"beschrijving-m",l:"Project algemeen",s:0}]},
-      airwater:{l:"Lucht/Water WP",items:[{k:"woning",l:"Woning",s:1},{k:"vloervw-w",l:"Vloerverwarming",s:0},{k:"radiatoren-w",l:"Radiatoren",s:0},{k:"binnenunit-w",l:"Binnenunit",s:0},{k:"buitenunit-w",l:"Buitenunit",s:0},{k:"elek-bord",l:"Elektrisch bord",s:1},{k:"hoofdzek",l:"Zekering meter",s:1},{k:"beschrijving-w",l:"Project algemeen",s:0}]},
-      geo:{l:"Geothermie",items:[{k:"woning",l:"Woning",s:1},{k:"vloervw-g",l:"Vloerverwarming",s:0},{k:"radiatoren-g",l:"Radiatoren",s:0},{k:"binnenunit-g",l:"Binnenunit",s:0},{k:"geo-info",l:"Geothermische info",s:0},{k:"wifi-voelers-g",l:"Wifi en voelers",s:0},{k:"elek-bord",l:"Elektrisch bord",s:1},{k:"hoofdzek",l:"Zekering meter",s:1},{k:"beschrijving-g",l:"Project algemeen",s:0}]},
-      charge:{l:"Laadpaal",items:[{k:"woning",l:"Woning",s:1},{k:"loc-laadpunt",l:"Loc. laadpunt",s:0},{k:"internet",l:"Internet",s:0},{k:"elek-bord",l:"Elektrisch bord",s:1},{k:"hoofdzek",l:"Zekering meter",s:1},{k:"kabelroute",l:"Kabelroute",s:0},{k:"beschrijving-c",l:"Project algemeen",s:0}]},
-      water:{l:"Waterverzachter",items:[{k:"woning",l:"Woning",s:1},{k:"loc-waterverz",l:"Waterverzachter",s:0},{k:"condensafvoer-wt",l:"Condensafvoer",s:0},{k:"elek-waterverz",l:"Electriciteit",s:0},{k:"wateraansl-wt",l:"Wateraansluiting",s:0},{k:"beschrijving-wt",l:"Project algemeen",s:0}]},
-      heatboiler:{l:"Warmtepompboiler",items:[{k:"woning",l:"Woning",s:1},{k:"loc-heatboiler",l:"Warmtepompboiler",s:0},{k:"ubink-hb",l:"Ubink kanalen",s:0},{k:"condensafvoer-hb",l:"Condensafvoer",s:0},{k:"elek-heatboiler",l:"Electriciteit",s:0},{k:"beschrijving-hb",l:"Project algemeen",s:0}]}
-    };
-    const ALL_FIELDS = ["parking","phaseType","fixType","unitType","connType","mountType","locationType","panelCount","fuelType","location","condensStatus","elekStatus","replaceType","condensPump","strings","mppTrackers","boilerTech","boilerSize","bewoners","woningType","insulation","heatedFloors","totalSqm","buildYear","wallVatType","floorVatType","boilerTemp","fuelAmount","batType","batVerbruik","batProductie","batAfname","batInjectie"];
-    const unsub = window.fbDb.collection("bezoekrapport").orderBy("createdAt","desc").onSnapshot(snap => {
-      const raps = {};
-      snap.forEach(doc => {
-        const d = doc.data();
-        let iD = {};
-        try { iD = typeof d.itemData === "string" ? JSON.parse(d.itemData) : (d.itemData || {}); } catch(e) {}
-        const ct = d.completedTypes || [];
-        const del = d.deletedItems || [];
-        const sel = d.selected || [];
-        const types = {};
-        ct.forEach(tk => {
-          const def = TYPES_MAP[tk];
-          if (!def) return;
-          let pT = 0, iDn = 0, iTt = 0;
-          const items = def.items.filter(x => {
-            const sk = x.s ? x.k : tk + "_" + x.k;
-            return !del.includes(sk);
-          }).map(x => {
-            const sk = x.s ? x.k : tk + "_" + x.k;
-            const dd = iD[sk] || {};
-            const pc = dd.photoCount || (dd.storageUrls || []).length || 0;
-            pT += pc;
-            const row = { key: x.k, label: x.l, notes: dd.notes || "", _photoCount: pc, storageUrls: dd.storageUrls || [], photoMeta: dd.photoMeta || {} };
-            ALL_FIELDS.forEach(fk => { row[fk] = dd[fk] || null; iTt++; if (dd[fk]) iDn++; });
-            if (dd.boardType) row.boardType = dd.boardType;
-            if (dd.meterType) row.meterType = dd.meterType;
-            if (dd.dakTypes) row.dakTypes = dd.dakTypes;
-            if (dd.equipment) row.equipment = dd.equipment;
-            if (dd.ubinkChannels) row.ubinkChannels = dd.ubinkChannels;
-            if (dd.sqmRows) row.sqmRows = dd.sqmRows;
-            if (dd.radRows) row.radRows = dd.radRows;
-            if (dd.afbraak) row.afbraak = dd.afbraak;
-            if (dd.graafwerken) row.graafwerken = dd.graafwerken;
-            return row;
-          });
-          const pS = items.length > 0 ? Math.min(100, Math.round(pT / items.length * 100)) : 0;
-          const iS = iTt > 0 ? Math.round(iDn / iTt * 100) : 0;
-          types[tk] = { photo: pS, info: iS, completed: true, label: def.l, items };
-        });
-        if (Object.keys(types).length === 0) return;
-        raps[doc.id] = {
-          projectId: null,
-          klant: d.klantNaam || "Onbekend",
-          adres: d.klantAdres || "",
-          types,
-          items: iD,
-          ontvangen: d.createdAt ? new Date(d.createdAt).toLocaleString("nl-BE") : "",
-          dossierNr: null, pdf: false, gekoppeld: false,
-          firebaseId: doc.id
-        };
-      });
-      if (Object.keys(raps).length > 0) {
-        setBrRapporten(prev => {
-          const merged = { ...raps };
-          Object.entries(prev).forEach(([k, v]) => {
-            if (v.gekoppeld || v.projectId) merged[k] = v;
-          });
-          return merged;
-        });
-        setBrFirebase(true);
-      }
-    }, err => { console.warn("Firebase BR error:", err); });
-    return () => unsub();
-  }, []);
   const [fotoEditor, setFotoEditor] = useState(null);
   const [openRap, setOpenRap] = useState({});
   const [dragPhoto, setDragPhoto] = useState(null); // {rapId, fromKey, photoIdx, dataUrl} // {rapId, typeKey, itemKey, photos}
@@ -2891,7 +2892,7 @@ function BackofficePortal() {
               </div>
               <div style={{ display: "flex", gap: 12 }}>
                 {[
-                  { label: brFirebase?"\uD83D\uDD34 Live":"Totaal", val: Object.keys(brRapporten).length, color: brFirebase?"#22C55E":"#6366F1" },
+                  { label: "Totaal", val: Object.keys(brRapporten).length, color: "#6366F1" },
                   { label: "Gekoppeld", val: Object.values(brRapporten).filter(r => r.gekoppeld).length, color: "#22C55E" },
                   { label: "Open", val: Object.values(brRapporten).filter(r => !r.gekoppeld).length, color: "#F59E0B" },
                 ].map(s => (
@@ -3089,6 +3090,26 @@ function BackofficePortal() {
       {tab === "bezoekrapporten" && bewerkRapport && brRapporten[bewerkRapport] && (() => {
         const rap = brRapporten[bewerkRapport];
         const updateRap = (fn) => setBrRapporten(prev => ({ ...prev, [bewerkRapport]: fn(prev[bewerkRapport]) }));
+        const saveToFirebase = async () => {
+          if (!window.fbDb || !rap.firebaseId) return;
+          try {
+            const updatedItemData = {};
+            Object.entries(rap.types || {}).forEach(([tk, td]) => {
+              (td.items || []).forEach(item => {
+                const sk = item.key;
+                const fullSk = tk + "_" + sk;
+                const orig = (rap.items || {})[fullSk] || (rap.items || {})[sk] || {};
+                updatedItemData[fullSk] = { ...orig, notes: item.notes || "", parking: item.parking || null, phaseType: item.phaseType || null, fixType: item.fixType || null, unitType: item.unitType || null, connType: item.connType || null, mountType: item.mountType || null, locationType: item.locationType || null, location: item.location || null, condensStatus: item.condensStatus || null, elekStatus: item.elekStatus || null, fuelType: item.fuelType || null, replaceType: item.replaceType || null, condensPump: item.condensPump || null, boilerTech: item.boilerTech || null, boilerSize: item.boilerSize || null, panelCount: item.panelCount || null, strings: item.strings || null, mppTrackers: item.mppTrackers || null, storageUrls: item.storageUrls || orig.storageUrls || [] };
+              });
+            });
+            await window.fbDb.collection("bezoekrapport").doc(rap.firebaseId).update({
+              klantNaam: rap.klant,
+              klantAdres: rap.adres,
+              itemData: JSON.stringify(updatedItemData)
+            });
+            alert("Wijzigingen opgeslagen!");
+          } catch(e) { alert("Fout bij opslaan: " + e.message); }
+        };
         const koppelAanProject = () => {
           // Find matching project by klant name or let user pick
           const match = projecten.find(p => p.klant && rap.klant && p.klant.toLowerCase().includes(rap.klant.toLowerCase().split(" ")[0]));
@@ -3211,6 +3232,7 @@ function BackofficePortal() {
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 {!rap.gekoppeld && <button onClick={koppelAanProject} style={{ padding: "7px 14px", borderRadius: 6, border: `1px solid ${T.accent}`, background: "transparent", color: T.accent, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Koppelen</button>}
+                {rap.firebaseId && window.fbDb && <button onClick={saveToFirebase} style={{ padding: "7px 14px", borderRadius: 6, border: "none", background: "#22C55E", color: "#fff", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{String.fromCodePoint(0x1F4BE)} Opslaan</button>}
                 <button onClick={maakPdf} style={{ padding: "7px 14px", borderRadius: 6, border: "none", background: "#8B5CF6", color: "#fff", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
                   {String.fromCodePoint(0x1F4C4)} PDF
                 </button>
@@ -3235,7 +3257,7 @@ function BackofficePortal() {
                     {(typeData.items || []).map((item, idx) => {
                       const fullKey = typeKey + "_" + item.key;
                       const storedItem = (rap.items || {})[fullKey] || {};
-                      const photos = storedItem.photos || [];
+                      const photos = item.storageUrls && item.storageUrls.length > 0 ? item.storageUrls : (storedItem.storageUrls || storedItem.photos || []);
                       const filled = item.notes || item._photoCount > 0 || item.parking || item.phaseType || item.unitType || item.fixType;
                       const hasFields = item.parking || item.phaseType || item.unitType || item.fixType || item.connType || item.mountType || item.locationType || item.panelCount || item.fuelType || item.location || item.condensStatus || item.elekStatus;
                       return (
@@ -3282,23 +3304,67 @@ function BackofficePortal() {
                                 style={{ width: "100%", fontSize: 10, color: T.text5, border: `1px dashed ${T.border}`, borderRadius: 4, padding: "4px 8px", background: "transparent", outline: "none", fontFamily: "inherit" }} />
                             </div>
                           )}
-                          {/* Veld badges */}
-                          {hasFields && (
-                            <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginLeft: 26, marginBottom: 4 }}>
-                              {item.parking && <span style={{ fontSize: 9, padding: "2px 8px", borderRadius: 4, background: "#F59E0B12", color: "#B45309", fontWeight: 600, border: "1px solid #F59E0B20" }}>Parking: {item.parking}</span>}
-                              {item.phaseType && <span style={{ fontSize: 9, padding: "2px 8px", borderRadius: 4, background: "#3B82F612", color: "#1D4ED8", fontWeight: 600, border: "1px solid #3B82F620" }}>Fase: {item.phaseType}</span>}
-                              {item.unitType && <span style={{ fontSize: 9, padding: "2px 8px", borderRadius: 4, background: "#8B5CF612", color: "#6D28D9", fontWeight: 600, border: "1px solid #8B5CF620" }}>Unit: {item.unitType}</span>}
-                              {item.fixType && <span style={{ fontSize: 9, padding: "2px 8px", borderRadius: 4, background: "#22C55E12", color: "#15803D", fontWeight: 600, border: "1px solid #22C55E20" }}>Bevestiging: {item.fixType}</span>}
-                              {item.connType && <span style={{ fontSize: 9, padding: "2px 8px", borderRadius: 4, background: "#EC489912", color: "#BE185D", fontWeight: 600, border: "1px solid #EC489920" }}>Aansluiting: {item.connType}</span>}
-                              {item.mountType && <span style={{ fontSize: 9, padding: "2px 8px", borderRadius: 4, background: "#06B6D412", color: "#0E7490", fontWeight: 600, border: "1px solid #06B6D420" }}>Montage: {item.mountType}</span>}
-                              {item.locationType && <span style={{ fontSize: 9, padding: "2px 8px", borderRadius: 4, background: "#F9731612", color: "#C2410C", fontWeight: 600, border: "1px solid #F9731620" }}>Locatie: {item.locationType}</span>}
-                              {item.panelCount && <span style={{ fontSize: 9, padding: "2px 8px", borderRadius: 4, background: "#EAB30812", color: "#A16207", fontWeight: 600, border: "1px solid #EAB30820" }}>Panelen: {item.panelCount}</span>}
-                              {item.fuelType && <span style={{ fontSize: 9, padding: "2px 8px", borderRadius: 4, background: "#EF444412", color: "#DC2626", fontWeight: 600, border: "1px solid #EF444420" }}>Brandstof: {item.fuelType}</span>}
-                              {item.location && <span style={{ fontSize: 9, padding: "2px 8px", borderRadius: 4, background: "#10B98112", color: "#047857", fontWeight: 600, border: "1px solid #10B98120" }}>Locatie: {item.location}</span>}
-                              {item.condensStatus && <span style={{ fontSize: 9, padding: "2px 8px", borderRadius: 4, background: "#6366F112", color: "#4F46E5", fontWeight: 600, border: "1px solid #6366F120" }}>Condens: {item.condensStatus}</span>}
-                              {item.elekStatus && <span style={{ fontSize: 9, padding: "2px 8px", borderRadius: 4, background: "#A855F712", color: "#7C3AED", fontWeight: 600, border: "1px solid #A855F720" }}>Elek: {item.elekStatus}</span>}
-                            </div>
-                          )}
+                          {/* Bewerkbare velden */}
+                          {(() => {
+                            const fieldKeys = (BR_TYPE_FIELDS[typeKey] || {})[item.key] || [];
+                            if (fieldKeys.length === 0) return null;
+                            const setField = (fieldName, val) => {
+                              updateRap(r => {
+                                const types = { ...r.types };
+                                const items = [...(types[typeKey]?.items || [])];
+                                items[idx] = { ...items[idx], [fieldName]: items[idx][fieldName] === val ? null : val };
+                                types[typeKey] = { ...types[typeKey], items };
+                                return { ...r, types };
+                              });
+                            };
+                            return (
+                              <div style={{ marginLeft: 26, marginBottom: 6 }}>
+                                {fieldKeys.map(fk => {
+                                  const def = BR_FIELD_OPTIONS[fk];
+                                  if (!def) return null;
+                                  const cur = item[fk];
+                                  if (def.input === "number") {
+                                    return (
+                                      <div key={fk} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                                        <span style={{ fontSize: 10, color: def.color, fontWeight: 600, minWidth: 70 }}>{def.label}</span>
+                                        <input type="number" value={cur || ""} onChange={e => {
+                                          const v = e.target.value;
+                                          updateRap(r => {
+                                            const types = { ...r.types };
+                                            const items = [...(types[typeKey]?.items || [])];
+                                            items[idx] = { ...items[idx], [fk]: v };
+                                            types[typeKey] = { ...types[typeKey], items };
+                                            return { ...r, types };
+                                          });
+                                        }} style={{ width: 70, fontSize: 11, padding: "3px 6px", borderRadius: 4, border: `1px solid ${def.color}40`, background: `${def.color}08`, outline: "none", fontFamily: "inherit" }} />
+                                      </div>
+                                    );
+                                  }
+                                  return (
+                                    <div key={fk} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                                      <span style={{ fontSize: 10, color: def.color, fontWeight: 600, minWidth: 70 }}>{def.label}</span>
+                                      <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+                                        {def.options.map(([val, lbl]) => {
+                                          const active = cur === val;
+                                          return (
+                                            <button key={val} onClick={() => setField(fk, val)} style={{
+                                              fontSize: 10, padding: "3px 10px", borderRadius: 5,
+                                              border: `1px solid ${active ? def.color : "#E2E8F0"}`,
+                                              background: active ? `${def.color}18` : "transparent",
+                                              color: active ? def.color : "#64748B",
+                                              fontWeight: active ? 700 : 500,
+                                              cursor: "pointer", fontFamily: "inherit",
+                                              transition: "all .15s"
+                                            }}>{lbl}</button>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()}
                           {/* Foto's */}
                           {photos.length > 0 && (
                             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginLeft: 26, marginTop: 4 }}>
