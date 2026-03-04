@@ -846,21 +846,25 @@ function FotoEditor({ photos, onSave, onClose, T }) {
 
   const savePhoto = () => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) { alert("Geen canvas beschikbaar"); return; }
     try {
       const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
       const newPhotos = [...photos];
       newPhotos[currentIdx] = dataUrl;
       onSave(newPhotos);
       setHistory([]);
+      alert("Foto opgeslagen!");
     } catch(e) {
-      alert("Foto opslaan niet mogelijk (CORS). Annotaties worden niet bewaard op externe foto's.");
+      console.warn("Canvas CORS:", e);
+      alert("Annotaties opslaan niet mogelijk voor externe foto's. Gebruik 'Sluiten' om terug te gaan.");
     }
   };
 
   const deletePhoto = () => {
-    const newPhotos = photos.filter((_, i) => i !== currentIdx);
-    onSave(newPhotos);
+    if (!confirm("Foto verwijderen?")) return;
+    const newPhotos = [...photos].filter((_, i) => i !== currentIdx);
+    if (typeof onSave === "function") onSave(newPhotos);
+    if (newPhotos.length === 0) { onClose(); return; }
     setCurrentIdx(Math.max(0, currentIdx - 1));
     setHistory([]);
   };
@@ -971,10 +975,10 @@ function BackofficePortal() {
             return !del.includes(sk);
           }).map(x => {
             const sk = x.s ? x.k : tk + "_" + x.k;
-            const dd = iD[sk] || {};
+            const dd = iD[sk] || iD[tk + "_" + x.k] || {};
             const pc = dd.photoCount || (dd.storageUrls || []).length || 0;
             pT += pc;
-            const row = { key: x.k, label: x.l, notes: dd.notes || "", _photoCount: pc, storageUrls: dd.storageUrls || [] };
+            const row = { key: x.k, label: x.l, notes: dd.notes || "", _photoCount: pc, _checked: dd._checked || false, storageUrls: dd.storageUrls || [] };
             ALL_FIELDS.forEach(fk => { row[fk] = dd[fk] || null; iTt++; if (dd[fk]) iDn++; });
             if (dd.boardType) row.boardType = dd.boardType;
             if (dd.meterType) row.meterType = dd.meterType;
@@ -3194,13 +3198,17 @@ function BackofficePortal() {
         const saveToFirebase = async () => {
           if (!window.fbDb || !rap.firebaseId) return;
           try {
-            const updatedItemData = {};
+            const updatedItemData = { ...(rap.items || {}) };
             Object.entries(rap.types || {}).forEach(([tk, td]) => {
               (td.items || []).forEach(item => {
                 const sk = item.key;
                 const fullSk = tk + "_" + sk;
                 const orig = (rap.items || {})[fullSk] || (rap.items || {})[sk] || {};
-                updatedItemData[fullSk] = { ...orig, notes: item.notes || "", parking: item.parking || null, phaseType: item.phaseType || null, fixType: item.fixType || null, unitType: item.unitType || null, connType: item.connType || null, mountType: item.mountType || null, locationType: item.locationType || null, location: item.location || null, condensStatus: item.condensStatus || null, elekStatus: item.elekStatus || null, fuelType: item.fuelType || null, replaceType: item.replaceType || null, condensPump: item.condensPump || null, boilerTech: item.boilerTech || null, boilerSize: item.boilerSize || null, panelCount: item.panelCount || null, strings: item.strings || null, mppTrackers: item.mppTrackers || null, storageUrls: item.storageUrls || orig.storageUrls || [] };
+                const payload = { ...orig, notes: item.notes || "", _checked: item._checked || false, parking: item.parking || null, phaseType: item.phaseType || null, fixType: item.fixType || null, unitType: item.unitType || null, connType: item.connType || null, mountType: item.mountType || null, locationType: item.locationType || null, location: item.location || null, condensStatus: item.condensStatus || null, elekStatus: item.elekStatus || null, fuelType: item.fuelType || null, replaceType: item.replaceType || null, condensPump: item.condensPump || null, boilerTech: item.boilerTech || null, boilerSize: item.boilerSize || null, panelCount: item.panelCount || null, strings: item.strings || null, mppTrackers: item.mppTrackers || null, storageUrls: item.storageUrls || orig.storageUrls || [] };
+                updatedItemData[fullSk] = payload;
+                // Also save under shared key for compatibility
+                if ((rap.items || {})[sk]) updatedItemData[sk] = payload;
+              });
               });
             });
             await window.fbDb.collection("bezoekrapport").doc(rap.firebaseId).update({
@@ -3507,18 +3515,31 @@ function BackofficePortal() {
           T={T}
           onSave={(newPhotos, action) => {
             if (action && action.action === "move") return;
-            // Update photos in the rapport items
             const rapId = fotoEditor.rapId;
             const fullKey = fotoEditor.fullKey;
             setBrRapporten(prev => {
               const rap = { ...prev[rapId] };
+              // Update rap.items
               const items = { ...rap.items };
               if (items[fullKey]) {
-                items[fullKey] = { ...items[fullKey], photos: newPhotos, _photoCount: newPhotos.length };
+                items[fullKey] = { ...items[fullKey], photos: newPhotos, storageUrls: newPhotos, _photoCount: newPhotos.length };
               } else {
-                items[fullKey] = { photos: newPhotos, _photoCount: newPhotos.length };
+                items[fullKey] = { photos: newPhotos, storageUrls: newPhotos, _photoCount: newPhotos.length };
               }
-              return { ...prev, [rapId]: { ...rap, items } };
+              // Also update rap.types items storageUrls
+              const types = { ...rap.types };
+              const parts = fullKey.split("_");
+              const typeKey = parts[0];
+              const itemKey = parts.slice(1).join("_");
+              if (types[typeKey]) {
+                const typeItems = [...(types[typeKey].items || [])];
+                const ii = typeItems.findIndex(it => it.key === itemKey);
+                if (ii >= 0) {
+                  typeItems[ii] = { ...typeItems[ii], storageUrls: newPhotos, _photoCount: newPhotos.length };
+                  types[typeKey] = { ...types[typeKey], items: typeItems };
+                }
+              }
+              return { ...prev, [rapId]: { ...rap, items, types } };
             });
             setFotoEditor(fe => ({ ...fe, photos: newPhotos }));
           }}
