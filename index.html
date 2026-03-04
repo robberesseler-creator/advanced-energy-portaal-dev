@@ -708,6 +708,7 @@ function FotoEditor({ photos, onSave, onClose, T }) {
 
   const loadImage = (idx) => {
     const img = new Image();
+    img.crossOrigin = "anonymous";
     img.onload = () => {
       imgRef.current = img;
       const canvas = canvasRef.current;
@@ -715,6 +716,19 @@ function FotoEditor({ photos, onSave, onClose, T }) {
       canvas.width = img.width;
       canvas.height = img.height;
       redraw();
+    };
+    img.onerror = () => {
+      // Retry without crossOrigin for local/base64
+      const img2 = new Image();
+      img2.onload = () => {
+        imgRef.current = img2;
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        canvas.width = img2.width;
+        canvas.height = img2.height;
+        redraw();
+      };
+      img2.src = photos[idx];
     };
     img.src = photos[idx];
   };
@@ -833,11 +847,15 @@ function FotoEditor({ photos, onSave, onClose, T }) {
   const savePhoto = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
-    const newPhotos = [...photos];
-    newPhotos[currentIdx] = dataUrl;
-    onSave(newPhotos);
-    setHistory([]);
+    try {
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+      const newPhotos = [...photos];
+      newPhotos[currentIdx] = dataUrl;
+      onSave(newPhotos);
+      setHistory([]);
+    } catch(e) {
+      alert("Foto opslaan niet mogelijk (CORS). Annotaties worden niet bewaard op externe foto's.");
+    }
   };
 
   const deletePhoto = () => {
@@ -3059,7 +3077,7 @@ function BackofficePortal() {
                               <div style={{ background: T.bg, borderRadius: 8, border: `1px solid ${T.border}`, overflow: "hidden" }}>
                                 {(td.items || []).map((item, idx) => {
                                   const itemPhotos = ((rap.items || {})[tk + "_" + item.key] || {}).photos || [];
-                                  const filled = item.notes || item._photoCount > 0 || item.parking || item.phaseType || item.unitType || item.fixType || item.connType;
+                                  const filled = item._checked || item.notes || item._photoCount > 0 || item.parking || item.phaseType || item.unitType || item.fixType || item.connType;
                                   return (
                                     <div key={idx} style={{ padding: "8px 12px", borderBottom: idx < (td.items||[]).length-1 ? `1px solid ${T.border}` : "none",
                                       outline: dragPhoto ? "2px dashed transparent" : "none" }}
@@ -3341,12 +3359,21 @@ function BackofficePortal() {
                       const fullKey = typeKey + "_" + item.key;
                       const storedItem = (rap.items || {})[fullKey] || {};
                       const photos = item.storageUrls && item.storageUrls.length > 0 ? item.storageUrls : (storedItem.storageUrls || storedItem.photos || []);
-                      const filled = item.notes || item._photoCount > 0 || item.parking || item.phaseType || item.unitType || item.fixType;
+                      const filled = item._checked || item.notes || item._photoCount > 0 || item.parking || item.phaseType || item.unitType || item.fixType;
                       const hasFields = item.parking || item.phaseType || item.unitType || item.fixType || item.connType || item.mountType || item.locationType || item.panelCount || item.fuelType || item.location || item.condensStatus || item.elekStatus;
+                      const toggleChecked = () => {
+                        updateRap(r => {
+                          const types = { ...r.types };
+                          const items = [...(types[typeKey]?.items || [])];
+                          items[idx] = { ...items[idx], _checked: !items[idx]._checked };
+                          types[typeKey] = { ...types[typeKey], items };
+                          return { ...r, types };
+                        });
+                      };
                       return (
                         <div key={idx} style={{ padding: "10px 8px", borderBottom: idx < (typeData.items||[]).length-1 ? `1px solid ${T.border}` : "none" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                            <span style={{ width: 18, height: 18, borderRadius: 4, background: filled ? "#22C55E15" : T.border2, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: filled ? "#22C55E" : "#ccc", flexShrink: 0, border: `1px solid ${filled ? "#22C55E40" : T.border}` }}>
+                            <span onClick={toggleChecked} style={{ width: 18, height: 18, borderRadius: 4, background: filled ? "#22C55E15" : T.border2, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: filled ? "#22C55E" : "#ccc", flexShrink: 0, border: `1px solid ${filled ? "#22C55E40" : T.border}`, cursor: "pointer" }}>
                               {filled ? String.fromCodePoint(0x2713) : ""}
                             </span>
                             <span style={{ fontSize: 12, fontWeight: 600, color: T.text2 }}>{item.label}</span>
